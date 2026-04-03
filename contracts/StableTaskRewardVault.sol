@@ -30,11 +30,16 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
     IERC20 public immutable rewardToken;
     uint256 public nextTaskId;
     uint256 public publicTaskCreationFee;
+    uint256 public dailyTaskId;
+    bool public hasDailyTask;
 
     mapping(uint256 taskId => Task task) public tasks;
     mapping(uint256 taskId => mapping(address user => bool completed)) public isCompleted;
     mapping(uint256 taskId => mapping(address user => bool claimed)) public hasClaimedReward;
     mapping(uint256 taskId => mapping(address user => bool claimed)) public hasClaimedPoint;
+    mapping(uint256 taskId => mapping(address user => uint256 day => bool checkedIn)) public dailyCheckIns;
+    mapping(uint256 taskId => mapping(address user => uint256 day => bool claimed)) public dailyPointClaimed;
+    mapping(uint256 taskId => mapping(address user => uint256 day => bool claimed)) public dailyRewardClaimed;
 
     event TaskCreated(
         uint256 indexed taskId,
@@ -56,8 +61,10 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
     event PublicTaskCreationFeeUpdated(uint256 newFee);
     event VaultFunded(address indexed funder, uint256 amount);
     event NativeFeesWithdrawn(address indexed recipient, uint256 amount);
+    event DailyCheckIn(uint256 indexed taskId, address indexed user, uint256 indexed day);
 
     error DuplicateClaim(uint256 taskId, address user);
+    error DailyTaskAlreadyExists(uint256 taskId);
     error InvalidTask(uint256 taskId);
     error InvalidTaskType();
     error TaskInactive(uint256 taskId);
@@ -65,6 +72,10 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
     error ZeroAddress();
     error ZeroAmount();
     error IncorrectFee(uint256 expected, uint256 actual);
+
+    function currentDay() public view returns (uint256) {
+        return block.timestamp / 1 days;
+    }
 
     constructor(
         address rewardTokenAddress,
@@ -123,6 +134,27 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         emit TaskCompleted(taskId, user, msg.sender);
     }
 
+    function checkInDailyTask(uint256 taskId) external whenNotPaused {
+        Task memory task = tasks[taskId];
+        if (task.creator == address(0)) {
+            revert InvalidTask(taskId);
+        }
+        if (task.taskType != TaskType.DailyClaim) {
+            revert InvalidTaskType();
+        }
+        if (!task.active) {
+            revert TaskInactive(taskId);
+        }
+
+        uint256 day = currentDay();
+        if (dailyCheckIns[taskId][msg.sender][day]) {
+            revert DuplicateClaim(taskId, msg.sender);
+        }
+
+        dailyCheckIns[taskId][msg.sender][day] = true;
+        emit DailyCheckIn(taskId, msg.sender, day);
+    }
+
     function claimTaskPoint(uint256 taskId) external whenNotPaused {
         Task memory task = tasks[taskId];
         if (task.creator == address(0)) {
@@ -131,6 +163,25 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         if (!task.active) {
             revert TaskInactive(taskId);
         }
+        if (task.taskType == TaskType.DailyClaim) {
+            uint256 day = currentDay();
+            if (!dailyCheckIns[taskId][msg.sender][day]) {
+                revert TaskNotCompleted(taskId, msg.sender);
+            }
+            if (dailyPointClaimed[taskId][msg.sender][day]) {
+                revert DuplicateClaim(taskId, msg.sender);
+            }
+            if (task.pointReward == 0) {
+                revert ZeroAmount();
+            }
+
+            dailyPointClaimed[taskId][msg.sender][day] = true;
+            _mint(msg.sender, task.pointReward);
+
+            emit PointClaimed(taskId, msg.sender, task.pointReward);
+            return;
+        }
+
         if (!isCompleted[taskId][msg.sender]) {
             revert TaskNotCompleted(taskId, msg.sender);
         }
@@ -159,6 +210,25 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         if (!task.active) {
             revert TaskInactive(taskId);
         }
+        if (task.taskType == TaskType.DailyClaim) {
+            uint256 day = currentDay();
+            if (!dailyCheckIns[taskId][user][day]) {
+                revert TaskNotCompleted(taskId, user);
+            }
+            if (dailyRewardClaimed[taskId][user][day]) {
+                revert DuplicateClaim(taskId, user);
+            }
+            if (task.rewardAmount == 0) {
+                revert ZeroAmount();
+            }
+
+            dailyRewardClaimed[taskId][user][day] = true;
+            rewardToken.safeTransfer(user, task.rewardAmount);
+
+            emit RewardClaimed(taskId, user, address(rewardToken), task.rewardAmount);
+            return;
+        }
+
         if (!isCompleted[taskId][user]) {
             revert TaskNotCompleted(taskId, user);
         }
@@ -237,6 +307,9 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         if (pointReward == 0) {
             revert ZeroAmount();
         }
+        if (taskType == TaskType.DailyClaim && hasDailyTask) {
+            revert DailyTaskAlreadyExists(dailyTaskId);
+        }
 
         taskId = nextTaskId;
         nextTaskId += 1;
@@ -251,6 +324,11 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
             publicCreated: publicCreated,
             metadataURI: metadataURI
         });
+
+        if (taskType == TaskType.DailyClaim) {
+            hasDailyTask = true;
+            dailyTaskId = taskId;
+        }
 
         emit TaskCreated(
             taskId,

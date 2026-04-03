@@ -17,7 +17,7 @@ export function BottomNav(props: { items: BottomNavItem[] }) {
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center justify-between px-6 py-3">
         {props.items.map((item) => {
-          const isActive = pathname === item.href
+          const isActive = item.href === '/tasks' ? pathname === '/' || pathname === '/tasks' : pathname === item.href
           return (
             <Link
               key={item.label}

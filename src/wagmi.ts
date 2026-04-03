@@ -1,10 +1,4 @@
-import {
-  cookieStorage,
-  createConfig,
-  createStorage,
-  http,
-  injected,
-} from "wagmi";
+import { createConfig, http, injected } from "wagmi";
 import { celo, celoSepolia } from "wagmi/chains";
 
 export function getConfig() {

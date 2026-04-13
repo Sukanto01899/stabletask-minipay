@@ -1,74 +1,86 @@
-﻿'use client'
+'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useConnect, useConnectors, useConnection, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
-import { erc20Abi, parseUnits } from 'viem'
+import { useEffect, useState } from 'react'
+import {
+  useConnect,
+  useConnectors,
+  useConnection,
+  usePublicClient,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi'
+import { erc20Abi, formatEther, formatUnits, parseEther } from 'viem'
 
 import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
 import { ReferralCard } from '@/components/stabletask/ReferralCard'
 import { TaskCard } from '@/components/stabletask/TaskCard'
 import { stableTaskConfig } from '@/lib/app-config'
-import {
-  getFingerprint,
-  getLastClaim,
-  getSuspiciousCount,
-  hasClaimedTask,
-  loadFraudStore,
-  recordClaim,
-  recordSuspicious,
-  saveFraudStore,
-  type FraudStore,
-} from '@/lib/fraud'
 
-const tasks = [
-  {
-    id: 'daily-checkin',
-    title: 'Daily Stability Check-in',
-    description: 'Confirm your savings goal for today and earn instant cUSD.',
-    reward: '1.25',
-    tag: 'Daily',
-  },
-  {
-    id: 'invite-friend',
-    title: 'Invite a Friend',
-    description: 'Send your referral link and help a friend start earning.',
-    reward: '3.00',
-    tag: 'Boost',
-  },
-  {
-    id: 'learn-earn',
-    title: 'Learn & Earn: Stablecoins 101',
-    description: 'Complete the 3-minute lesson to unlock your reward.',
-    reward: '2.40',
-    tag: 'Learn',
-  },
-]
+const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-const CLAIM_STORAGE_KEY = 'stabletask.claimedTasks'
-const CUSTOM_TASKS_STORAGE_KEY = 'stabletask.customTasks'
-const COOLDOWN_MS = 24 * 60 * 60 * 1000
-const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220 | 11142220
+type TaskTypeOption = 'visit' | 'reading'
 
-type TaskTypeOption = 'visit' | 'daily' | 'reading'
-
-type TaskItem = {
-  id: string
+type TaskMetadata = {
   title: string
   description: string
-  reward: string
+  visitUrl?: string
+}
+
+type VaultTaskTuple = readonly [bigint, number, `0x${string}`, bigint, bigint, boolean, boolean, string]
+
+type OnchainTask = {
+  id: bigint
+  title: string
+  description: string
+  visitUrl?: string
+  rewardXp: string
+  rewardTokenAmount: string
   tag: string
-  taskType?: TaskTypeOption
-  isCustom?: boolean
+  taskType: number
+  active: boolean
+  isCompleted: boolean
+  hasClaimedPoint: boolean
+}
+
+type PendingAction = {
+  kind: 'create' | 'visit' | 'claim'
+  taskId?: bigint
+}
+
+function TaskSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-[1.75rem] border border-blue-200/70 bg-white/80 py-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+      <div className="space-y-3 px-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="h-5 w-40 animate-pulse rounded-full bg-blue-100" />
+          <div className="h-5 w-16 animate-pulse rounded-full bg-cyan-100" />
+        </div>
+        <div className="h-4 w-full animate-pulse rounded-full bg-slate-100" />
+        <div className="h-4 w-3/4 animate-pulse rounded-full bg-slate-100" />
+      </div>
+      <div className="mt-4 px-4">
+        <div className="rounded-2xl bg-gradient-to-r from-blue-50 via-cyan-50 to-sky-100 px-4 py-3">
+          <div className="h-3 w-14 animate-pulse rounded-full bg-blue-100" />
+          <div className="mt-2 h-7 w-28 animate-pulse rounded-full bg-white/80" />
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 px-4">
+        <div className="h-11 animate-pulse rounded-2xl bg-slate-100" />
+        <div className="h-11 animate-pulse rounded-2xl bg-blue-100" />
+      </div>
+    </div>
+  )
 }
 
 function getEthereumProvider() {
-  if (typeof window === 'undefined' || !(window as any).ethereum) {
+  if (typeof window === 'undefined' || !(window as Window & { ethereum?: unknown }).ethereum) {
     throw new Error('window.ethereum is required. Please run this app inside MiniPay.')
   }
-  return (window as any).ethereum
+  return (window as Window & { ethereum?: unknown }).ethereum
 }
 
-function useAutoConnect() {
+function useAutoConnect(isConnected: boolean) {
   const connectors = useConnectors()
   const { connect, error, isPending } = useConnect()
   const [hasAttempted, setHasAttempted] = useState(false)
@@ -76,6 +88,10 @@ function useAutoConnect() {
 
   useEffect(() => {
     if (hasAttempted) return
+    if (isConnected) {
+      setHasAttempted(true)
+      return
+    }
     try {
       getEthereumProvider()
     } catch {
@@ -83,118 +99,238 @@ function useAutoConnect() {
       setHasAttempted(true)
       return
     }
+
     const [primaryConnector] = connectors
     if (!primaryConnector) return
 
     const attemptConnect = async () => {
       try {
         await connect({ connector: primaryConnector })
-      } catch (err) {
-        console.error('Failed to connect:', err)
+      } catch (connectError) {
+        const message =
+          connectError instanceof Error ? connectError.message : String(connectError)
+        if (!message.toLowerCase().includes('already connected')) {
+          console.error('Failed to connect:', connectError)
+        }
       }
       setHasAttempted(true)
     }
 
-    attemptConnect()
-  }, [connectors, connect, hasAttempted])
+    void attemptConnect()
+  }, [connect, connectors, hasAttempted, isConnected])
 
   return { error, isPending, providerMissing }
 }
 
-function loadClaimedTasks(): string[] {
-  if (typeof window === 'undefined') return []
+function parseMetadataURI(metadataURI: string, fallbackId: bigint | number | undefined): TaskMetadata {
+  const normalizedId =
+    typeof fallbackId === 'bigint' ? fallbackId.toString() : typeof fallbackId === 'number' ? String(fallbackId) : '?'
+  const fallback: TaskMetadata = {
+    title: `Task #${normalizedId}`,
+    description: 'Onchain task created in StableTask.',
+  }
+
+  if (!metadataURI) return fallback
+
   try {
-    const raw = window.localStorage.getItem(CLAIM_STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    const payload = metadataURI.startsWith('data:application/json,')
+      ? decodeURIComponent(metadataURI.replace('data:application/json,', ''))
+      : metadataURI
+    const parsed = JSON.parse(payload) as Partial<TaskMetadata>
+
+    return {
+      title: parsed.title?.trim() || fallback.title,
+      description: parsed.description?.trim() || fallback.description,
+      visitUrl: parsed.visitUrl?.trim() || undefined,
+    }
   } catch {
-    return []
+    return fallback
   }
 }
 
-function loadCustomTasks(): TaskItem[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = window.localStorage.getItem(CUSTOM_TASKS_STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
+function encodeMetadataURI(metadata: TaskMetadata) {
+  return `data:application/json,${encodeURIComponent(JSON.stringify(metadata))}`
+}
+
+function getTaskTag(taskType: number) {
+  if (taskType === 0) return 'Visit'
+  if (taskType === 2) return 'Reading'
+  return 'Task'
 }
 
 export default function Page() {
   const { address, isConnected, isConnecting, chainId } = useConnection()
-  const { error: connectError, isPending, providerMissing } = useAutoConnect()
-  const { writeContractAsync, data: claimHash, error: writeError, isPending: isWritePending } = useWriteContract()
+  const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
+  const { error: connectError, isPending, providerMissing } = useAutoConnect(isConnected)
+  const { writeContractAsync, data: txHash, error: writeError, isPending: isWritePending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed, isError: isReceiptError } =
     useWaitForTransactionReceipt({
-      hash: claimHash,
-      query: { enabled: Boolean(claimHash) },
+      hash: txHash,
+      query: { enabled: Boolean(txHash) },
     })
-
   const isDev = process.env.NODE_ENV === 'development'
-  const [claimedTasks, setClaimedTasks] = useState<string[]>([])
-  const [activeClaimTaskId, setActiveClaimTaskId] = useState<string | null>(null)
-  const [claimError, setClaimError] = useState<string | null>(null)
-  const [failedTaskId, setFailedTaskId] = useState<string | null>(null)
-  const [fraudStore, setFraudStore] = useState<FraudStore>(() => ({ claims: [], suspicious: {} }))
-  const [customTasks, setCustomTasks] = useState<TaskItem[]>([])
+  const [tasks, setTasks] = useState<OnchainTask[]>([])
+  const [publicTaskCreationFee, setPublicTaskCreationFee] = useState<bigint>(BigInt(0))
+  const [xpBalance, setXpBalance] = useState('0')
+  const [isFetchingTasks, setIsFetchingTasks] = useState(false)
+  const [pageError, setPageError] = useState<string | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
-    reward: '0.10',
+    visitUrl: '',
+    rewardXp: '5',
+    rewardTokenAmount: '0',
     taskType: 'visit' as TaskTypeOption,
   })
+  const claimedTasksCount = tasks.filter((task) => task.hasClaimedPoint).length
+
+  async function loadTasks() {
+    if (!publicClient || stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
+      setTasks([])
+      return
+    }
+
+    setIsFetchingTasks(true)
+    try {
+      const [nextTaskIdResult, feeResult, xpBalanceRawResult] = await Promise.all([
+        publicClient.readContract({
+          address: stableTaskConfig.contracts.rewardVaultAddress,
+          abi: stableTaskConfig.contracts.rewardVaultAbi,
+          functionName: 'nextTaskId',
+        }),
+        publicClient.readContract({
+          address: stableTaskConfig.contracts.rewardVaultAddress,
+          abi: stableTaskConfig.contracts.rewardVaultAbi,
+          functionName: 'publicTaskCreationFee',
+        }),
+        address
+          ? publicClient.readContract({
+              address: stableTaskConfig.contracts.rewardVaultAddress,
+              abi: erc20Abi,
+              functionName: 'balanceOf',
+              args: [address],
+            })
+          : Promise.resolve(BigInt(0)),
+      ])
+
+      const nextTaskId = nextTaskIdResult as bigint
+      const fee = feeResult as bigint
+      const xpBalanceRaw = xpBalanceRawResult as bigint
+
+      setPublicTaskCreationFee(fee)
+      setXpBalance(formatUnits(xpBalanceRaw, 18))
+
+      const totalTasks = Number(nextTaskId)
+      if (!Number.isFinite(totalTasks) || totalTasks <= 0) {
+        setTasks([])
+        setPageError(null)
+        return
+      }
+
+      const loadedTasks = await Promise.all(
+        Array.from({ length: totalTasks }, async (_, index) => {
+          const taskId = BigInt(index)
+          const taskResult = await publicClient.readContract({
+            address: stableTaskConfig.contracts.rewardVaultAddress,
+            abi: stableTaskConfig.contracts.rewardVaultAbi,
+            functionName: 'tasks',
+            args: [taskId],
+          })
+          const [id, taskType, , pointReward, rewardAmount, active, , metadataURI] = taskResult as VaultTaskTuple
+
+          const metadata = parseMetadataURI(metadataURI, id ?? taskId)
+          const [isCompletedResult, hasClaimedPointResult] = address
+            ? await Promise.all([
+                publicClient.readContract({
+                  address: stableTaskConfig.contracts.rewardVaultAddress,
+                  abi: stableTaskConfig.contracts.rewardVaultAbi,
+                  functionName: 'isCompleted',
+                  args: [taskId, address],
+                }),
+                publicClient.readContract({
+                  address: stableTaskConfig.contracts.rewardVaultAddress,
+                  abi: stableTaskConfig.contracts.rewardVaultAbi,
+                  functionName: 'hasClaimedPoint',
+                  args: [taskId, address],
+                }),
+              ])
+            : [false, false]
+          const isCompleted = isCompletedResult as boolean
+          const hasClaimedPoint = hasClaimedPointResult as boolean
+
+          return {
+            id,
+            title: metadata.title,
+            description: metadata.description,
+            visitUrl: metadata.visitUrl,
+            rewardXp: formatUnits(pointReward, 18),
+            rewardTokenAmount: formatUnits(rewardAmount, stableTaskConfig.rewardToken.decimals),
+            tag: getTaskTag(taskType),
+            taskType,
+            active,
+            isCompleted,
+            hasClaimedPoint,
+          } satisfies OnchainTask
+        }),
+      )
+
+      setTasks(loadedTasks.filter((task) => task.active))
+      setPageError(null)
+    } catch (loadError) {
+      console.error('Failed to load tasks:', loadError)
+      setPageError('Failed to load tasks from the reward vault.')
+    } finally {
+      setIsFetchingTasks(false)
+    }
+  }
 
   useEffect(() => {
-    setClaimedTasks(loadClaimedTasks())
-    setFraudStore(loadFraudStore())
-    setCustomTasks(loadCustomTasks())
-  }, [])
+    void loadTasks()
+  }, [publicClient, address])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(CLAIM_STORAGE_KEY, JSON.stringify(claimedTasks))
-  }, [claimedTasks])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(CUSTOM_TASKS_STORAGE_KEY, JSON.stringify(customTasks))
-  }, [customTasks])
-
-  useEffect(() => {
-    saveFraudStore(fraudStore)
-  }, [fraudStore])
-
-  useEffect(() => {
-    if (!address) return
-    const walletClaims = fraudStore.claims.filter(
-      (claim) => claim.wallet.toLowerCase() === address.toLowerCase(),
-    )
-    setClaimedTasks(walletClaims.map((claim) => claim.taskId))
-  }, [fraudStore, address])
-
-  useEffect(() => {
-    if (!activeClaimTaskId) return
+    if (!pendingAction) return
     if (isConfirmed) {
-      setClaimedTasks((prev) => (prev.includes(activeClaimTaskId) ? prev : [...prev, activeClaimTaskId]))
-      setActiveClaimTaskId(null)
+      setPendingAction(null)
+      void loadTasks()
     }
-  }, [isConfirmed, activeClaimTaskId])
+  }, [isConfirmed, pendingAction])
 
   useEffect(() => {
-    if (!activeClaimTaskId) return
+    if (!pendingAction) return
     if (writeError || isReceiptError) {
-      setClaimError('Claim failed. Please try again.')
-      setFailedTaskId(activeClaimTaskId)
-      setActiveClaimTaskId(null)
+      setPageError(
+        pendingAction.kind === 'create'
+          ? 'Task creation failed. Please try again.'
+          : pendingAction.kind === 'visit'
+            ? 'Visit completion failed. Please try again.'
+            : 'XP claim failed. Please try again.',
+      )
+      setPendingAction(null)
     }
-  }, [writeError, isReceiptError, activeClaimTaskId])
+  }, [isReceiptError, pendingAction, writeError])
+
+  useEffect(() => {
+    if (!isCreateOpen) return
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !pendingAction) {
+        setIsCreateOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      window.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isCreateOpen, pendingAction])
 
   const errorMessage = providerMissing
     ? 'window.ethereum is required. Please run this app inside MiniPay.'
@@ -202,132 +338,157 @@ export default function Page() {
       ? connectError.message
       : undefined
 
-  const handleClaim = async (taskId: string) => {
+  const handleVisit = async (task: OnchainTask) => {
     if (!address || !isConnected) {
-      setClaimError('Connect your wallet to claim rewards.')
+      setPageError('Connect your wallet to visit and complete tasks.')
       return
     }
-    if (claimedTasks.includes(taskId) || activeClaimTaskId) return
-
-    const fingerprint = getFingerprint(address)
-    const lastClaim = getLastClaim(fraudStore, fingerprint)
-    const alreadyClaimed = hasClaimedTask(fraudStore, address, taskId)
-    const suspiciousCount = getSuspiciousCount(fraudStore, fingerprint)
-
-    if (suspiciousCount >= 3) {
-      setClaimError('Claims disabled due to suspicious activity.')
+    if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
+      setPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
       return
     }
-
-    if (alreadyClaimed) {
-      setClaimError('This task has already been claimed for this wallet.')
-      setFraudStore((prev) => recordSuspicious(prev, fingerprint))
-      return
-    }
-
-    if (lastClaim && Date.now() - lastClaim.timestamp < COOLDOWN_MS) {
-      setClaimError('Cooldown active. Try again in 24 hours.')
-      setFraudStore((prev) => recordSuspicious(prev, fingerprint))
-      return
-    }
-
     if (chainId !== ACTIVE_CHAIN_ID) {
-      setClaimError(`Switch to ${stableTaskConfig.chain.name} to claim rewards.`)
+      setPageError(`Switch to ${stableTaskConfig.chain.name} to continue.`)
       return
     }
+    if (pendingAction || task.isCompleted) return
 
-    setClaimError(null)
-    setFailedTaskId(null)
-    setActiveClaimTaskId(taskId)
+    if (task.visitUrl) {
+      window.open(task.visitUrl, '_blank', 'noopener,noreferrer')
+    }
 
-    await new Promise((resolve) => setTimeout(resolve, 600))
+    setPageError(null)
+    setPendingAction({ kind: 'visit', taskId: task.id })
 
     try {
       await writeContractAsync({
-        address: stableTaskConfig.rewardToken.address,
-        abi: erc20Abi,
-        functionName: 'transfer',
-        args: [address, parseUnits('0.1', stableTaskConfig.rewardToken.decimals)],
+        address: stableTaskConfig.contracts.rewardVaultAddress,
+        abi: stableTaskConfig.contracts.rewardVaultAbi,
+        functionName: 'selfCompleteTask',
+        args: [task.id],
         chainId: ACTIVE_CHAIN_ID,
       })
-      setFraudStore((prev) =>
-        recordClaim(prev, {
-          taskId,
-          wallet: address,
-          fingerprint,
-          timestamp: Date.now(),
-        }),
-      )
-    } catch (err) {
-      console.error('Claim failed:', err)
-      setClaimError('Claim failed. Please try again.')
-      setFailedTaskId(taskId)
-      setActiveClaimTaskId(null)
+    } catch (visitError) {
+      console.error('Visit completion failed:', visitError)
+      setPageError('Visit completion failed. Please try again.')
+      setPendingAction(null)
     }
   }
 
-  const claimStatus = useMemo(() => {
-    if (!activeClaimTaskId) return undefined
-    if (isWritePending || isConfirming) return 'pending'
-    if (writeError || isReceiptError) return 'error'
-    if (isConfirmed) return 'success'
-    return 'pending'
-  }, [activeClaimTaskId, isWritePending, isConfirming, writeError, isReceiptError, isConfirmed])
+  const handleClaim = async (task: OnchainTask) => {
+    if (!address || !isConnected) {
+      setPageError('Connect your wallet to claim XP.')
+      return
+    }
+    if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
+      setPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
+      return
+    }
+    if (chainId !== ACTIVE_CHAIN_ID) {
+      setPageError(`Switch to ${stableTaskConfig.chain.name} to claim XP.`)
+      return
+    }
+    if (pendingAction || task.hasClaimedPoint || !task.isCompleted) return
 
-  const suspiciousCount = useMemo(() => {
-    if (!address) return 0
-    return getSuspiciousCount(fraudStore, getFingerprint(address))
-  }, [fraudStore, address])
+    setPageError(null)
+    setPendingAction({ kind: 'claim', taskId: task.id })
 
-  const allTasks = useMemo<TaskItem[]>(() => [...customTasks, ...tasks], [customTasks])
+    try {
+      await writeContractAsync({
+        address: stableTaskConfig.contracts.rewardVaultAddress,
+        abi: stableTaskConfig.contracts.rewardVaultAbi,
+        functionName: 'claimTaskPoint',
+        args: [task.id],
+        chainId: ACTIVE_CHAIN_ID,
+      })
+    } catch (claimError) {
+      console.error('Claim failed:', claimError)
+      setPageError('XP claim failed. Please try again.')
+      setPendingAction(null)
+    }
+  }
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     const trimmedTitle = newTask.title.trim()
     const trimmedDescription = newTask.description.trim()
-    const rewardValue = Number(newTask.reward)
+    const trimmedVisitUrl = newTask.visitUrl.trim()
+    const xpReward = Number(newTask.rewardXp)
+    const rewardTokenAmount = Number(newTask.rewardTokenAmount)
 
-    if (!trimmedTitle || !trimmedDescription) {
-      setCreateError('Title and description are required.')
+    if (!trimmedTitle || !trimmedDescription || !trimmedVisitUrl) {
+      setCreateError('Title, description, and visit URL are required.')
       return
     }
-    if (!Number.isFinite(rewardValue) || rewardValue <= 0) {
-      setCreateError('Reward must be greater than 0.')
+    if (!/^https?:\/\//i.test(trimmedVisitUrl)) {
+      setCreateError('Visit URL must start with http:// or https://.')
+      return
+    }
+    if (!Number.isFinite(xpReward) || xpReward <= 0) {
+      setCreateError('XP reward must be greater than 0.')
+      return
+    }
+    if (!Number.isFinite(rewardTokenAmount) || rewardTokenAmount < 0) {
+      setCreateError('Reward token amount must be 0 or greater.')
+      return
+    }
+    if (!address || !isConnected) {
+      setCreateError('Connect your wallet to create a task.')
+      return
+    }
+    if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
+      setCreateError('Set your vault address in src/lib/contracts.ts first.')
+      return
+    }
+    if (chainId !== ACTIVE_CHAIN_ID) {
+      setCreateError(`Switch to ${stableTaskConfig.chain.name} to create tasks.`)
       return
     }
 
-    const tagMap: Record<TaskTypeOption, string> = {
-      visit: 'Visit',
-      daily: 'Daily',
-      reading: 'Reading',
-    }
-
-    setCustomTasks((prev) => [
-      {
-        id: `custom-${Date.now()}`,
-        title: trimmedTitle,
-        description: trimmedDescription,
-        reward: rewardValue.toFixed(2),
-        tag: tagMap[newTask.taskType],
-        taskType: newTask.taskType,
-        isCustom: true,
-      },
-      ...prev,
-    ])
-    setNewTask({
-      title: '',
-      description: '',
-      reward: '0.10',
-      taskType: 'visit',
-    })
     setCreateError(null)
-    setIsCreateOpen(false)
+    setPageError(null)
+    setPendingAction({ kind: 'create' })
+
+    try {
+      await writeContractAsync(
+        {
+          address: stableTaskConfig.contracts.rewardVaultAddress,
+          abi: stableTaskConfig.contracts.rewardVaultAbi,
+          functionName: 'createPublicTask',
+          args: [
+            newTask.taskType === 'visit' ? 0 : 2,
+            parseEther(newTask.rewardXp),
+            parseEther(newTask.rewardTokenAmount),
+            encodeMetadataURI({
+              title: trimmedTitle,
+              description: trimmedDescription,
+              visitUrl: trimmedVisitUrl,
+            }),
+          ],
+          value: publicTaskCreationFee,
+          chainId: ACTIVE_CHAIN_ID,
+        } as never,
+      )
+      setNewTask({
+        title: '',
+        description: '',
+        visitUrl: '',
+        rewardXp: '5',
+        rewardTokenAmount: '0',
+        taskType: 'visit',
+      })
+      setIsCreateOpen(false)
+    } catch (creationError) {
+      console.error('Task creation failed:', creationError)
+      setCreateError('Task creation failed. Please try again.')
+      setPendingAction(null)
+    }
   }
 
   if ((isConnecting || isPending) && !isConnected) {
     return (
       <LoadingScreen
         title="Connecting wallet..."
-        subtitle="Preparing your wallet session for rewards."
+        subtitle="Preparing your wallet session for onchain tasks."
         debug={
           isDev
             ? {
@@ -355,25 +516,45 @@ export default function Page() {
             {errorMessage}
           </p>
         )}
+        {pageError && (
+          <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+            {pageError}
+          </p>
+        )}
 
         <section className="relative overflow-hidden rounded-[2rem] border border-blue-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(224,242,254,0.98)_60%,rgba(191,219,254,0.95))] px-5 py-5 shadow-[0_24px_60px_rgba(37,99,235,0.14)]">
           <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-blue-400/20 blur-2xl" />
           <div className="pointer-events-none absolute -left-6 bottom-0 h-24 w-24 rounded-full bg-cyan-300/25 blur-2xl" />
           <div className="relative flex items-start justify-between gap-3">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">Today&apos;s Pulse</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">Vault Tasks</div>
               <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-slate-950">
-                Earn steady cUSD with brighter daily actions.
+                Create tasks, visit, then claim XP onchain.
               </h2>
               <p className="mt-2 max-w-[16rem] text-sm text-slate-600">
-                Pick a task, submit the claim, and keep your rewards flow active on Celo.
+                This screen reads tasks from the reward vault contract and lets users claim the vault ERC20 XP token.
               </p>
             </div>
             <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 text-right shadow-sm backdrop-blur">
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">Available</div>
-              <div className="mt-1 text-2xl font-bold text-blue-700">{allTasks.length}</div>
-              <div className="text-xs text-slate-500">tasks</div>
+              <div className="mt-1 text-2xl font-bold text-blue-700">{tasks.length}</div>
+              <div className="text-xs text-slate-500">tasks live</div>
             </div>
+          </div>
+          <div className="relative mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 backdrop-blur">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">Earned XP</div>
+              <div className="mt-1 text-xl font-bold text-slate-950">{xpBalance}</div>
+              <div className="text-xs text-slate-500">claimed from completed tasks</div>
+            </div>
+            <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 backdrop-blur">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">XP Claimed</div>
+              <div className="mt-1 text-xl font-bold text-slate-950">{claimedTasksCount}</div>
+              <div className="text-xs text-slate-500">tasks paid out</div>
+            </div>
+          </div>
+          <div className="relative mt-3 rounded-2xl border border-blue-100/80 bg-white/60 px-4 py-3 text-sm text-slate-600 backdrop-blur">
+            Public task fee: <span className="font-semibold text-slate-950">{formatEther(publicTaskCreationFee)} CELO</span>
           </div>
         </section>
 
@@ -382,119 +563,63 @@ export default function Page() {
             <h2 className="text-lg font-semibold text-slate-950">Task List</h2>
             <button
               type="button"
-              onClick={() => setIsCreateOpen((prev) => !prev)}
+              onClick={() => {
+                setCreateError(null)
+                setIsCreateOpen(true)
+              }}
               className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-50"
             >
-              {isCreateOpen ? 'Close' : 'Create Task'}
+              Create Task
             </button>
           </div>
-          {isCreateOpen && (
-            <div className="space-y-3 rounded-[1.75rem] border border-blue-200/70 bg-white/85 p-4 shadow-[0_18px_50px_rgba(59,130,246,0.08)] backdrop-blur-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-slate-950">Create a task</div>
-                  <div className="text-xs text-slate-500">
-                    Add a visit, daily claim, or reading task to this wallet.
-                  </div>
-                </div>
-                <div className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700">
-                  Local
-                </div>
-              </div>
-              <div className="grid gap-3">
-                <input
-                  value={newTask.title}
-                  onChange={(event) =>
-                    setNewTask((prev) => ({
-                      ...prev,
-                      title: event.target.value,
-                    }))
-                  }
-                  placeholder="Task title"
-                  className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
-                />
-                <textarea
-                  value={newTask.description}
-                  onChange={(event) =>
-                    setNewTask((prev) => ({
-                      ...prev,
-                      description: event.target.value,
-                    }))
-                  }
-                  placeholder="Describe what the user must do"
-                  rows={3}
-                  className="rounded-2xl border border-blue-200 bg-slate-50/80 px-3 py-2 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
-                />
-                <div className="grid grid-cols-[1fr_112px] gap-3">
-                  <select
-                    value={newTask.taskType}
-                    onChange={(event) =>
-                      setNewTask((prev) => ({
-                        ...prev,
-                        taskType: event.target.value as TaskTypeOption,
-                      }))
-                    }
-                    className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none focus:border-blue-400"
-                  >
-                    <option value="visit">Visit task</option>
-                    <option value="daily">Daily claim</option>
-                    <option value="reading">Reading task</option>
-                  </select>
-                  <input
-                    value={newTask.reward}
-                    onChange={(event) =>
-                      setNewTask((prev) => ({
-                        ...prev,
-                        reward: event.target.value,
-                      }))
-                    }
-                    inputMode="decimal"
-                    placeholder="0.10"
-                    className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
-                  />
-                </div>
-                {createError && <p className="text-xs text-destructive">{createError}</p>}
-                <button
-                  type="button"
-                  onClick={handleCreateTask}
-                  className="h-11 rounded-2xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
-                >
-                  Save task
-                </button>
-              </div>
-            </div>
-          )}
           <div className="grid gap-4">
-            {allTasks.map((task) => {
-              const isClaimed = claimedTasks.includes(task.id)
-              const isActive = activeClaimTaskId === task.id
-              const status = isActive
-                ? claimStatus
-                : isClaimed
-                  ? 'success'
-                  : failedTaskId === task.id
-                    ? 'error'
+            {isFetchingTasks && (
+              <>
+                <TaskSkeleton />
+                <TaskSkeleton />
+                <TaskSkeleton />
+              </>
+            )}
+            {!isFetchingTasks && tasks.length === 0 && (
+              <div className="rounded-[1.75rem] border border-blue-200/70 bg-white/80 px-4 py-5 text-sm text-slate-500 shadow-sm">
+                No onchain tasks found yet. Set the vault address in `src/lib/contracts.ts` and create the first task.
+              </div>
+            )}
+            {tasks.map((task) => {
+              const isPendingThisTask = pendingAction?.taskId === task.id
+              const visitState =
+                isPendingThisTask && pendingAction?.kind === 'visit'
+                  ? 'pending'
+                  : task.isCompleted
+                    ? 'success'
                     : 'idle'
-              const helperText =
-                status === 'success'
-                  ? 'Reward claimed.'
-                  : status === 'pending'
-                    ? 'Submitting reward...'
-                    : status === 'error'
-                      ? claimError ?? 'Claim failed.'
-                      : undefined
-              const disableForFraud = suspiciousCount >= 3
+              const claimState =
+                isPendingThisTask && pendingAction?.kind === 'claim'
+                  ? 'pending'
+                  : task.hasClaimedPoint
+                    ? 'success'
+                    : 'idle'
+              const helperText = task.hasClaimedPoint
+                ? 'XP already claimed.'
+                : task.isCompleted
+                  ? `Ready to claim ${task.rewardXp} XP.`
+                  : 'Visit first to enable the XP claim.'
 
               return (
                 <TaskCard
-                  key={task.id}
+                  key={task.id.toString()}
                   title={task.title}
                   description={task.description}
-                  reward={task.reward}
+                  reward={`${task.rewardXp} XP`}
                   tag={task.tag}
-                  onClaim={() => handleClaim(task.id)}
-                  claimState={status}
-                  claimDisabled={Boolean(activeClaimTaskId) || isWritePending || isConfirming || disableForFraud}
+                  visitHref={task.visitUrl}
+                  onVisit={() => handleVisit(task)}
+                  onClaim={() => handleClaim(task)}
+                  isVisited={task.isCompleted}
+                  visitState={visitState}
+                  claimState={claimState}
+                  visitDisabled={Boolean(pendingAction) || isWritePending || isConfirming || task.hasClaimedPoint}
+                  claimDisabled={Boolean(pendingAction) || isWritePending || isConfirming || !task.isCompleted}
                   helperText={helperText}
                 />
               )
@@ -507,6 +632,143 @@ export default function Page() {
           <ReferralCard code="STABLE-5X2P" reward="0.75" />
         </section>
       </main>
+
+      {isCreateOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 px-4 pb-4 pt-10 backdrop-blur-sm sm:items-center"
+          onClick={() => {
+            if (!pendingAction) {
+              setIsCreateOpen(false)
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-[2rem] border border-blue-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.98))] p-5 shadow-[0_30px_90px_rgba(15,23,42,0.28)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-950">Create a task</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Create a public visit or reading task directly in the vault.
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700">
+                  Onchain
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  disabled={Boolean(pendingAction)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-200 bg-white text-lg text-slate-500 transition hover:bg-blue-50 disabled:opacity-60"
+                  aria-label="Close create task modal"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <input
+                value={newTask.title}
+                onChange={(event) =>
+                  setNewTask((prev) => ({
+                    ...prev,
+                    title: event.target.value,
+                  }))
+                }
+                placeholder="Task title"
+                className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+              />
+              <textarea
+                value={newTask.description}
+                onChange={(event) =>
+                  setNewTask((prev) => ({
+                    ...prev,
+                    description: event.target.value,
+                  }))
+                }
+                placeholder="Describe what the user must do"
+                rows={3}
+                className="rounded-2xl border border-blue-200 bg-slate-50/80 px-3 py-2 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+              />
+              <input
+                value={newTask.visitUrl}
+                onChange={(event) =>
+                  setNewTask((prev) => ({
+                    ...prev,
+                    visitUrl: event.target.value,
+                  }))
+                }
+                placeholder="https://example.com/task"
+                className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+              />
+              <div className="grid grid-cols-[1fr_112px] gap-3">
+                <select
+                  value={newTask.taskType}
+                  onChange={(event) =>
+                    setNewTask((prev) => ({
+                      ...prev,
+                      taskType: event.target.value as TaskTypeOption,
+                    }))
+                  }
+                  className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none focus:border-blue-400"
+                >
+                  <option value="visit">Visit task</option>
+                  <option value="reading">Reading task</option>
+                </select>
+                <input
+                  value={newTask.rewardXp}
+                  onChange={(event) =>
+                    setNewTask((prev) => ({
+                      ...prev,
+                      rewardXp: event.target.value,
+                    }))
+                  }
+                  inputMode="decimal"
+                  placeholder="5"
+                  className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+                />
+              </div>
+              <input
+                value={newTask.rewardTokenAmount}
+                onChange={(event) =>
+                  setNewTask((prev) => ({
+                    ...prev,
+                    rewardTokenAmount: event.target.value,
+                  }))
+                }
+                inputMode="decimal"
+                placeholder="Optional external reward amount"
+                className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+              />
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs text-slate-600">
+                Users can create, visit, and claim vault XP here. External reward-token payouts still remain owner-only in the current contract.
+              </div>
+              {createError && <p className="text-xs text-destructive">{createError}</p>}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  disabled={Boolean(pendingAction)}
+                  className="h-11 rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateTask}
+                  disabled={Boolean(pendingAction)}
+                  className="h-11 rounded-2xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {pendingAction?.kind === 'create' ? 'Creating...' : 'Save task'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

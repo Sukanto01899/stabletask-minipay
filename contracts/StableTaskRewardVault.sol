@@ -28,18 +28,21 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
     }
 
     IERC20 public immutable rewardToken;
+    uint256 public constant TAP_XP_REWARD = 1 ether;
+    uint256 public constant DAILY_TAP_LIMIT = 1000;
     uint256 public nextTaskId;
     uint256 public publicTaskCreationFee;
     uint256 public dailyTaskId;
     bool public hasDailyTask;
 
-    mapping(uint256 taskId => Task task) public tasks;
-    mapping(uint256 taskId => mapping(address user => bool completed)) public isCompleted;
-    mapping(uint256 taskId => mapping(address user => bool claimed)) public hasClaimedReward;
-    mapping(uint256 taskId => mapping(address user => bool claimed)) public hasClaimedPoint;
-    mapping(uint256 taskId => mapping(address user => uint256 day => bool checkedIn)) public dailyCheckIns;
-    mapping(uint256 taskId => mapping(address user => uint256 day => bool claimed)) public dailyPointClaimed;
-    mapping(uint256 taskId => mapping(address user => uint256 day => bool claimed)) public dailyRewardClaimed;
+    mapping(uint256 => Task) public tasks;
+    mapping(address => mapping(uint256 => uint256)) public dailyTapCount;
+    mapping(uint256 => mapping(address => bool)) public isCompleted;
+    mapping(uint256 => mapping(address => bool)) public hasClaimedReward;
+    mapping(uint256 => mapping(address => bool)) public hasClaimedPoint;
+    mapping(uint256 => mapping(address => mapping(uint256 => bool))) public dailyCheckIns;
+    mapping(uint256 => mapping(address => mapping(uint256 => bool))) public dailyPointClaimed;
+    mapping(uint256 => mapping(address => mapping(uint256 => bool))) public dailyRewardClaimed;
 
     event TaskCreated(
         uint256 indexed taskId,
@@ -62,6 +65,7 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
     event VaultFunded(address indexed funder, uint256 amount);
     event NativeFeesWithdrawn(address indexed recipient, uint256 amount);
     event DailyCheckIn(uint256 indexed taskId, address indexed user, uint256 indexed day);
+    event TapRecorded(address indexed user, uint256 indexed day, uint256 tapCount, uint256 xpAmount);
 
     error DuplicateClaim(uint256 taskId, address user);
     error DailyTaskAlreadyExists(uint256 taskId);
@@ -72,6 +76,7 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
     error ZeroAddress();
     error ZeroAmount();
     error IncorrectFee(uint256 expected, uint256 actual);
+    error DailyTapLimitReached(address user, uint256 day);
 
     function currentDay() public view returns (uint256) {
         return block.timestamp / 1 days;
@@ -172,6 +177,37 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
 
         dailyCheckIns[taskId][msg.sender][day] = true;
         emit DailyCheckIn(taskId, msg.sender, day);
+    }
+
+    function tap() external whenNotPaused returns (uint256 tapCount) {
+        uint256 day = currentDay();
+        tapCount = dailyTapCount[msg.sender][day];
+        if (tapCount >= DAILY_TAP_LIMIT) {
+            revert DailyTapLimitReached(msg.sender, day);
+        }
+
+        tapCount += 1;
+        dailyTapCount[msg.sender][day] = tapCount;
+        _mint(msg.sender, TAP_XP_REWARD);
+
+        emit TapRecorded(msg.sender, day, tapCount, TAP_XP_REWARD);
+    }
+
+    function tapsToday(address user) public view returns (uint256) {
+        if (user == address(0)) {
+            return 0;
+        }
+
+        return dailyTapCount[user][currentDay()];
+    }
+
+    function remainingTaps(address user) external view returns (uint256) {
+        uint256 used = tapsToday(user);
+        if (used >= DAILY_TAP_LIMIT) {
+            return 0;
+        }
+
+        return DAILY_TAP_LIMIT - used;
     }
 
     function claimTaskPoint(uint256 taskId) external whenNotPaused {

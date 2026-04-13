@@ -1,6 +1,6 @@
 export const stableTaskRewardVaultAddress = (process.env
   .NEXT_PUBLIC_STABLE_TASK_VAULT_ADDRESS ??
-  "0x7260e798a6Ee69f5d44A67667c944BdbE6A3736e") as `0x${string}`;
+  "0xb42263e3696966a625d80640C24ee04908897D68") as `0x${string}`;
 
 export const stableTaskRewardVaultAbi = [
   {

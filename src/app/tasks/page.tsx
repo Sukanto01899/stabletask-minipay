@@ -343,7 +343,7 @@ export default function Page() {
   return (
     <div>
       {isDev && (
-        <div className="fixed bottom-20 left-4 z-50 rounded-full border border-border/60 bg-background/90 px-3 py-1 text-xs shadow">
+        <div className="fixed bottom-20 left-4 z-50 rounded-full border border-blue-200/70 bg-white/90 px-3 py-1 text-xs shadow">
           <span>connected: {isConnected ? 'yes' : 'no'}</span>
           <span className="mx-2 text-muted-foreground">|</span>
           <span>chainId: {chainId ?? '—'}</span>
@@ -356,27 +356,48 @@ export default function Page() {
           </p>
         )}
 
+        <section className="relative overflow-hidden rounded-[2rem] border border-blue-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(224,242,254,0.98)_60%,rgba(191,219,254,0.95))] px-5 py-5 shadow-[0_24px_60px_rgba(37,99,235,0.14)]">
+          <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-blue-400/20 blur-2xl" />
+          <div className="pointer-events-none absolute -left-6 bottom-0 h-24 w-24 rounded-full bg-cyan-300/25 blur-2xl" />
+          <div className="relative flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">Today&apos;s Pulse</div>
+              <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-slate-950">
+                Earn steady cUSD with brighter daily actions.
+              </h2>
+              <p className="mt-2 max-w-[16rem] text-sm text-slate-600">
+                Pick a task, submit the claim, and keep your rewards flow active on Celo.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 text-right shadow-sm backdrop-blur">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">Available</div>
+              <div className="mt-1 text-2xl font-bold text-blue-700">{allTasks.length}</div>
+              <div className="text-xs text-slate-500">tasks</div>
+            </div>
+          </div>
+        </section>
+
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Task List</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Task List</h2>
             <button
               type="button"
               onClick={() => setIsCreateOpen((prev) => !prev)}
-              className="rounded-full border border-border/60 bg-card px-3 py-1 text-xs font-medium text-foreground transition hover:bg-muted"
+              className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-50"
             >
               {isCreateOpen ? 'Close' : 'Create Task'}
             </button>
           </div>
           {isCreateOpen && (
-            <div className="space-y-3 rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
+            <div className="space-y-3 rounded-[1.75rem] border border-blue-200/70 bg-white/85 p-4 shadow-[0_18px_50px_rgba(59,130,246,0.08)] backdrop-blur-sm">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold">Create a task</div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-sm font-semibold text-slate-950">Create a task</div>
+                  <div className="text-xs text-slate-500">
                     Add a visit, daily claim, or reading task to this wallet.
                   </div>
                 </div>
-                <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                <div className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700">
                   Local
                 </div>
               </div>
@@ -390,7 +411,7 @@ export default function Page() {
                     }))
                   }
                   placeholder="Task title"
-                  className="h-10 rounded-2xl border border-border bg-background px-3 text-sm outline-none ring-0 placeholder:text-muted-foreground"
+                  className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
                 />
                 <textarea
                   value={newTask.description}
@@ -402,7 +423,7 @@ export default function Page() {
                   }
                   placeholder="Describe what the user must do"
                   rows={3}
-                  className="rounded-2xl border border-border bg-background px-3 py-2 text-sm outline-none ring-0 placeholder:text-muted-foreground"
+                  className="rounded-2xl border border-blue-200 bg-slate-50/80 px-3 py-2 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
                 />
                 <div className="grid grid-cols-[1fr_112px] gap-3">
                   <select
@@ -413,7 +434,7 @@ export default function Page() {
                         taskType: event.target.value as TaskTypeOption,
                       }))
                     }
-                    className="h-10 rounded-2xl border border-border bg-background px-3 text-sm outline-none"
+                    className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none focus:border-blue-400"
                   >
                     <option value="visit">Visit task</option>
                     <option value="daily">Daily claim</option>
@@ -429,14 +450,14 @@ export default function Page() {
                     }
                     inputMode="decimal"
                     placeholder="0.10"
-                    className="h-10 rounded-2xl border border-border bg-background px-3 text-sm outline-none ring-0 placeholder:text-muted-foreground"
+                    className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
                   />
                 </div>
                 {createError && <p className="text-xs text-destructive">{createError}</p>}
                 <button
                   type="button"
                   onClick={handleCreateTask}
-                  className="h-10 rounded-2xl bg-foreground px-4 text-sm font-semibold text-background transition hover:opacity-90"
+                  className="h-11 rounded-2xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
                 >
                   Save task
                 </button>
@@ -482,7 +503,7 @@ export default function Page() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Referral</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Referral</h2>
           <ReferralCard code="STABLE-5X2P" reward="0.75" />
         </section>
       </main>

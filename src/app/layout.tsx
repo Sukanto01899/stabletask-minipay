@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Manrope, Space_Grotesk } from "next/font/google";
 import { headers } from "next/headers";
 import { type ReactNode } from "react";
 import { cookieToInitialState } from "wagmi";
@@ -9,7 +9,15 @@ import { getConfig } from "../wagmi";
 import { Providers } from "./providers";
 import { AppShell } from "@/components/stabletask/AppShell";
 
-const inter = Inter({ subsets: ["latin"] });
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-heading",
+});
 
 export const metadata: Metadata = {
   title: "StableTask",
@@ -27,7 +35,7 @@ export default async function RootLayout(props: { children: ReactNode }) {
   );
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${manrope.variable} ${spaceGrotesk.variable}`}>
         <Providers initialState={initialState}>
           <AppShell>{props.children}</AppShell>
         </Providers>

@@ -20,21 +20,27 @@ export function TaskCard(props: TaskCardProps) {
   const buttonLabel = isClaimed ? 'Claimed' : isPending ? 'Claiming...' : 'Claim'
 
   return (
-    <Card className="border-border/60">
+    <Card className="rounded-[1.75rem] border border-white/70 bg-white/80 py-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-sm">
       <CardHeader className="space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-lg font-semibold">{props.title}</div>
-          {props.tag && <Badge className="bg-slate-100 text-slate-900">{props.tag}</Badge>}
+          <div className="text-lg font-semibold text-slate-900">{props.title}</div>
+          {props.tag && (
+            <Badge className="border border-blue-200 bg-blue-50 text-blue-700 shadow-sm">
+              {props.tag}
+            </Badge>
+          )}
         </div>
-        <div className="text-sm text-muted-foreground">{props.description}</div>
+        <div className="text-sm text-slate-600">{props.description}</div>
       </CardHeader>
       <CardContent>
-        <div className="text-sm text-muted-foreground">Reward</div>
-        <div className="text-2xl font-semibold">{props.reward} cUSD</div>
+        <div className="rounded-2xl bg-gradient-to-r from-blue-50 via-cyan-50 to-sky-100 px-4 py-3">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700/70">Reward</div>
+          <div className="mt-1 text-2xl font-semibold text-slate-950">{props.reward} cUSD</div>
+        </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-2">
         <Button
-          className="w-full"
+          className="h-11 w-full rounded-2xl text-sm font-semibold shadow-[0_14px_30px_rgba(37,99,235,0.2)]"
           onClick={props.onClaim}
           disabled={props.claimDisabled || isClaimed}
           variant={isClaimed ? 'secondary' : 'default'}
@@ -42,7 +48,7 @@ export function TaskCard(props: TaskCardProps) {
           {buttonLabel}
         </Button>
         {props.helperText && (
-          <div className={cn('text-xs', props.claimState === 'error' ? 'text-destructive' : 'text-muted-foreground')}>
+          <div className={cn('text-xs', props.claimState === 'error' ? 'text-destructive' : 'text-slate-500')}>
             {props.helperText}
           </div>
         )}

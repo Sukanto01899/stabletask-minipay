@@ -134,6 +134,25 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         emit TaskCompleted(taskId, user, msg.sender);
     }
 
+    function selfCompleteTask(uint256 taskId) external whenNotPaused {
+        Task memory task = tasks[taskId];
+        if (task.creator == address(0)) {
+            revert InvalidTask(taskId);
+        }
+        if (!task.active) {
+            revert TaskInactive(taskId);
+        }
+        if (task.taskType == TaskType.DailyClaim) {
+            revert InvalidTaskType();
+        }
+        if (isCompleted[taskId][msg.sender]) {
+            revert DuplicateClaim(taskId, msg.sender);
+        }
+
+        isCompleted[taskId][msg.sender] = true;
+        emit TaskCompleted(taskId, msg.sender, msg.sender);
+    }
+
     function checkInDailyTask(uint256 taskId) external whenNotPaused {
         Task memory task = tasks[taskId];
         if (task.creator == address(0)) {

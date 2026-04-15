@@ -5,43 +5,21 @@ import {
   useConnect,
   useConnectors,
   useConnection,
-  usePublicClient,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from 'wagmi'
-import { erc20Abi, formatEther, formatUnits, parseEther } from 'viem'
+import { formatEther, parseEther } from 'viem'
 
 import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
 import { ReferralCard } from '@/components/stabletask/ReferralCard'
 import { TaskCard } from '@/components/stabletask/TaskCard'
+import { encodeMetadataURI, type OnchainTask, useVaultTasks } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 type TaskTypeOption = 'visit' | 'reading'
-
-type TaskMetadata = {
-  title: string
-  description: string
-  visitUrl?: string
-}
-
-type VaultTaskTuple = readonly [bigint, number, `0x${string}`, bigint, bigint, boolean, boolean, string]
-
-type OnchainTask = {
-  id: bigint
-  title: string
-  description: string
-  visitUrl?: string
-  rewardXp: string
-  rewardTokenAmount: string
-  tag: string
-  taskType: number
-  active: boolean
-  isCompleted: boolean
-  hasClaimedPoint: boolean
-}
 
 type PendingAction = {
   kind: 'create' | 'visit' | 'claim'
@@ -122,45 +100,8 @@ function useAutoConnect(isConnected: boolean) {
   return { error, isPending, providerMissing }
 }
 
-function parseMetadataURI(metadataURI: string, fallbackId: bigint | number | undefined): TaskMetadata {
-  const normalizedId =
-    typeof fallbackId === 'bigint' ? fallbackId.toString() : typeof fallbackId === 'number' ? String(fallbackId) : '?'
-  const fallback: TaskMetadata = {
-    title: `Task #${normalizedId}`,
-    description: 'Onchain task created in StableTask.',
-  }
-
-  if (!metadataURI) return fallback
-
-  try {
-    const payload = metadataURI.startsWith('data:application/json,')
-      ? decodeURIComponent(metadataURI.replace('data:application/json,', ''))
-      : metadataURI
-    const parsed = JSON.parse(payload) as Partial<TaskMetadata>
-
-    return {
-      title: parsed.title?.trim() || fallback.title,
-      description: parsed.description?.trim() || fallback.description,
-      visitUrl: parsed.visitUrl?.trim() || undefined,
-    }
-  } catch {
-    return fallback
-  }
-}
-
-function encodeMetadataURI(metadata: TaskMetadata) {
-  return `data:application/json,${encodeURIComponent(JSON.stringify(metadata))}`
-}
-
-function getTaskTag(taskType: number) {
-  if (taskType === 0) return 'Visit'
-  if (taskType === 2) return 'Reading'
-  return 'Task'
-}
-
 export default function Page() {
   const { address, isConnected, isConnecting, chainId } = useConnection()
-  const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
   const { error: connectError, isPending, providerMissing } = useAutoConnect(isConnected)
   const { writeContractAsync, data: txHash, error: writeError, isPending: isWritePending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed, isError: isReceiptError } =
@@ -169,11 +110,8 @@ export default function Page() {
       query: { enabled: Boolean(txHash) },
     })
   const isDev = process.env.NODE_ENV === 'development'
-  const [tasks, setTasks] = useState<OnchainTask[]>([])
-  const [publicTaskCreationFee, setPublicTaskCreationFee] = useState<bigint>(BigInt(0))
-  const [xpBalance, setXpBalance] = useState('0')
-  const [isFetchingTasks, setIsFetchingTasks] = useState(false)
-  const [pageError, setPageError] = useState<string | null>(null)
+  const { tasks, publicTaskCreationFee, isFetchingTasks, pageError, loadTasks } = useVaultTasks()
+  const [localPageError, setLocalPageError] = useState<string | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
@@ -185,111 +123,7 @@ export default function Page() {
     rewardTokenAmount: '0',
     taskType: 'visit' as TaskTypeOption,
   })
-  const claimedTasksCount = tasks.filter((task) => task.hasClaimedPoint).length
-
-  async function loadTasks() {
-    if (!publicClient || stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
-      setTasks([])
-      return
-    }
-
-    setIsFetchingTasks(true)
-    try {
-      const [nextTaskIdResult, feeResult, xpBalanceRawResult] = await Promise.all([
-        publicClient.readContract({
-          address: stableTaskConfig.contracts.rewardVaultAddress,
-          abi: stableTaskConfig.contracts.rewardVaultAbi,
-          functionName: 'nextTaskId',
-        }),
-        publicClient.readContract({
-          address: stableTaskConfig.contracts.rewardVaultAddress,
-          abi: stableTaskConfig.contracts.rewardVaultAbi,
-          functionName: 'publicTaskCreationFee',
-        }),
-        address
-          ? publicClient.readContract({
-              address: stableTaskConfig.contracts.rewardVaultAddress,
-              abi: erc20Abi,
-              functionName: 'balanceOf',
-              args: [address],
-            })
-          : Promise.resolve(BigInt(0)),
-      ])
-
-      const nextTaskId = nextTaskIdResult as bigint
-      const fee = feeResult as bigint
-      const xpBalanceRaw = xpBalanceRawResult as bigint
-
-      setPublicTaskCreationFee(fee)
-      setXpBalance(formatUnits(xpBalanceRaw, 18))
-
-      const totalTasks = Number(nextTaskId)
-      if (!Number.isFinite(totalTasks) || totalTasks <= 0) {
-        setTasks([])
-        setPageError(null)
-        return
-      }
-
-      const loadedTasks = await Promise.all(
-        Array.from({ length: totalTasks }, async (_, index) => {
-          const taskId = BigInt(index)
-          const taskResult = await publicClient.readContract({
-            address: stableTaskConfig.contracts.rewardVaultAddress,
-            abi: stableTaskConfig.contracts.rewardVaultAbi,
-            functionName: 'tasks',
-            args: [taskId],
-          })
-          const [id, taskType, , pointReward, rewardAmount, active, , metadataURI] = taskResult as VaultTaskTuple
-
-          const metadata = parseMetadataURI(metadataURI, id ?? taskId)
-          const [isCompletedResult, hasClaimedPointResult] = address
-            ? await Promise.all([
-                publicClient.readContract({
-                  address: stableTaskConfig.contracts.rewardVaultAddress,
-                  abi: stableTaskConfig.contracts.rewardVaultAbi,
-                  functionName: 'isCompleted',
-                  args: [taskId, address],
-                }),
-                publicClient.readContract({
-                  address: stableTaskConfig.contracts.rewardVaultAddress,
-                  abi: stableTaskConfig.contracts.rewardVaultAbi,
-                  functionName: 'hasClaimedPoint',
-                  args: [taskId, address],
-                }),
-              ])
-            : [false, false]
-          const isCompleted = isCompletedResult as boolean
-          const hasClaimedPoint = hasClaimedPointResult as boolean
-
-          return {
-            id,
-            title: metadata.title,
-            description: metadata.description,
-            visitUrl: metadata.visitUrl,
-            rewardXp: formatUnits(pointReward, 18),
-            rewardTokenAmount: formatUnits(rewardAmount, stableTaskConfig.rewardToken.decimals),
-            tag: getTaskTag(taskType),
-            taskType,
-            active,
-            isCompleted,
-            hasClaimedPoint,
-          } satisfies OnchainTask
-        }),
-      )
-
-      setTasks(loadedTasks.filter((task) => task.active))
-      setPageError(null)
-    } catch (loadError) {
-      console.error('Failed to load tasks:', loadError)
-      setPageError('Failed to load tasks from the reward vault.')
-    } finally {
-      setIsFetchingTasks(false)
-    }
-  }
-
-  useEffect(() => {
-    void loadTasks()
-  }, [publicClient, address])
+  const visibleTasks = tasks.filter((task) => !task.hasClaimedPoint)
 
   useEffect(() => {
     if (!pendingAction) return
@@ -297,12 +131,12 @@ export default function Page() {
       setPendingAction(null)
       void loadTasks()
     }
-  }, [isConfirmed, pendingAction])
+  }, [isConfirmed, loadTasks, pendingAction])
 
   useEffect(() => {
     if (!pendingAction) return
     if (writeError || isReceiptError) {
-      setPageError(
+      setLocalPageError(
         pendingAction.kind === 'create'
           ? 'Task creation failed. Please try again.'
           : pendingAction.kind === 'visit'
@@ -337,18 +171,19 @@ export default function Page() {
     : isDev && connectError
       ? connectError.message
       : undefined
+  const resolvedPageError = localPageError ?? pageError
 
   const handleVisit = async (task: OnchainTask) => {
     if (!address || !isConnected) {
-      setPageError('Connect your wallet to visit and complete tasks.')
+      setLocalPageError('Connect your wallet to visit and complete tasks.')
       return
     }
     if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
-      setPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
+      setLocalPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
       return
     }
     if (chainId !== ACTIVE_CHAIN_ID) {
-      setPageError(`Switch to ${stableTaskConfig.chain.name} to continue.`)
+      setLocalPageError(`Switch to ${stableTaskConfig.chain.name} to continue.`)
       return
     }
     if (pendingAction || task.isCompleted) return
@@ -357,7 +192,7 @@ export default function Page() {
       window.open(task.visitUrl, '_blank', 'noopener,noreferrer')
     }
 
-    setPageError(null)
+    setLocalPageError(null)
     setPendingAction({ kind: 'visit', taskId: task.id })
 
     try {
@@ -370,27 +205,27 @@ export default function Page() {
       })
     } catch (visitError) {
       console.error('Visit completion failed:', visitError)
-      setPageError('Visit completion failed. Please try again.')
+      setLocalPageError('Visit completion failed. Please try again.')
       setPendingAction(null)
     }
   }
 
   const handleClaim = async (task: OnchainTask) => {
     if (!address || !isConnected) {
-      setPageError('Connect your wallet to claim XP.')
+      setLocalPageError('Connect your wallet to claim XP.')
       return
     }
     if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
-      setPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
+      setLocalPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
       return
     }
     if (chainId !== ACTIVE_CHAIN_ID) {
-      setPageError(`Switch to ${stableTaskConfig.chain.name} to claim XP.`)
+      setLocalPageError(`Switch to ${stableTaskConfig.chain.name} to claim XP.`)
       return
     }
     if (pendingAction || task.hasClaimedPoint || !task.isCompleted) return
 
-    setPageError(null)
+    setLocalPageError(null)
     setPendingAction({ kind: 'claim', taskId: task.id })
 
     try {
@@ -403,7 +238,7 @@ export default function Page() {
       })
     } catch (claimError) {
       console.error('Claim failed:', claimError)
-      setPageError('XP claim failed. Please try again.')
+      setLocalPageError('XP claim failed. Please try again.')
       setPendingAction(null)
     }
   }
@@ -445,7 +280,7 @@ export default function Page() {
     }
 
     setCreateError(null)
-    setPageError(null)
+    setLocalPageError(null)
     setPendingAction({ kind: 'create' })
 
     try {
@@ -516,9 +351,9 @@ export default function Page() {
             {errorMessage}
           </p>
         )}
-        {pageError && (
+        {resolvedPageError && (
           <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
-            {pageError}
+            {resolvedPageError}
           </p>
         )}
 
@@ -532,25 +367,13 @@ export default function Page() {
                 Create tasks, visit, then claim XP onchain.
               </h2>
               <p className="mt-2 max-w-[16rem] text-sm text-slate-600">
-                This screen reads tasks from the reward vault contract and lets users claim the vault ERC20 XP token.
+                Active vault tasks stay here until the XP is claimed. Claimed rewards move to the Rewards tab.
               </p>
             </div>
             <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 text-right shadow-sm backdrop-blur">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">Available</div>
-              <div className="mt-1 text-2xl font-bold text-blue-700">{tasks.length}</div>
-              <div className="text-xs text-slate-500">tasks live</div>
-            </div>
-          </div>
-          <div className="relative mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 backdrop-blur">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">Earned XP</div>
-              <div className="mt-1 text-xl font-bold text-slate-950">{xpBalance}</div>
-              <div className="text-xs text-slate-500">claimed from completed tasks</div>
-            </div>
-            <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 backdrop-blur">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">XP Claimed</div>
-              <div className="mt-1 text-xl font-bold text-slate-950">{claimedTasksCount}</div>
-              <div className="text-xs text-slate-500">tasks paid out</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">Open</div>
+              <div className="mt-1 text-2xl font-bold text-blue-700">{visibleTasks.length}</div>
+              <div className="text-xs text-slate-500">tasks to finish</div>
             </div>
           </div>
           <div className="relative mt-3 rounded-2xl border border-blue-100/80 bg-white/60 px-4 py-3 text-sm text-slate-600 backdrop-blur">
@@ -580,12 +403,12 @@ export default function Page() {
                 <TaskSkeleton />
               </>
             )}
-            {!isFetchingTasks && tasks.length === 0 && (
+            {!isFetchingTasks && visibleTasks.length === 0 && (
               <div className="rounded-[1.75rem] border border-blue-200/70 bg-white/80 px-4 py-5 text-sm text-slate-500 shadow-sm">
-                No onchain tasks found yet. Set the vault address in `src/lib/contracts.ts` and create the first task.
+                No active vault tasks right now. Claimed items now appear in the Rewards tab.
               </div>
             )}
-            {tasks.map((task) => {
+            {visibleTasks.map((task) => {
               const isPendingThisTask = pendingAction?.taskId === task.id
               const visitState =
                 isPendingThisTask && pendingAction?.kind === 'visit'
@@ -599,11 +422,9 @@ export default function Page() {
                   : task.hasClaimedPoint
                     ? 'success'
                     : 'idle'
-              const helperText = task.hasClaimedPoint
-                ? 'XP already claimed.'
-                : task.isCompleted
-                  ? `Ready to claim ${task.rewardXp} XP.`
-                  : 'Visit first to enable the XP claim.'
+              const helperText = task.isCompleted
+                ? `Ready to claim ${task.rewardXp} XP.`
+                : 'Visit first to enable the XP claim.'
 
               return (
                 <TaskCard
@@ -618,7 +439,7 @@ export default function Page() {
                   isVisited={task.isCompleted}
                   visitState={visitState}
                   claimState={claimState}
-                  visitDisabled={Boolean(pendingAction) || isWritePending || isConfirming || task.hasClaimedPoint}
+                  visitDisabled={Boolean(pendingAction) || isWritePending || isConfirming}
                   claimDisabled={Boolean(pendingAction) || isWritePending || isConfirming || !task.isCompleted}
                   helperText={helperText}
                 />

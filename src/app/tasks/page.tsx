@@ -11,7 +11,6 @@ import {
 import { formatEther, parseEther } from 'viem'
 
 import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
-import { ReferralCard } from '@/components/stabletask/ReferralCard'
 import { TaskCard } from '@/components/stabletask/TaskCard'
 import { encodeMetadataURI, type OnchainTask, useVaultTasks } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
@@ -448,10 +447,6 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-slate-950">Referral</h2>
-          <ReferralCard code="STABLE-5X2P" reward="0.75" />
-        </section>
       </main>
 
       {isCreateOpen && (

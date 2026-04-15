@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useConnection } from 'wagmi'
 
+import { ReferralCard } from '@/components/stabletask/ReferralCard'
+
 type ProfileClaim = {
   _id: string
   amountCusd: number
@@ -260,6 +262,15 @@ export default function ProfilePage() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+        <div className="text-sm font-semibold text-slate-950">Referral</div>
+        <div className="mt-1 text-xs text-slate-500">Keep your referral code with the rest of your account tools.</div>
+
+        <div className="mt-4">
+          <ReferralCard code={profile?.referralCode ?? 'STABLE-5X2P'} reward="0.75" />
         </div>
       </section>
 

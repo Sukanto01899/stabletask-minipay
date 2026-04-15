@@ -3,6 +3,7 @@
 import { useConnection } from 'wagmi'
 
 import { TaskCard } from '@/components/stabletask/TaskCard'
+import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useVaultTasks } from '@/hooks/useVaultTasks'
 
 export default function RewardsPage() {
@@ -43,9 +44,10 @@ export default function RewardsPage() {
         <div className="space-y-3">
           <div className="text-lg font-semibold text-slate-950">Reward History</div>
           {isFetchingTasks && (
-            <div className="rounded-2xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">
-              Loading claimed vault tasks...
-            </div>
+            <>
+              <TaskCardSkeleton />
+              <TaskCardSkeleton />
+            </>
           )}
           {!isFetchingTasks && claimedTasks.length === 0 && (
             <div className="rounded-2xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">

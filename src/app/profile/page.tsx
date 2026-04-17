@@ -10,10 +10,9 @@ type ProfileClaim = {
   amountCusd: number
   status: 'pending' | 'confirmed' | 'failed'
   txHash?: string | null
-  claimedAt?: string | null
+  claimedAt?: string | Date | null
   task?: {
     title?: string
-    description?: string
   } | null
 }
 
@@ -22,7 +21,7 @@ type ProfileReferral = {
   code: string
   status: 'pending' | 'completed'
   rewardCusd: number
-  createdAt?: string
+  createdAt?: string | Date
 }
 
 type ProfilePayload = {
@@ -30,27 +29,29 @@ type ProfilePayload = {
   totalClaimedCusd: number
   suspiciousClaimCount: number
   referralCode: string | null
-  lastClaimAt?: string | null
+  lastClaimAt?: string | Date | null
   claims: ProfileClaim[]
   referrals: ProfileReferral[]
 }
+
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+})
 
 function formatWallet(address?: string) {
   if (!address) return 'No wallet connected'
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
-function formatDate(value?: string | null) {
+function formatDate(value?: string | Date | null) {
   if (!value) return 'No activity yet'
 
-  const date = new Date(value)
+  const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return 'No activity yet'
 
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
+  return dateFormatter.format(date)
 }
 
 function getRiskTone(suspiciousClaimCount: number) {
@@ -97,7 +98,7 @@ export default function ProfilePage() {
       setPageError(null)
 
       try {
-        const response = await fetch(`/api/profile?walletAddress=${address}`, {
+        const response = await fetch(`/api/profile?walletAddress=${encodeURIComponent(address)}`, {
           signal: controller.signal,
         })
 
@@ -123,12 +124,53 @@ export default function ProfilePage() {
     return () => controller.abort()
   }, [address, isConnected])
 
-  const riskTone = useMemo(
-    () => getRiskTone(profile?.suspiciousClaimCount ?? 0),
-    [profile?.suspiciousClaimCount],
-  )
+  const riskTone = useMemo(() => {
+    if (!isConnected) {
+      return {
+        label: 'Offline',
+        className: 'border-slate-200 bg-slate-50 text-slate-600',
+        description: 'Connect your wallet to load trust signals and recent reward activity.',
+      }
+    }
 
-  const completedReferrals = profile?.referrals.filter((referral) => referral.status === 'completed').length ?? 0
+    if (isLoading && !profile) {
+      return {
+        label: 'Loading',
+        className: 'border-slate-200 bg-slate-50 text-slate-600',
+        description: 'Loading trust signals and recent reward activity.',
+      }
+    }
+
+    return getRiskTone(profile?.suspiciousClaimCount ?? 0)
+  }, [isConnected, isLoading, profile])
+
+  const claims = profile?.claims ?? []
+  const referrals = profile?.referrals ?? []
+
+  const completedReferrals = useMemo(() => {
+    return referrals.reduce((count, referral) => (referral.status === 'completed' ? count + 1 : count), 0)
+  }, [referrals])
+
+  const claimCountDisplay = profile ? String(claims.length) : isLoading ? '—' : '0'
+  const totalClaimedDisplay = profile ? `${profile.totalClaimedCusd.toFixed(2)} cUSD` : isLoading ? '—' : '0.00 cUSD'
+  const lastClaimDisplay = profile ? formatDate(profile.lastClaimAt) : isLoading ? '—' : formatDate(null)
+
+  if (!isConnected) {
+    return (
+      <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-4">
+        <section className="rounded-[2rem] border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+          <div className="text-sm font-semibold text-slate-950">Connect to view your profile</div>
+          <div className="mt-1 text-xs text-slate-500">
+            Link a wallet to see claims, referrals, and account trust signals.
+          </div>
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Wallet Status</div>
+            <div className="mt-1 text-sm font-medium text-slate-900">{formatWallet(address)}</div>
+          </div>
+        </section>
+      </main>
+    )
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-4">
@@ -173,24 +215,22 @@ export default function ProfilePage() {
       <section className="grid grid-cols-2 gap-3">
         <div className="rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Total Claimed</div>
-          <div className="mt-2 text-2xl font-bold text-slate-950">
-            {profile ? `${profile.totalClaimedCusd.toFixed(2)} cUSD` : '0.00 cUSD'}
-          </div>
+          <div className="mt-2 text-2xl font-bold text-slate-950">{totalClaimedDisplay}</div>
           <div className="mt-1 text-xs text-slate-500">Lifetime reward withdrawals</div>
         </div>
         <div className="rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Claims Logged</div>
-          <div className="mt-2 text-2xl font-bold text-slate-950">{profile?.claims.length ?? 0}</div>
+          <div className="mt-2 text-2xl font-bold text-slate-950">{claimCountDisplay}</div>
           <div className="mt-1 text-xs text-slate-500">Recorded reward claims</div>
         </div>
         <div className="rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Referrals Won</div>
-          <div className="mt-2 text-2xl font-bold text-slate-950">{completedReferrals}</div>
+          <div className="mt-2 text-2xl font-bold text-slate-950">{profile ? completedReferrals : isLoading ? '—' : '0'}</div>
           <div className="mt-1 text-xs text-slate-500">Completed referral conversions</div>
         </div>
         <div className="rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-4 shadow-sm">
           <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Last Reward</div>
-          <div className="mt-2 text-lg font-bold text-slate-950">{formatDate(profile?.lastClaimAt)}</div>
+          <div className="mt-2 text-lg font-bold text-slate-950">{lastClaimDisplay}</div>
           <div className="mt-1 text-xs text-slate-500">Most recent claim activity</div>
         </div>
       </section>
@@ -237,12 +277,12 @@ export default function ProfilePage() {
               Loading profile activity...
             </div>
           )}
-          {!isLoading && (profile?.claims.length ?? 0) === 0 && (
+          {!isLoading && claims.length === 0 && (
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-500">
               No claims recorded yet for this wallet.
             </div>
           )}
-          {profile?.claims.slice(0, 4).map((claim) => (
+          {claims.slice(0, 4).map((claim) => (
             <div
               key={claim._id}
               className="rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,0.98))] px-4 py-4"
@@ -270,7 +310,7 @@ export default function ProfilePage() {
         <div className="mt-1 text-xs text-slate-500">Keep your referral code with the rest of your account tools.</div>
 
         <div className="mt-4">
-          <ReferralCard code={profile?.referralCode ?? 'STABLE-5X2P'} reward="0.75" />
+          <ReferralCard code={profile?.referralCode ?? ''} reward="0.75" />
         </div>
       </section>
 
@@ -279,12 +319,12 @@ export default function ProfilePage() {
         <div className="mt-1 text-xs text-slate-500">Monitor code performance and referred-account outcomes.</div>
 
         <div className="mt-4 grid gap-3">
-          {!isLoading && (profile?.referrals.length ?? 0) === 0 && (
+          {!isLoading && referrals.length === 0 && (
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-500">
               No referral activity has been recorded yet.
             </div>
           )}
-          {profile?.referrals.slice(0, 4).map((referral) => (
+          {referrals.slice(0, 4).map((referral) => (
             <div key={referral._id} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div>

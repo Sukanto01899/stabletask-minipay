@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
             totalClaimedCusd: 0,
             suspiciousClaimCount: 0,
             referralCode: null,
+            lastClaimAt: null,
             claims: [],
             referrals: [],
           },
@@ -34,10 +35,15 @@ export async function GET(request: NextRequest) {
     }
 
     const [claims, referrals] = await Promise.all([
-      Claim.find({ user: user._id }).populate('task').sort({ claimedAt: -1 }).lean(),
+      Claim.find({ user: user._id })
+        .select('task amountCusd status txHash claimedAt')
+        .populate({ path: 'task', select: 'title' })
+        .sort({ claimedAt: -1 })
+        .lean(),
       Referral.find({
         $or: [{ referrer: user._id }, { referee: user._id }],
       })
+        .select('code status rewardCusd createdAt')
         .sort({ createdAt: -1 })
         .lean(),
     ])

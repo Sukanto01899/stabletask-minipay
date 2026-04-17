@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   useConnect,
   useConnectors,
@@ -90,6 +90,7 @@ export default function Page() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+  const pendingActionRef = useRef<PendingAction | null>(null)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -99,6 +100,10 @@ export default function Page() {
     taskType: 'visit' as TaskTypeOption,
   })
   const visibleTasks = tasks.filter((task) => !task.hasClaimedPoint)
+
+  useEffect(() => {
+    pendingActionRef.current = pendingAction
+  }, [pendingAction])
 
   useEffect(() => {
     if (!pendingAction) return
@@ -148,75 +153,97 @@ export default function Page() {
       : undefined
   const resolvedPageError = localPageError ?? pageError
 
-  const handleVisit = async (task: OnchainTask) => {
-    if (!address || !isConnected) {
-      setLocalPageError('Connect your wallet to visit and complete tasks.')
-      return
-    }
-    if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
-      setLocalPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
-      return
-    }
-    if (chainId !== ACTIVE_CHAIN_ID) {
-      setLocalPageError(`Switch to ${stableTaskConfig.chain.name} to continue.`)
-      return
-    }
-    if (pendingAction || task.isCompleted) return
+  const handleVisit = useCallback(
+    async (taskId: bigint, visitUrl?: string, isVisited?: boolean) => {
+      if (!address || !isConnected) {
+        setLocalPageError('Connect your wallet to visit and complete tasks.')
+        return
+      }
+      if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
+        setLocalPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
+        return
+      }
+      if (chainId !== ACTIVE_CHAIN_ID) {
+        setLocalPageError(`Switch to ${stableTaskConfig.chain.name} to continue.`)
+        return
+      }
+      if (pendingActionRef.current || isVisited) return
 
-    if (task.visitUrl) {
-      window.open(task.visitUrl, '_blank', 'noopener,noreferrer')
-    }
+      if (visitUrl) {
+        window.open(visitUrl, '_blank', 'noopener,noreferrer')
+      }
 
-    setLocalPageError(null)
-    setPendingAction({ kind: 'visit', taskId: task.id })
+      setLocalPageError(null)
+      setPendingAction({ kind: 'visit', taskId })
 
-    try {
-      await writeContractAsync({
-        address: stableTaskConfig.contracts.rewardVaultAddress,
-        abi: stableTaskConfig.contracts.rewardVaultAbi,
-        functionName: 'selfCompleteTask',
-        args: [task.id],
-        chainId: ACTIVE_CHAIN_ID,
-      })
-    } catch (visitError) {
-      console.error('Visit completion failed:', visitError)
-      setLocalPageError('Visit completion failed. Please try again.')
-      setPendingAction(null)
-    }
-  }
+      try {
+        await writeContractAsync({
+          address: stableTaskConfig.contracts.rewardVaultAddress,
+          abi: stableTaskConfig.contracts.rewardVaultAbi,
+          functionName: 'selfCompleteTask',
+          args: [taskId],
+          chainId: ACTIVE_CHAIN_ID,
+        })
+      } catch (visitError) {
+        console.error('Visit completion failed:', visitError)
+        setLocalPageError('Visit completion failed. Please try again.')
+        setPendingAction(null)
+      }
+    },
+    [address, chainId, isConnected, writeContractAsync],
+  )
 
-  const handleClaim = async (task: OnchainTask) => {
-    if (!address || !isConnected) {
-      setLocalPageError('Connect your wallet to claim XP.')
-      return
-    }
-    if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
-      setLocalPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
-      return
-    }
-    if (chainId !== ACTIVE_CHAIN_ID) {
-      setLocalPageError(`Switch to ${stableTaskConfig.chain.name} to claim XP.`)
-      return
-    }
-    if (pendingAction || task.hasClaimedPoint || !task.isCompleted) return
+  const handleClaim = useCallback(
+    async (taskId: bigint, isVisited?: boolean, isClaimed?: boolean) => {
+      if (!address || !isConnected) {
+        setLocalPageError('Connect your wallet to claim XP.')
+        return
+      }
+      if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
+        setLocalPageError('Set your vault address in src/lib/contracts.ts before using tasks.')
+        return
+      }
+      if (chainId !== ACTIVE_CHAIN_ID) {
+        setLocalPageError(`Switch to ${stableTaskConfig.chain.name} to claim XP.`)
+        return
+      }
+      if (pendingActionRef.current || isClaimed || !isVisited) return
 
-    setLocalPageError(null)
-    setPendingAction({ kind: 'claim', taskId: task.id })
+      setLocalPageError(null)
+      setPendingAction({ kind: 'claim', taskId })
 
-    try {
-      await writeContractAsync({
-        address: stableTaskConfig.contracts.rewardVaultAddress,
-        abi: stableTaskConfig.contracts.rewardVaultAbi,
-        functionName: 'claimTaskPoint',
-        args: [task.id],
-        chainId: ACTIVE_CHAIN_ID,
-      })
-    } catch (claimError) {
-      console.error('Claim failed:', claimError)
-      setLocalPageError('XP claim failed. Please try again.')
-      setPendingAction(null)
-    }
-  }
+      try {
+        await writeContractAsync({
+          address: stableTaskConfig.contracts.rewardVaultAddress,
+          abi: stableTaskConfig.contracts.rewardVaultAbi,
+          functionName: 'claimTaskPoint',
+          args: [taskId],
+          chainId: ACTIVE_CHAIN_ID,
+        })
+      } catch (claimError) {
+        console.error('Claim failed:', claimError)
+        setLocalPageError('XP claim failed. Please try again.')
+        setPendingAction(null)
+      }
+    },
+    [address, chainId, isConnected, writeContractAsync],
+  )
+
+  const handleVisitTask = useCallback(
+    (taskId: bigint | number | string, visitUrl?: string, isVisited?: boolean) => {
+      if (typeof taskId !== 'bigint') return
+      return handleVisit(taskId, visitUrl, isVisited)
+    },
+    [handleVisit],
+  )
+
+  const handleClaimTask = useCallback(
+    (taskId: bigint | number | string, isVisited?: boolean, isClaimed?: boolean) => {
+      if (typeof taskId !== 'bigint') return
+      return handleClaim(taskId, isVisited, isClaimed)
+    },
+    [handleClaim],
+  )
 
   const handleCreateTask = async () => {
     const trimmedTitle = newTask.title.trim()
@@ -404,13 +431,14 @@ export default function Page() {
               return (
                 <TaskCard
                   key={task.id.toString()}
+                  taskId={task.id}
                   title={task.title}
                   description={task.description}
                   reward={`${task.rewardXp} XP`}
                   tag={task.tag}
                   visitHref={task.visitUrl}
-                  onVisit={() => handleVisit(task)}
-                  onClaim={() => handleClaim(task)}
+                  onVisit={handleVisitTask}
+                  onClaim={handleClaimTask}
                   isVisited={task.isCompleted}
                   visitState={visitState}
                   claimState={claimState}

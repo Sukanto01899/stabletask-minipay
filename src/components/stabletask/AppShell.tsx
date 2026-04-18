@@ -7,6 +7,30 @@ import { useConnection } from "wagmi";
 import { BottomNav } from "@/components/stabletask/BottomNav";
 import { stableTaskConfig } from "@/lib/app-config";
 
+type Eip1193Provider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
+
+function toHexChainId(chainId: number) {
+  return `0x${chainId.toString(16)}`;
+}
+
+function buildAddChainParams(chain: typeof stableTaskConfig.chain) {
+  const rpcUrls =
+    chain.rpcUrls?.default?.http?.length ? chain.rpcUrls.default.http : [];
+  const blockExplorerUrls = chain.blockExplorers?.default?.url
+    ? [chain.blockExplorers.default.url]
+    : [];
+
+  return {
+    chainId: toHexChainId(chain.id),
+    chainName: chain.name,
+    nativeCurrency: chain.nativeCurrency,
+    rpcUrls,
+    blockExplorerUrls,
+  };
+}
+
 const HEADER_COPY: Record<string, { title: string; subtitle: string }> = {
   "/tasks": {
     title: "Tasks",
@@ -47,14 +71,9 @@ export function AppShell(props: { children: React.ReactNode }) {
   useEffect(() => {
     const provider =
       typeof window !== "undefined"
-        ? (window as Window & {
-            ethereum?: {
-              request: (args: {
-                method: string;
-                params?: unknown[];
-              }) => Promise<unknown>;
-            };
-          }).ethereum
+        ? ((window as Window & { ethereum?: unknown }).ethereum as
+            | Eip1193Provider
+            | undefined)
         : undefined;
 
     if (!isConnected || !provider) {
@@ -70,15 +89,44 @@ export function AppShell(props: { children: React.ReactNode }) {
     if (switchAttemptedRef.current) return;
     switchAttemptedRef.current = true;
 
-    void provider
-      .request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: `0x${stableTaskConfig.chain.id.toString(16)}` }],
-      })
-      .catch((error) => {
-        console.error("Failed to switch to Celo mainnet:", error);
-        switchAttemptedRef.current = false;
-      });
+    const switchToCelo = async () => {
+      try {
+        await provider.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: toHexChainId(stableTaskConfig.chain.id) }],
+        });
+      } catch (error) {
+        const errorCode = (error as { code?: unknown } | null)?.code;
+        const isUnknownChain =
+          errorCode === 4902 ||
+          (typeof errorCode === "number" && errorCode === 4902) ||
+          String(error).toLowerCase().includes("unrecognized chain") ||
+          String(error).toLowerCase().includes("unknown chain");
+
+        if (!isUnknownChain) {
+          console.error("Failed to switch to Celo mainnet:", error);
+          switchAttemptedRef.current = false;
+          return;
+        }
+
+        try {
+          await provider.request({
+            method: "wallet_addEthereumChain",
+            params: [buildAddChainParams(stableTaskConfig.chain)],
+          });
+          await provider.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: toHexChainId(stableTaskConfig.chain.id) }],
+          });
+        } catch (addError) {
+          console.error("Failed to add/switch to Celo mainnet:", addError);
+        } finally {
+          switchAttemptedRef.current = false;
+        }
+      }
+    };
+
+    void switchToCelo();
   }, [chainId, isConnected]);
 
   return (

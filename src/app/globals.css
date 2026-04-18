@@ -144,3 +144,36 @@
     @apply font-sans;
   }
 }
+
+@keyframes tap-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes tap-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  .animate-tap-orbit {
+    animation: tap-orbit 900ms linear infinite;
+  }
+
+  .animate-tap-pulse {
+    animation: tap-pulse 1200ms ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-tap-orbit,
+  .animate-tap-pulse {
+    animation: none;
+  }
+}

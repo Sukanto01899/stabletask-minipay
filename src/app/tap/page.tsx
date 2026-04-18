@@ -240,9 +240,21 @@ export default function TapPage() {
             type="button"
             onClick={handleTap}
             disabled={isBusy || isLoadingTapData || remainingTaps <= 0}
-            className="flex h-52 w-52 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.92),rgba(96,165,250,0.95)_45%,rgba(29,78,216,1))] px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_28px_80px_rgba(37,99,235,0.35)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            aria-busy={isBusy}
+            className="relative flex h-52 w-52 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.92),rgba(96,165,250,0.95)_45%,rgba(29,78,216,1))] px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_28px_80px_rgba(37,99,235,0.35)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isBusy ? 'Submitting...' : remainingTaps <= 0 ? 'Limit Reached' : '+1 XP'}
+            {isBusy && (
+              <span aria-hidden className="pointer-events-none absolute inset-0">
+                <span className="absolute inset-3 rounded-full border border-white/25 bg-white/5 backdrop-blur-sm" />
+                <span className="animate-tap-orbit absolute inset-2">
+                  <span className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-white shadow-[0_10px_30px_rgba(255,255,255,0.35)]" />
+                </span>
+                <span className="animate-tap-pulse absolute inset-6 rounded-full ring-1 ring-white/20" />
+              </span>
+            )}
+            <span className={isBusy ? 'opacity-90' : undefined}>
+              {remainingTaps <= 0 ? 'Limit Reached' : '+1 XP'}
+            </span>
           </button>
           <div className="mt-5 text-sm text-slate-600">
             Tap sends one transaction and mints <span className="font-semibold text-slate-950">{tapXpReward} XP</span>.

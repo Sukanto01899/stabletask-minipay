@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useConnection } from "wagmi";
+import { GiftIcon, Tap01Icon, Task01Icon, UserCircleIcon } from "@hugeicons/core-free-icons";
 
 import { BottomNav } from "@/components/stabletask/BottomNav";
 import { stableTaskConfig } from "@/lib/app-config";
@@ -160,10 +161,10 @@ export function AppShell(props: { children: React.ReactNode }) {
       {isConnected && (
         <BottomNav
           items={[
-            { label: "Tasks", href: "/tasks" },
-            { label: "Tap", href: "/tap" },
-            { label: "Rewards", href: "/rewards" },
-            { label: "Profile", href: "/profile" },
+            { label: "Tasks", href: "/tasks", icon: Task01Icon },
+            { label: "Tap", href: "/tap", icon: Tap01Icon },
+            { label: "Rewards", href: "/rewards", icon: GiftIcon },
+            { label: "Profile", href: "/profile", icon: UserCircleIcon },
           ]}
         />
       )}

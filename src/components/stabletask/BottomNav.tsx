@@ -2,12 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react'
 
 import { cn } from '@/lib/utils'
 
 export type BottomNavItem = {
   label: string
   href: string
+  icon: IconSvgElement
 }
 
 export function BottomNav(props: { items: BottomNavItem[] }) {
@@ -22,14 +24,20 @@ export function BottomNav(props: { items: BottomNavItem[] }) {
             <Link
               key={item.label}
               className={cn(
-                'flex min-w-20 flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition',
+                'group flex min-w-20 flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition',
                 isActive
                   ? 'bg-blue-600 text-white shadow-[0_10px_30px_rgba(37,99,235,0.28)]'
                   : 'text-slate-500 hover:bg-blue-50 hover:text-blue-700',
               )}
               href={item.href}
             >
-              <span className={cn('h-2 w-2 rounded-full', isActive ? 'bg-cyan-200' : 'bg-slate-300')}></span>
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={item.icon}
+                size={22}
+                strokeWidth={2}
+                className={cn('transition', isActive ? 'text-cyan-100' : 'text-slate-400 group-hover:text-blue-700')}
+              />
               {item.label}
             </Link>
           )

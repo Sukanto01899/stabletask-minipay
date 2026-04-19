@@ -5,10 +5,11 @@ import {
   useConnect,
   useConnectors,
   useConnection,
+  usePublicClient,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from 'wagmi'
-import { formatEther, parseEther } from 'viem'
+import { erc20Abi, formatEther, formatUnits, parseEther } from 'viem'
 
 import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
 import { TaskCard } from '@/components/stabletask/TaskCard'
@@ -24,6 +25,13 @@ type TaskTypeOption = 'visit' | 'reading'
 type PendingAction = {
   kind: 'create' | 'visit' | 'claim'
   taskId?: bigint
+}
+
+function formatCompactAmount(raw: string | null | undefined, maxFractionDigits = 2) {
+  if (!raw) return '—'
+  const numeric = Number(raw)
+  if (!Number.isFinite(numeric)) return raw
+  return numeric.toLocaleString(undefined, { maximumFractionDigits: maxFractionDigits })
 }
 
 function getEthereumProvider() {
@@ -77,6 +85,7 @@ function useAutoConnect(isConnected: boolean) {
 
 export default function Page() {
   const { address, isConnected, isConnecting, chainId } = useConnection()
+  const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
   const { error: connectError, isPending, providerMissing } = useAutoConnect(isConnected)
   const { writeContractAsync, data: txHash, error: writeError, isPending: isWritePending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed, isError: isReceiptError } =
@@ -91,6 +100,8 @@ export default function Page() {
   const [createError, setCreateError] = useState<string | null>(null)
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const pendingActionRef = useRef<PendingAction | null>(null)
+  const [cusdBalance, setCusdBalance] = useState<string | null>(null)
+  const [isFetchingBalance, setIsFetchingBalance] = useState(false)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -100,10 +111,48 @@ export default function Page() {
     taskType: 'visit' as TaskTypeOption,
   })
   const visibleTasks = tasks.filter((task) => !task.hasClaimedPoint)
+  const activeTasksCount = tasks.filter((task) => !task.isCompleted && !task.hasClaimedPoint).length
+  const pendingPayoutsCount = tasks.filter((task) => task.isCompleted && !task.hasClaimedPoint).length
 
   useEffect(() => {
     pendingActionRef.current = pendingAction
   }, [pendingAction])
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setCusdBalance(null)
+      return
+    }
+    if (chainId && chainId !== ACTIVE_CHAIN_ID) return
+    if (!publicClient) return
+
+    const controller = new AbortController()
+
+    const loadBalance = async () => {
+      setIsFetchingBalance(true)
+      try {
+        const balanceRaw = (await publicClient.readContract({
+          address: stableTaskConfig.rewardToken.address,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [address],
+        })) as bigint
+
+        if (controller.signal.aborted) return
+        setCusdBalance(formatUnits(balanceRaw, stableTaskConfig.rewardToken.decimals))
+      } catch (error) {
+        if (controller.signal.aborted) return
+        console.error('Failed to load cUSD balance:', error)
+        setCusdBalance(null)
+      } finally {
+        if (controller.signal.aborted) return
+        setIsFetchingBalance(false)
+      }
+    }
+
+    void loadBalance()
+    return () => controller.abort()
+  }, [address, chainId, isConnected, publicClient])
 
   useEffect(() => {
     if (!pendingAction) return
@@ -362,24 +411,59 @@ export default function Page() {
         <section className="relative overflow-hidden rounded-[2rem] border border-blue-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(224,242,254,0.98)_60%,rgba(191,219,254,0.95))] px-5 py-5 shadow-[0_24px_60px_rgba(37,99,235,0.14)]">
           <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-blue-400/20 blur-2xl" />
           <div className="pointer-events-none absolute -left-6 bottom-0 h-24 w-24 rounded-full bg-cyan-300/25 blur-2xl" />
-          <div className="relative flex items-start justify-between gap-3">
+          <div className="relative flex items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">Vault Tasks</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+                Stable Task
+              </div>
               <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-slate-950">
-                Create tasks, visit, then claim XP onchain.
+                Your dashboard
               </h2>
               <p className="mt-2 max-w-[16rem] text-sm text-slate-600">
-                Active vault tasks stay here until the XP is claimed. Claimed rewards move to the Rewards tab.
+                Balance, active tasks, and payouts at a glance.
               </p>
             </div>
-            <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 text-right shadow-sm backdrop-blur">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">Open</div>
-              <div className="mt-1 text-2xl font-bold text-blue-700">{visibleTasks.length}</div>
-              <div className="text-xs text-slate-500">tasks to finish</div>
+            <button
+              type="button"
+              onClick={() => {
+                setCreateError(null)
+                setIsCreateOpen(true)
+              }}
+              className="h-11 shrink-0 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(37,99,235,0.25)] transition hover:bg-blue-700 disabled:opacity-60"
+              disabled={!isConnected}
+            >
+              Create Task
+            </button>
+          </div>
+
+          <div className="relative mt-4 grid grid-cols-3 gap-3">
+            <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">
+                Balance (cUSD)
+              </div>
+              <div className="mt-1 text-xl font-bold text-slate-950">
+                {isFetchingBalance ? '...' : formatCompactAmount(cusdBalance, 2)}
+              </div>
+            </div>
+            <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">
+                Active tasks
+              </div>
+              <div className="mt-1 text-xl font-bold text-slate-950">{activeTasksCount}</div>
+            </div>
+            <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">
+                Pending payouts
+              </div>
+              <div className="mt-1 text-xl font-bold text-slate-950">{pendingPayoutsCount}</div>
             </div>
           </div>
+
           <div className="relative mt-3 rounded-2xl border border-blue-100/80 bg-white/60 px-4 py-3 text-sm text-slate-600 backdrop-blur">
-            Public task fee: <span className="font-semibold text-slate-950">{formatEther(publicTaskCreationFee)} CELO</span>
+            Public task fee:{' '}
+            <span className="font-semibold text-slate-950">
+              {formatEther(publicTaskCreationFee)} CELO
+            </span>
           </div>
         </section>
 

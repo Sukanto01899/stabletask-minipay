@@ -13,6 +13,7 @@ export type TaskMetadata = {
   title: string
   description: string
   visitUrl?: string
+  deadline?: string
 }
 
 type VaultTaskTuple = readonly [bigint, number, `0x${string}`, bigint, bigint, boolean, boolean, string]
@@ -22,6 +23,7 @@ export type OnchainTask = {
   title: string
   description: string
   visitUrl?: string
+  deadline?: string
   rewardXp: string
   rewardTokenAmount: string
   tag: string
@@ -51,6 +53,7 @@ function parseMetadataURI(metadataURI: string, fallbackId: bigint | number | und
       title: parsed.title?.trim() || fallback.title,
       description: parsed.description?.trim() || fallback.description,
       visitUrl: parsed.visitUrl?.trim() || undefined,
+      deadline: parsed.deadline?.trim() || undefined,
     }
   } catch {
     return fallback
@@ -155,6 +158,7 @@ export function useVaultTasks() {
             title: metadata.title,
             description: metadata.description,
             visitUrl: metadata.visitUrl,
+            deadline: metadata.deadline,
             rewardXp: formatUnits(pointReward, 18),
             rewardTokenAmount: formatUnits(rewardAmount, stableTaskConfig.rewardToken.decimals),
             tag: getTaskTag(taskType),

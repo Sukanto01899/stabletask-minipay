@@ -18,6 +18,7 @@ import {
 import { BottomNav } from "@/components/stabletask/BottomNav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { stableTaskConfig } from "@/lib/app-config";
 
 type Eip1193Provider = {
@@ -91,6 +92,7 @@ export function AppShell(props: { children: React.ReactNode }) {
   const connectors = useConnectors();
   const { connect, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
+  const { toast } = useToast();
 
   const switchAttemptedRef = useRef(false);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
@@ -210,14 +212,17 @@ export function AppShell(props: { children: React.ReactNode }) {
       await copyToClipboard(address);
       setHasCopied(true);
       window.setTimeout(() => setHasCopied(false), 1400);
+      toast({ title: "Copied", description: "Wallet address copied to clipboard.", variant: "success" });
     } catch (error) {
       console.error("Failed to copy address:", error);
+      toast({ title: "Copy failed", description: "Could not copy address.", variant: "error" });
     }
   };
 
   const handleDisconnect = () => {
     try {
       disconnect();
+      toast({ title: "Disconnected", description: "Wallet disconnected.", variant: "default" });
     } finally {
       setWalletSheetOpen(false);
     }
@@ -347,4 +352,3 @@ export function AppShell(props: { children: React.ReactNode }) {
     </div>
   );
 }
-

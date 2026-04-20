@@ -15,6 +15,7 @@ import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
 import { KanbanTaskCard } from '@/components/stabletask/KanbanTaskCard'
 import { TaskCard } from '@/components/stabletask/TaskCard'
 import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
+import { useToast } from '@/components/ui/toast'
 import { encodeMetadataURI, type OnchainTask, useVaultTasks } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
 
@@ -94,6 +95,7 @@ function useAutoConnect(isConnected: boolean) {
 export default function Page() {
   const { address, isConnected, isConnecting, chainId } = useConnection()
   const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
+  const { toast } = useToast()
   const { error: connectError, isPending, providerMissing } = useAutoConnect(isConnected)
   const { writeContractAsync, data: txHash, error: writeError, isPending: isWritePending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed, isError: isReceiptError } =
@@ -158,9 +160,13 @@ export default function Page() {
     }
   }, [acceptedStorageKey, acceptedTasks])
 
-  const acceptTask = useCallback((taskId: bigint) => {
-    setAcceptedTasks((prev) => ({ ...prev, [taskId.toString()]: true }))
-  }, [])
+  const acceptTask = useCallback(
+    (taskId: bigint) => {
+      setAcceptedTasks((prev) => ({ ...prev, [taskId.toString()]: true }))
+      toast({ title: 'Accepted', description: 'Task moved to In progress.', variant: 'success' })
+    },
+    [toast],
+  )
 
   const isTaskAccepted = useCallback(
     (taskId: bigint) => Boolean(acceptedTasks[taskId.toString()]),
@@ -206,14 +212,24 @@ export default function Page() {
   useEffect(() => {
     if (!pendingAction) return
     if (isConfirmed) {
+      if (pendingAction.kind === 'visit') {
+        toast({ title: 'Done', description: 'Task marked as done.', variant: 'success' })
+      } else if (pendingAction.kind === 'claim') {
+        toast({ title: 'Claimed', description: 'XP claimed successfully.', variant: 'success' })
+      }
       setPendingAction(null)
       void loadTasks()
     }
-  }, [isConfirmed, loadTasks, pendingAction])
+  }, [isConfirmed, loadTasks, pendingAction, toast])
 
   useEffect(() => {
     if (!pendingAction) return
     if (writeError || isReceiptError) {
+      if (pendingAction.kind === 'visit') {
+        toast({ title: 'Failed', description: 'Could not mark task as done.', variant: 'error' })
+      } else if (pendingAction.kind === 'claim') {
+        toast({ title: 'Failed', description: 'Could not claim XP.', variant: 'error' })
+      }
       setLocalPageError(
         pendingAction.kind === 'create'
           ? 'Task creation failed. Please try again.'
@@ -223,7 +239,7 @@ export default function Page() {
       )
       setPendingAction(null)
     }
-  }, [isReceiptError, pendingAction, writeError])
+  }, [isReceiptError, pendingAction, toast, writeError])
 
   useEffect(() => {
     if (!isCreateOpen) return
@@ -273,6 +289,11 @@ export default function Page() {
 
       setLocalPageError(null)
       setPendingAction({ kind: 'visit', taskId })
+      toast({
+        title: 'Marking done…',
+        description: 'Confirm the transaction in your wallet.',
+        variant: 'default',
+      })
 
       try {
         await writeContractAsync({
@@ -286,9 +307,10 @@ export default function Page() {
         console.error('Visit completion failed:', visitError)
         setLocalPageError('Visit completion failed. Please try again.')
         setPendingAction(null)
+        toast({ title: 'Failed', description: 'Could not mark task as done.', variant: 'error' })
       }
     },
-    [address, chainId, isConnected, writeContractAsync],
+    [address, chainId, isConnected, toast, writeContractAsync],
   )
 
   const handleClaim = useCallback(
@@ -309,6 +331,11 @@ export default function Page() {
 
       setLocalPageError(null)
       setPendingAction({ kind: 'claim', taskId })
+      toast({
+        title: 'Claiming…',
+        description: 'Confirm the transaction in your wallet.',
+        variant: 'default',
+      })
 
       try {
         await writeContractAsync({
@@ -322,9 +349,10 @@ export default function Page() {
         console.error('Claim failed:', claimError)
         setLocalPageError('XP claim failed. Please try again.')
         setPendingAction(null)
+        toast({ title: 'Failed', description: 'Could not claim XP.', variant: 'error' })
       }
     },
-    [address, chainId, isConnected, writeContractAsync],
+    [address, chainId, isConnected, toast, writeContractAsync],
   )
 
   const handleVisitTask = useCallback(

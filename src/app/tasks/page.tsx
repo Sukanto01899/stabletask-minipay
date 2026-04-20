@@ -120,9 +120,10 @@ export default function Page() {
     rewardTokenAmount: '0',
     taskType: 'visit' as TaskTypeOption,
   })
-  const visibleTasks = tasks.filter((task) => !task.hasClaimedPoint)
-  const activeTasksCount = tasks.filter((task) => !task.isCompleted && !task.hasClaimedPoint).length
-  const pendingPayoutsCount = tasks.filter((task) => task.isCompleted && !task.hasClaimedPoint).length
+  const activeOnchainTasks = useMemo(() => tasks.filter((task) => task.active), [tasks])
+  const visibleTasks = activeOnchainTasks.filter((task) => !task.hasClaimedPoint)
+  const activeTasksCount = activeOnchainTasks.filter((task) => !task.isCompleted && !task.hasClaimedPoint).length
+  const pendingPayoutsCount = activeOnchainTasks.filter((task) => task.isCompleted && !task.hasClaimedPoint).length
 
   const acceptedStorageKey = useMemo(() => {
     const normalizedAddress = address ? address.toLowerCase() : 'guest'

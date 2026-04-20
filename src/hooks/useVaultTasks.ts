@@ -170,7 +170,7 @@ export function useVaultTasks() {
         }),
       )
 
-      setTasks(loadedTasks.filter((task) => task.active))
+      setTasks(loadedTasks)
       setPageError(null)
     } catch (loadError) {
       console.error('Failed to load tasks:', loadError)

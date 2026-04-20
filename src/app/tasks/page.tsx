@@ -173,7 +173,7 @@ export default function Page() {
     [acceptedTasks],
   )
 
-  useEffect(() => {
+  const fetchCusdBalance = useCallback(async () => {
     if (!isConnected || !address) {
       setCusdBalance(null)
       return
@@ -181,33 +181,39 @@ export default function Page() {
     if (chainId && chainId !== ACTIVE_CHAIN_ID) return
     if (!publicClient) return
 
-    const controller = new AbortController()
+    setIsFetchingBalance(true)
+    try {
+      const balanceRaw = (await publicClient.readContract({
+        address: stableTaskConfig.rewardToken.address,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address],
+      })) as bigint
 
-    const loadBalance = async () => {
-      setIsFetchingBalance(true)
-      try {
-        const balanceRaw = (await publicClient.readContract({
-          address: stableTaskConfig.rewardToken.address,
-          abi: erc20Abi,
-          functionName: 'balanceOf',
-          args: [address],
-        })) as bigint
-
-        if (controller.signal.aborted) return
-        setCusdBalance(formatUnits(balanceRaw, stableTaskConfig.rewardToken.decimals))
-      } catch (error) {
-        if (controller.signal.aborted) return
-        console.error('Failed to load cUSD balance:', error)
-        setCusdBalance(null)
-      } finally {
-        if (controller.signal.aborted) return
-        setIsFetchingBalance(false)
-      }
+      setCusdBalance(formatUnits(balanceRaw, stableTaskConfig.rewardToken.decimals))
+    } catch (error) {
+      console.error('Failed to load cUSD balance:', error)
+      setCusdBalance(null)
+    } finally {
+      setIsFetchingBalance(false)
     }
-
-    void loadBalance()
-    return () => controller.abort()
   }, [address, chainId, isConnected, publicClient])
+
+  useEffect(() => {
+    void fetchCusdBalance()
+  }, [fetchCusdBalance])
+
+  const handleRefresh = useCallback(async () => {
+    setLocalPageError(null)
+    toast({ title: 'Refreshing…', description: 'Updating tasks and balance.', variant: 'default' })
+    try {
+      await Promise.all([loadTasks(), fetchCusdBalance()])
+      toast({ title: 'Up to date', description: 'Latest tasks loaded.', variant: 'success' })
+    } catch (error) {
+      console.error('Refresh failed:', error)
+      toast({ title: 'Refresh failed', description: 'Please try again.', variant: 'error' })
+    }
+  }, [fetchCusdBalance, loadTasks, toast])
 
   useEffect(() => {
     if (!pendingAction) return
@@ -507,17 +513,27 @@ export default function Page() {
                 Balance, active tasks, and payouts at a glance.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setCreateError(null)
-                setIsCreateOpen(true)
-              }}
-              className="h-11 shrink-0 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(37,99,235,0.25)] transition hover:bg-blue-700 disabled:opacity-60"
-              disabled={!isConnected}
-            >
-              Create Task
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={!isConnected || isFetchingTasks || isFetchingBalance}
+                className="h-11 rounded-2xl border border-blue-200 bg-white/80 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
+              >
+                {isFetchingTasks || isFetchingBalance ? 'Refreshing…' : 'Refresh'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateError(null)
+                  setIsCreateOpen(true)
+                }}
+                className="h-11 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(37,99,235,0.25)] transition hover:bg-blue-700 disabled:opacity-60"
+                disabled={!isConnected}
+              >
+                Create Task
+              </button>
+            </div>
           </div>
 
           <div className="relative mt-4 grid grid-cols-3 gap-3">

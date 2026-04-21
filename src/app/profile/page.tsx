@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useConnection } from 'wagmi'
 
 import { ReferralCard } from '@/components/stabletask/ReferralCard'
+import { readTaskViewPreferences, taskViewPreferencesStorageKey, type TaskViewPreferences } from '@/lib/task-view-preferences'
 
 type ProfileClaim = {
   _id: string
@@ -83,6 +84,12 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfilePayload | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
+  const [taskViewPrefs, setTaskViewPrefs] = useState<TaskViewPreferences>({
+    hideCompleted: false,
+    showOnlyAccepted: false,
+  })
+
+  const taskViewPrefsKey = useMemo(() => taskViewPreferencesStorageKey(address), [address])
 
   useEffect(() => {
     if (!address || !isConnected) {
@@ -123,6 +130,20 @@ export default function ProfilePage() {
 
     return () => controller.abort()
   }, [address, isConnected])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setTaskViewPrefs(readTaskViewPreferences(window.localStorage.getItem(taskViewPrefsKey)))
+  }, [taskViewPrefsKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(taskViewPrefsKey, JSON.stringify(taskViewPrefs))
+    } catch {
+      // ignore persistence failures
+    }
+  }, [taskViewPrefs, taskViewPrefsKey])
 
   const riskTone = useMemo(() => {
     if (!isConnected) {
@@ -169,6 +190,36 @@ export default function ProfilePage() {
           </div>
         </section>
       </main>
+    )
+  }
+
+  const toggleRow = (props: {
+    label: string
+    description: string
+    value: boolean
+    onToggle: () => void
+  }) => {
+    return (
+      <div className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+        <div>
+          <div className="text-sm font-semibold text-slate-950">{props.label}</div>
+          <div className="mt-1 text-xs text-slate-500">{props.description}</div>
+        </div>
+        <button
+          type="button"
+          onClick={props.onToggle}
+          aria-pressed={props.value}
+          className={`relative h-7 w-12 shrink-0 rounded-full border transition ${
+            props.value ? 'border-emerald-200 bg-emerald-100' : 'border-slate-200 bg-white'
+          }`}
+        >
+          <span
+            className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full shadow-sm transition ${
+              props.value ? 'left-6 bg-emerald-600' : 'left-1 bg-slate-300'
+            }`}
+          />
+        </button>
+      </div>
     )
   }
 
@@ -264,6 +315,31 @@ export default function ProfilePage() {
           <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
             {riskTone.description}
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+        <div className="text-sm font-semibold text-slate-950">Task Preferences</div>
+        <div className="mt-1 text-xs text-slate-500">These filters apply on the Tasks screen for this wallet.</div>
+
+        <div className="mt-4 grid gap-3">
+          {toggleRow({
+            label: 'Hide completed tasks',
+            description: 'Hide tasks you already marked done.',
+            value: taskViewPrefs.hideCompleted,
+            onToggle: () =>
+              setTaskViewPrefs((prev) => ({ ...prev, hideCompleted: !prev.hideCompleted })),
+          })}
+          {toggleRow({
+            label: 'Show only accepted',
+            description: 'Only show tasks you accepted (or started).',
+            value: taskViewPrefs.showOnlyAccepted,
+            onToggle: () =>
+              setTaskViewPrefs((prev) => ({
+                ...prev,
+                showOnlyAccepted: !prev.showOnlyAccepted,
+              })),
+          })}
         </div>
       </section>
 

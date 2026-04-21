@@ -18,6 +18,7 @@ import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useToast } from '@/components/ui/toast'
 import { encodeMetadataURI, type OnchainTask, useVaultTasks } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
+import { readTaskViewPreferences, taskViewPreferencesStorageKey, type TaskViewPreferences } from '@/lib/task-view-preferences'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -113,6 +114,11 @@ export default function Page() {
   const [cusdBalance, setCusdBalance] = useState<string | null>(null)
   const [isFetchingBalance, setIsFetchingBalance] = useState(false)
   const [acceptedTasks, setAcceptedTasks] = useState<Record<string, true>>({})
+  const [pinnedTasks, setPinnedTasks] = useState<Record<string, true>>({})
+  const [taskViewPrefs, setTaskViewPrefs] = useState<TaskViewPreferences>({
+    hideCompleted: false,
+    showOnlyAccepted: false,
+  })
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -123,7 +129,7 @@ export default function Page() {
     taskType: 'visit' as TaskTypeOption,
   })
   const activeOnchainTasks = useMemo(() => tasks.filter((task) => task.active), [tasks])
-  const visibleTasks = activeOnchainTasks.filter((task) => !task.hasClaimedPoint)
+  const baseVisibleTasks = activeOnchainTasks.filter((task) => !task.hasClaimedPoint)
   const activeTasksCount = activeOnchainTasks.filter((task) => !task.isCompleted && !task.hasClaimedPoint).length
   const pendingPayoutsCount = activeOnchainTasks.filter((task) => task.isCompleted && !task.hasClaimedPoint).length
 
@@ -131,6 +137,13 @@ export default function Page() {
     const normalizedAddress = address ? address.toLowerCase() : 'guest'
     return `stabletask:accepted:${normalizedAddress}`
   }, [address])
+
+  const pinnedStorageKey = useMemo(() => {
+    const normalizedAddress = address ? address.toLowerCase() : 'guest'
+    return `stabletask:pinned:${normalizedAddress}`
+  }, [address])
+
+  const taskViewPrefsKey = useMemo(() => taskViewPreferencesStorageKey(address), [address])
 
   useEffect(() => {
     pendingActionRef.current = pendingAction
@@ -160,6 +173,44 @@ export default function Page() {
     }
   }, [acceptedStorageKey, acceptedTasks])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = window.localStorage.getItem(pinnedStorageKey)
+      if (!stored) {
+        setPinnedTasks({})
+        return
+      }
+      const parsed = JSON.parse(stored) as Record<string, true>
+      setPinnedTasks(parsed && typeof parsed === 'object' ? parsed : {})
+    } catch {
+      setPinnedTasks({})
+    }
+  }, [pinnedStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(pinnedStorageKey, JSON.stringify(pinnedTasks))
+    } catch {
+      // ignore persistence failures
+    }
+  }, [pinnedStorageKey, pinnedTasks])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setTaskViewPrefs(readTaskViewPreferences(window.localStorage.getItem(taskViewPrefsKey)))
+  }, [taskViewPrefsKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(taskViewPrefsKey, JSON.stringify(taskViewPrefs))
+    } catch {
+      // ignore persistence failures
+    }
+  }, [taskViewPrefs, taskViewPrefsKey])
+
   const acceptTask = useCallback(
     (taskId: bigint) => {
       setAcceptedTasks((prev) => ({ ...prev, [taskId.toString()]: true }))
@@ -171,6 +222,29 @@ export default function Page() {
   const isTaskAccepted = useCallback(
     (taskId: bigint) => Boolean(acceptedTasks[taskId.toString()]),
     [acceptedTasks],
+  )
+
+  const isTaskPinned = useCallback(
+    (taskId: bigint) => Boolean(pinnedTasks[taskId.toString()]),
+    [pinnedTasks],
+  )
+
+  const togglePinTask = useCallback(
+    (taskId: bigint, nextPinned: boolean) => {
+      setPinnedTasks((prev) => {
+        const key = taskId.toString()
+        if (nextPinned) return { ...prev, [key]: true }
+        if (!prev[key]) return prev
+        const { [key]: _, ...rest } = prev
+        return rest
+      })
+      toast({
+        title: nextPinned ? 'Pinned' : 'Unpinned',
+        description: nextPinned ? 'Task pinned to the top.' : 'Task unpinned.',
+        variant: 'default',
+      })
+    },
+    [toast],
   )
 
   const fetchCusdBalance = useCallback(async () => {
@@ -288,6 +362,9 @@ export default function Page() {
         return
       }
       if (pendingActionRef.current || isVisited) return
+      setAcceptedTasks((prev) =>
+        prev[taskId.toString()] ? prev : { ...prev, [taskId.toString()]: true },
+      )
 
       if (visitUrl) {
         window.open(visitUrl, '_blank', 'noopener,noreferrer')
@@ -334,6 +411,9 @@ export default function Page() {
         return
       }
       if (pendingActionRef.current || isClaimed || !isVisited) return
+      setAcceptedTasks((prev) =>
+        prev[taskId.toString()] ? prev : { ...prev, [taskId.toString()]: true },
+      )
 
       setLocalPageError(null)
       setPendingAction({ kind: 'claim', taskId })
@@ -376,6 +456,29 @@ export default function Page() {
     },
     [handleClaim],
   )
+
+  const visibleTasks = useMemo(() => {
+    let filtered = baseVisibleTasks
+    if (taskViewPrefs.hideCompleted) {
+      filtered = filtered.filter((task) => !task.isCompleted)
+    }
+    if (taskViewPrefs.showOnlyAccepted) {
+      filtered = filtered.filter((task) => isTaskAccepted(task.id))
+    }
+    const pinned: typeof filtered = []
+    const unpinned: typeof filtered = []
+    for (const task of filtered) {
+      if (isTaskPinned(task.id)) pinned.push(task)
+      else unpinned.push(task)
+    }
+    return [...pinned, ...unpinned]
+  }, [
+    baseVisibleTasks,
+    isTaskAccepted,
+    isTaskPinned,
+    taskViewPrefs.hideCompleted,
+    taskViewPrefs.showOnlyAccepted,
+  ])
 
   const openTasks = visibleTasks.filter((task) => !task.isCompleted && !isTaskAccepted(task.id))
   const inProgressTasks = visibleTasks.filter((task) => !task.isCompleted && isTaskAccepted(task.id))
@@ -591,6 +694,8 @@ export default function Page() {
                     title={task.title}
                     reward={`${formatCompactAmount(task.rewardTokenAmount)} ${stableTaskConfig.rewardToken.symbol}`}
                     deadlineLabel={formatDeadlineLabel(task.deadline)}
+                    isPinned={isTaskPinned(task.id)}
+                    onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
                     actionLabel="Accept"
                     onAction={() => acceptTask(task.id)}
                     actionDisabled={!isConnected}
@@ -616,6 +721,8 @@ export default function Page() {
                     title={task.title}
                     reward={`${formatCompactAmount(task.rewardTokenAmount)} ${stableTaskConfig.rewardToken.symbol}`}
                     deadlineLabel={formatDeadlineLabel(task.deadline)}
+                    isPinned={isTaskPinned(task.id)}
+                    onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
                     actionLabel="Mark done"
                     onAction={() => handleVisitTask(task.id, task.visitUrl, task.isCompleted)}
                     actionDisabled={!isConnected || Boolean(pendingAction)}
@@ -641,6 +748,8 @@ export default function Page() {
                     title={task.title}
                     reward={`${formatCompactAmount(task.rewardTokenAmount)} ${stableTaskConfig.rewardToken.symbol}`}
                     deadlineLabel={formatDeadlineLabel(task.deadline)}
+                    isPinned={isTaskPinned(task.id)}
+                    onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
                     actionLabel="Done"
                     actionDisabled
                   />
@@ -703,6 +812,11 @@ export default function Page() {
                   description={task.description}
                   reward={`${task.rewardXp} XP`}
                   tag={task.tag}
+                  isPinned={isTaskPinned(task.id)}
+                  onTogglePin={(taskId, nextPinned) => {
+                    if (typeof taskId !== 'bigint') return
+                    togglePinTask(taskId, nextPinned)
+                  }}
                   visitHref={task.visitUrl}
                   onVisit={handleVisitTask}
                   onClaim={handleClaimTask}

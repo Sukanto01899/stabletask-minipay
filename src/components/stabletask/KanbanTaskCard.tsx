@@ -7,16 +7,37 @@ export type KanbanTaskCardProps = {
   title: string
   reward: string
   deadlineLabel: string
+  isPinned?: boolean
+  onTogglePin?: (nextPinned: boolean) => void
   actionLabel: string
   onAction?: () => void | Promise<void>
   actionDisabled?: boolean
 }
 
 export const KanbanTaskCard = memo(function KanbanTaskCard(props: KanbanTaskCardProps) {
+  const isPinned = Boolean(props.isPinned)
+
   return (
     <Card className="rounded-[1.5rem] border border-white/70 bg-white/80 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-sm">
       <CardHeader className="space-y-1">
-        <div className="text-sm font-semibold text-slate-900">{props.title}</div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="text-sm font-semibold text-slate-900">{props.title}</div>
+          {props.onTogglePin && (
+            <button
+              type="button"
+              onClick={() => props.onTogglePin?.(!isPinned)}
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm shadow-sm transition ${
+                isPinned
+                  ? 'border-amber-200 bg-amber-50 text-amber-700'
+                  : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+              aria-label={isPinned ? 'Unpin task' : 'Pin task'}
+              title={isPinned ? 'Pinned' : 'Pin'}
+            >
+              {isPinned ? '★' : '☆'}
+            </button>
+          )}
+        </div>
         <div className="text-xs text-slate-500">{props.deadlineLabel}</div>
       </CardHeader>
       <CardContent>
@@ -40,4 +61,3 @@ export const KanbanTaskCard = memo(function KanbanTaskCard(props: KanbanTaskCard
     </Card>
   )
 })
-

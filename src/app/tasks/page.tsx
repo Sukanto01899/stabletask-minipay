@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
 import {
   useConnect,
   useConnectors,
@@ -119,6 +119,10 @@ export default function Page() {
     hideCompleted: false,
     showOnlyAccepted: false,
   })
+  const [pullDistance, setPullDistance] = useState(0)
+  const [pullReady, setPullReady] = useState(false)
+  const pullStartYRef = useRef<number | null>(null)
+  const isPullingRef = useRef(false)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -288,6 +292,58 @@ export default function Page() {
       toast({ title: 'Refresh failed', description: 'Please try again.', variant: 'error' })
     }
   }, [fetchCusdBalance, loadTasks, toast])
+
+  const isRefreshing = isFetchingTasks || isFetchingBalance
+
+  const resetPull = useCallback(() => {
+    pullStartYRef.current = null
+    isPullingRef.current = false
+    setPullDistance(0)
+    setPullReady(false)
+  }, [])
+
+  const handleTouchStart = useCallback(
+    (event: TouchEvent<HTMLDivElement>) => {
+      if (isRefreshing) return
+      if (event.touches.length !== 1) return
+      if (typeof window !== 'undefined' && window.scrollY > 0) return
+      pullStartYRef.current = event.touches[0]?.clientY ?? null
+      isPullingRef.current = false
+    },
+    [isRefreshing],
+  )
+
+  const handleTouchMove = useCallback(
+    (event: TouchEvent<HTMLDivElement>) => {
+      if (isRefreshing) return
+      const startY = pullStartYRef.current
+      if (startY === null) return
+      if (event.touches.length !== 1) return
+      if (typeof window !== 'undefined' && window.scrollY > 0) return
+
+      const currentY = event.touches[0]?.clientY ?? startY
+      const deltaY = currentY - startY
+      if (deltaY <= 0) return
+
+      isPullingRef.current = true
+      const eased = Math.min(120, Math.round(deltaY * 0.6))
+      setPullDistance(eased)
+      setPullReady(eased >= 70)
+    },
+    [isRefreshing],
+  )
+
+  const handleTouchEnd = useCallback(async () => {
+    if (!isPullingRef.current) {
+      resetPull()
+      return
+    }
+    const shouldRefresh = pullReady && !isRefreshing
+    resetPull()
+    if (shouldRefresh) {
+      await handleRefresh()
+    }
+  }, [handleRefresh, isRefreshing, pullReady, resetPull])
 
   useEffect(() => {
     if (!pendingAction) return
@@ -581,7 +637,12 @@ export default function Page() {
   }
 
   return (
-    <div>
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
       {isDev && (
         <div className="fixed bottom-20 left-4 z-50 rounded-full border border-blue-200/70 bg-white/90 px-3 py-1 text-xs shadow">
           <span>connected: {isConnected ? 'yes' : 'no'}</span>
@@ -589,7 +650,27 @@ export default function Page() {
           <span>chainId: {chainId ?? '—'}</span>
         </div>
       )}
-      <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-4">
+      <div className="mx-auto w-full max-w-md px-5 pt-2">
+        <div
+          className="overflow-hidden rounded-2xl"
+          style={{
+            height: pullDistance,
+            transition: isPullingRef.current ? 'none' : 'height 180ms ease',
+          }}
+        >
+          <div className="flex h-full items-end justify-center pb-2 text-xs font-semibold text-slate-600">
+            {isRefreshing ? 'Refreshingâ€¦' : pullReady ? 'Release to refresh' : 'Pull to refresh'}
+          </div>
+        </div>
+      </div>
+
+      <main
+        className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-2"
+        style={{
+          transform: pullDistance ? `translateY(${pullDistance}px)` : undefined,
+          transition: isPullingRef.current ? 'none' : 'transform 180ms ease',
+        }}
+      >
         {errorMessage && (
           <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
             {errorMessage}

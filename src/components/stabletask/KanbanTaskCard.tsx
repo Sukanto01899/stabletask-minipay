@@ -1,7 +1,9 @@
 import { memo } from 'react'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 export type KanbanTaskCardProps = {
   title: string
@@ -9,6 +11,7 @@ export type KanbanTaskCardProps = {
   deadlineLabel: string
   isPinned?: boolean
   onTogglePin?: (nextPinned: boolean) => void
+  isOverdue?: boolean
   actionLabel: string
   onAction?: () => void | Promise<void>
   actionDisabled?: boolean
@@ -16,12 +19,25 @@ export type KanbanTaskCardProps = {
 
 export const KanbanTaskCard = memo(function KanbanTaskCard(props: KanbanTaskCardProps) {
   const isPinned = Boolean(props.isPinned)
+  const isOverdue = Boolean(props.isOverdue)
 
   return (
-    <Card className="rounded-[1.5rem] border border-white/70 bg-white/80 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+    <Card
+      className={cn(
+        'rounded-[1.5rem] border border-white/70 bg-white/80 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-sm',
+        isOverdue && 'border-rose-200/80 bg-rose-50/60',
+      )}
+    >
       <CardHeader className="space-y-1">
         <div className="flex items-start justify-between gap-2">
-          <div className="text-sm font-semibold text-slate-900">{props.title}</div>
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-semibold text-slate-900">{props.title}</div>
+            {isOverdue && (
+              <Badge className="border border-rose-200 bg-rose-50 text-rose-700 shadow-sm">
+                Overdue
+              </Badge>
+            )}
+          </div>
           {props.onTogglePin && (
             <button
               type="button"

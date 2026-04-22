@@ -15,6 +15,8 @@ export type TaskCardProps = {
   tag?: string
   isPinned?: boolean
   onTogglePin?: (taskId: TaskCardId, nextPinned: boolean) => void
+  deadlineLabel?: string
+  isOverdue?: boolean
   visitHref?: string
   onVisit?: (taskId: TaskCardId, visitHref?: string, isVisited?: boolean) => void | Promise<void>
   onClaim?: (taskId: TaskCardId, isVisited?: boolean, isClaimed?: boolean) => void | Promise<void>
@@ -43,6 +45,7 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   const visitLabel = props.isVisited ? 'Visited' : isVisiting ? 'Opening...' : 'Visit'
   const visitUrlLabel = props.visitHref ? getVisitUrlLabel(props.visitHref) : null
   const isPinned = Boolean(props.isPinned)
+  const isOverdue = Boolean(props.isOverdue)
 
   const handleVisit = () => {
     if (!props.onVisit || props.taskId === undefined) return
@@ -60,7 +63,12 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   }
 
   return (
-    <Card className="rounded-[1.75rem] border border-white/70 bg-white/80 py-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+    <Card
+      className={cn(
+        'rounded-[1.75rem] border border-white/70 bg-white/80 py-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-sm',
+        isOverdue && 'border-rose-200/80 bg-rose-50/60',
+      )}
+    >
       <CardHeader className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="text-lg font-semibold text-slate-900">{props.title}</div>
@@ -81,6 +89,11 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
                 {isPinned ? '★' : '☆'}
               </button>
             )}
+            {isOverdue && (
+              <Badge className="border border-rose-200 bg-rose-50 text-rose-700 shadow-sm">
+                Overdue
+              </Badge>
+            )}
             {props.tag && (
               <Badge className="border border-blue-200 bg-blue-50 text-blue-700 shadow-sm">
                 {props.tag}
@@ -88,6 +101,11 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
             )}
           </div>
         </div>
+        {props.deadlineLabel && (
+          <div className={cn('text-xs', isOverdue ? 'text-rose-700' : 'text-slate-500')}>
+            {props.deadlineLabel}
+          </div>
+        )}
         <div className="text-sm text-slate-600">{props.description}</div>
       </CardHeader>
       <CardContent>

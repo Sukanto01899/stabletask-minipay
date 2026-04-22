@@ -44,6 +44,27 @@ function formatDeadlineLabel(deadline: string | undefined) {
   return `Due ${new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(parsed)}`
 }
 
+function parseLocalDateOnly(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim())
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null
+  return new Date(year, month - 1, day)
+}
+
+function isDeadlineOverdue(deadline: string | undefined) {
+  if (!deadline) return false
+  const deadlineDate = parseLocalDateOnly(deadline) ?? new Date(deadline)
+  if (Number.isNaN(deadlineDate.getTime())) return false
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  deadlineDate.setHours(0, 0, 0, 0)
+  return deadlineDate.getTime() < today.getTime()
+}
+
 function getEthereumProvider() {
   if (typeof window === 'undefined' || !(window as Window & { ethereum?: unknown }).ethereum) {
     throw new Error('window.ethereum is required. Please run this app inside MiniPay.')
@@ -777,6 +798,7 @@ export default function Page() {
                     deadlineLabel={formatDeadlineLabel(task.deadline)}
                     isPinned={isTaskPinned(task.id)}
                     onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
+                    isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
                     actionLabel="Accept"
                     onAction={() => acceptTask(task.id)}
                     actionDisabled={!isConnected}
@@ -804,6 +826,7 @@ export default function Page() {
                     deadlineLabel={formatDeadlineLabel(task.deadline)}
                     isPinned={isTaskPinned(task.id)}
                     onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
+                    isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
                     actionLabel="Mark done"
                     onAction={() => handleVisitTask(task.id, task.visitUrl, task.isCompleted)}
                     actionDisabled={!isConnected || Boolean(pendingAction)}
@@ -831,6 +854,7 @@ export default function Page() {
                     deadlineLabel={formatDeadlineLabel(task.deadline)}
                     isPinned={isTaskPinned(task.id)}
                     onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
+                    isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
                     actionLabel="Done"
                     actionDisabled
                   />
@@ -898,6 +922,8 @@ export default function Page() {
                     if (typeof taskId !== 'bigint') return
                     togglePinTask(taskId, nextPinned)
                   }}
+                  deadlineLabel={task.deadline ? formatDeadlineLabel(task.deadline) : undefined}
+                  isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
                   visitHref={task.visitUrl}
                   onVisit={handleVisitTask}
                   onClaim={handleClaimTask}

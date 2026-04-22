@@ -1,8 +1,9 @@
 'use client'
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
+import { readToastPreferences, TOAST_PREFERENCES_STORAGE_KEY, type ToastPreferences } from '@/lib/toast-preferences'
 
 type ToastVariant = 'default' | 'success' | 'error'
 
@@ -33,7 +34,23 @@ function variantClasses(variant: ToastVariant) {
 
 export function ToastProvider(props: { children: React.ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([])
+  const [prefs, setPrefs] = useState<ToastPreferences>({
+    toastOnSuccess: true,
+    toastOnFailure: true,
+  })
   const timeoutsRef = useRef<Map<string, number>>(new Map())
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setPrefs(readToastPreferences(window.localStorage.getItem(TOAST_PREFERENCES_STORAGE_KEY)))
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== TOAST_PREFERENCES_STORAGE_KEY) return
+      setPrefs(readToastPreferences(event.newValue))
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
 
   const remove = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id))
@@ -44,6 +61,10 @@ export function ToastProvider(props: { children: React.ReactNode }) {
 
   const toast = useCallback(
     (input: ToastInput) => {
+      const variant = input.variant ?? 'default'
+      if (variant === 'success' && !prefs.toastOnSuccess) return
+      if (variant === 'error' && !prefs.toastOnFailure) return
+
       const id =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
           ? crypto.randomUUID()
@@ -51,14 +72,14 @@ export function ToastProvider(props: { children: React.ReactNode }) {
       const durationMs = input.durationMs ?? 2200
 
       setItems((prev) => [
-        { id, createdAt: Date.now(), title: input.title, description: input.description, variant: input.variant ?? 'default', durationMs },
+        { id, createdAt: Date.now(), title: input.title, description: input.description, variant, durationMs },
         ...prev,
       ].slice(0, 3))
 
       const timeoutId = window.setTimeout(() => remove(id), durationMs)
       timeoutsRef.current.set(id, timeoutId)
     },
-    [remove],
+    [prefs.toastOnFailure, prefs.toastOnSuccess, remove],
   )
 
   const value = useMemo(() => ({ toast }), [toast])
@@ -95,4 +116,3 @@ export function useToast() {
   if (!ctx) throw new Error('useToast must be used within ToastProvider')
   return ctx
 }
-

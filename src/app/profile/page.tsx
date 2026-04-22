@@ -5,6 +5,7 @@ import { useConnection } from 'wagmi'
 
 import { ReferralCard } from '@/components/stabletask/ReferralCard'
 import { readTaskViewPreferences, taskViewPreferencesStorageKey, type TaskViewPreferences } from '@/lib/task-view-preferences'
+import { readToastPreferences, TOAST_PREFERENCES_STORAGE_KEY, type ToastPreferences } from '@/lib/toast-preferences'
 
 type ProfileClaim = {
   _id: string
@@ -88,6 +89,10 @@ export default function ProfilePage() {
     hideCompleted: false,
     showOnlyAccepted: false,
   })
+  const [toastPrefs, setToastPrefs] = useState<ToastPreferences>({
+    toastOnSuccess: true,
+    toastOnFailure: true,
+  })
 
   const taskViewPrefsKey = useMemo(() => taskViewPreferencesStorageKey(address), [address])
 
@@ -144,6 +149,20 @@ export default function ProfilePage() {
       // ignore persistence failures
     }
   }, [taskViewPrefs, taskViewPrefsKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setToastPrefs(readToastPreferences(window.localStorage.getItem(TOAST_PREFERENCES_STORAGE_KEY)))
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(TOAST_PREFERENCES_STORAGE_KEY, JSON.stringify(toastPrefs))
+    } catch {
+      // ignore persistence failures
+    }
+  }, [toastPrefs])
 
   const riskTone = useMemo(() => {
     if (!isConnected) {
@@ -339,6 +358,28 @@ export default function ProfilePage() {
                 ...prev,
                 showOnlyAccepted: !prev.showOnlyAccepted,
               })),
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-[1.75rem] border border-slate-200/70 bg-white/85 p-5 shadow-sm">
+        <div className="text-sm font-semibold text-slate-950">Notifications</div>
+        <div className="mt-1 text-xs text-slate-500">Control which toast messages you want to see.</div>
+
+        <div className="mt-4 grid gap-3">
+          {toggleRow({
+            label: 'Toast on success',
+            description: 'Show toasts for successful actions (copy/accept/done/claim).',
+            value: toastPrefs.toastOnSuccess,
+            onToggle: () =>
+              setToastPrefs((prev) => ({ ...prev, toastOnSuccess: !prev.toastOnSuccess })),
+          })}
+          {toggleRow({
+            label: 'Toast on failure',
+            description: 'Show toasts when something fails (tx rejected, copy failed, etc).',
+            value: toastPrefs.toastOnFailure,
+            onToggle: () =>
+              setToastPrefs((prev) => ({ ...prev, toastOnFailure: !prev.toastOnFailure })),
           })}
         </div>
       </section>

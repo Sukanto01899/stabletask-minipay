@@ -13,6 +13,7 @@ import { erc20Abi, formatEther, formatUnits, parseEther } from 'viem'
 
 import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
 import { KanbanTaskCard } from '@/components/stabletask/KanbanTaskCard'
+import { KanbanTaskCardSkeleton } from '@/components/stabletask/KanbanTaskCardSkeleton'
 import { TaskCard } from '@/components/stabletask/TaskCard'
 import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useToast } from '@/components/ui/toast'
@@ -892,12 +893,18 @@ export default function Page() {
                 <span className="text-xs font-semibold text-blue-700">{openTasks.length}</span>
               </div>
               <div className="grid gap-3">
-                {openTasks.length === 0 && (
+                {isFetchingTasks && (
+                  <>
+                    <KanbanTaskCardSkeleton />
+                    <KanbanTaskCardSkeleton />
+                  </>
+                )}
+                {!isFetchingTasks && openTasks.length === 0 && (
                   <div className="rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-3 text-xs text-slate-500 backdrop-blur">
                     No open tasks.
                   </div>
                 )}
-                {openTasks.map((task) => (
+                {!isFetchingTasks && openTasks.map((task) => (
                   <KanbanTaskCard
                     key={task.id.toString()}
                     title={task.title}
@@ -920,12 +927,18 @@ export default function Page() {
                 <span className="text-xs font-semibold text-blue-700">{inProgressTasks.length}</span>
               </div>
               <div className="grid gap-3">
-                {inProgressTasks.length === 0 && (
+                {isFetchingTasks && (
+                  <>
+                    <KanbanTaskCardSkeleton />
+                    <KanbanTaskCardSkeleton />
+                  </>
+                )}
+                {!isFetchingTasks && inProgressTasks.length === 0 && (
                   <div className="rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-3 text-xs text-slate-500 backdrop-blur">
                     Accept a task to start.
                   </div>
                 )}
-                {inProgressTasks.map((task) => (
+                {!isFetchingTasks && inProgressTasks.map((task) => (
                   <KanbanTaskCard
                     key={task.id.toString()}
                     title={task.title}
@@ -948,12 +961,18 @@ export default function Page() {
                 <span className="text-xs font-semibold text-blue-700">{doneTasks.length}</span>
               </div>
               <div className="grid gap-3">
-                {doneTasks.length === 0 && (
+                {isFetchingTasks && (
+                  <>
+                    <KanbanTaskCardSkeleton />
+                    <KanbanTaskCardSkeleton />
+                  </>
+                )}
+                {!isFetchingTasks && doneTasks.length === 0 && (
                   <div className="rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-3 text-xs text-slate-500 backdrop-blur">
                     Finish a task to see it here.
                   </div>
                 )}
-                {doneTasks.map((task) => (
+                {!isFetchingTasks && doneTasks.map((task) => (
                   <KanbanTaskCard
                     key={task.id.toString()}
                     title={task.title}

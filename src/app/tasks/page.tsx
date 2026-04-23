@@ -30,12 +30,29 @@ type PendingAction = {
   taskId?: bigint
 }
 
+type ActivityKind = 'accepted' | 'done' | 'claimed'
+
+type ActivityItem = {
+  id: string
+  kind: ActivityKind
+  taskId?: string
+  title?: string
+  createdAt: number
+}
+
 function formatCompactAmount(raw: string | null | undefined, maxFractionDigits = 2) {
   if (!raw) return '—'
   const numeric = Number(raw)
   if (!Number.isFinite(numeric)) return raw
   return numeric.toLocaleString(undefined, { maximumFractionDigits: maxFractionDigits })
 }
+
+const activityDateFormatter = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+})
 
 function formatDeadlineLabel(deadline: string | undefined) {
   if (!deadline) return 'No deadline'
@@ -136,6 +153,7 @@ export default function Page() {
   const [isFetchingBalance, setIsFetchingBalance] = useState(false)
   const [acceptedTasks, setAcceptedTasks] = useState<Record<string, true>>({})
   const [pinnedTasks, setPinnedTasks] = useState<Record<string, true>>({})
+  const [activity, setActivity] = useState<ActivityItem[]>([])
   const [taskViewPrefs, setTaskViewPrefs] = useState<TaskViewPreferences>({
     hideCompleted: false,
     showOnlyAccepted: false,
@@ -166,6 +184,11 @@ export default function Page() {
   const pinnedStorageKey = useMemo(() => {
     const normalizedAddress = address ? address.toLowerCase() : 'guest'
     return `stabletask:pinned:${normalizedAddress}`
+  }, [address])
+
+  const activityStorageKey = useMemo(() => {
+    const normalizedAddress = address ? address.toLowerCase() : 'guest'
+    return `stabletask:activity:${normalizedAddress}`
   }, [address])
 
   const taskViewPrefsKey = useMemo(() => taskViewPreferencesStorageKey(address), [address])
@@ -224,6 +247,30 @@ export default function Page() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    try {
+      const stored = window.localStorage.getItem(activityStorageKey)
+      if (!stored) {
+        setActivity([])
+        return
+      }
+      const parsed = JSON.parse(stored) as ActivityItem[]
+      setActivity(Array.isArray(parsed) ? parsed : [])
+    } catch {
+      setActivity([])
+    }
+  }, [activityStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(activityStorageKey, JSON.stringify(activity))
+    } catch {
+      // ignore persistence failures
+    }
+  }, [activity, activityStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
     setTaskViewPrefs(readTaskViewPreferences(window.localStorage.getItem(taskViewPrefsKey)))
   }, [taskViewPrefsKey])
 
@@ -236,12 +283,27 @@ export default function Page() {
     }
   }, [taskViewPrefs, taskViewPrefsKey])
 
+  const pushActivity = useCallback((item: Omit<ActivityItem, 'id' | 'createdAt'>) => {
+    const id =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const entry: ActivityItem = {
+      id,
+      createdAt: Date.now(),
+      ...item,
+    }
+    setActivity((prev) => [entry, ...prev].slice(0, 20))
+  }, [])
+
   const acceptTask = useCallback(
     (taskId: bigint) => {
       setAcceptedTasks((prev) => ({ ...prev, [taskId.toString()]: true }))
       toast({ title: 'Accepted', description: 'Task moved to In progress.', variant: 'success' })
+      const taskTitle = tasks.find((task) => task.id === taskId)?.title
+      pushActivity({ kind: 'accepted', taskId: taskId.toString(), title: taskTitle })
     },
-    [toast],
+    [pushActivity, tasks, toast],
   )
 
   const isTaskAccepted = useCallback(
@@ -369,15 +431,24 @@ export default function Page() {
   useEffect(() => {
     if (!pendingAction) return
     if (isConfirmed) {
+      const taskTitle = pendingAction.taskId
+        ? tasks.find((task) => task.id === pendingAction.taskId)?.title
+        : undefined
       if (pendingAction.kind === 'visit') {
         toast({ title: 'Done', description: 'Task marked as done.', variant: 'success' })
+        if (pendingAction.taskId) {
+          pushActivity({ kind: 'done', taskId: pendingAction.taskId.toString(), title: taskTitle })
+        }
       } else if (pendingAction.kind === 'claim') {
         toast({ title: 'Claimed', description: 'XP claimed successfully.', variant: 'success' })
+        if (pendingAction.taskId) {
+          pushActivity({ kind: 'claimed', taskId: pendingAction.taskId.toString(), title: taskTitle })
+        }
       }
       setPendingAction(null)
       void loadTasks()
     }
-  }, [isConfirmed, loadTasks, pendingAction, toast])
+  }, [isConfirmed, loadTasks, pendingAction, pushActivity, tasks, toast])
 
   useEffect(() => {
     if (!pendingAction) return
@@ -560,6 +631,13 @@ export default function Page() {
   const openTasks = visibleTasks.filter((task) => !task.isCompleted && !isTaskAccepted(task.id))
   const inProgressTasks = visibleTasks.filter((task) => !task.isCompleted && isTaskAccepted(task.id))
   const doneTasks = visibleTasks.filter((task) => task.isCompleted)
+
+  const activityItems = useMemo(() => activity.slice(0, 5), [activity])
+  const formatActivityLine = useCallback((item: ActivityItem) => {
+    const label = item.kind === 'accepted' ? 'Accepted' : item.kind === 'done' ? 'Done' : 'Claimed'
+    const title = item.title ?? (item.taskId ? `Task #${item.taskId}` : 'Task')
+    return `${label}: ${title}`
+  }, [])
 
   const handleCreateTask = async () => {
     const trimmedTitle = newTask.title.trim()
@@ -769,6 +847,35 @@ export default function Page() {
             <span className="font-semibold text-slate-950">
               {formatEther(publicTaskCreationFee)} CELO
             </span>
+          </div>
+        </section>
+
+        <section className="rounded-[1.75rem] border border-blue-200/70 bg-white/80 px-5 py-5 shadow-sm backdrop-blur-sm">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-950">Recent Activity</div>
+              <div className="mt-1 text-xs text-slate-500">Saved on this device only.</div>
+            </div>
+            <div className="text-xs font-semibold text-blue-700">{activityItems.length}/5</div>
+          </div>
+
+          <div className="mt-4 grid gap-2">
+            {activityItems.length === 0 && (
+              <div className="rounded-2xl border border-blue-200/60 bg-blue-50/40 px-4 py-3 text-xs text-slate-600">
+                No activity yet. Accept, complete, or claim a task to see it here.
+              </div>
+            )}
+            {activityItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start justify-between gap-3 rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-3"
+              >
+                <div className="text-sm font-semibold text-slate-950">{formatActivityLine(item)}</div>
+                <div className="shrink-0 text-xs text-slate-500">
+                  {activityDateFormatter.format(new Date(item.createdAt))}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 

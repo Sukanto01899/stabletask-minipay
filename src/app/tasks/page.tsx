@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
+import Link from 'next/link'
 import {
   useConnect,
   useConnectors,
@@ -808,6 +809,25 @@ export default function Page() {
           <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
             {resolvedPageError}
           </p>
+        )}
+
+        {isConnected && !isFetchingTasks && pendingPayoutsCount > 0 && (
+          <div className="flex items-center justify-between gap-3 rounded-[1.5rem] border border-emerald-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.94),rgba(236,253,245,0.98)_55%,rgba(209,250,229,0.96))] px-4 py-3 shadow-sm">
+            <div>
+              <div className="text-sm font-semibold text-slate-950">
+                You have {pendingPayoutsCount} to claim
+              </div>
+              <div className="mt-0.5 text-xs text-slate-600">
+                Completed tasks are ready for XP claim.
+              </div>
+            </div>
+            <Link
+              href="/rewards"
+              className="shrink-0 rounded-full border border-emerald-200 bg-white/80 px-4 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-white"
+            >
+              View
+            </Link>
+          </div>
         )}
 
         <section className="relative overflow-hidden rounded-[2rem] border border-blue-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(224,242,254,0.98)_60%,rgba(191,219,254,0.95))] px-5 py-5 shadow-[0_24px_60px_rgba(37,99,235,0.14)]">

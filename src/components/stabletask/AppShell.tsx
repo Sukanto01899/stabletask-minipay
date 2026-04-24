@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { stableTaskConfig } from "@/lib/app-config";
+import { copyText } from "@/lib/clipboard";
 
 type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -67,24 +68,6 @@ const HEADER_COPY: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Monitor claim patterns and suspicious activity.",
   },
 };
-
-async function copyToClipboard(text: string) {
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  if (typeof document === "undefined") return;
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "true");
-  textarea.style.position = "fixed";
-  textarea.style.top = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
-}
 
 export function AppShell(props: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -209,7 +192,7 @@ export function AppShell(props: { children: React.ReactNode }) {
   const handleCopyAddress = async () => {
     if (!address) return;
     try {
-      await copyToClipboard(address);
+      await copyText(address);
       setHasCopied(true);
       window.setTimeout(() => setHasCopied(false), 1400);
       toast({ title: "Copied", description: "Wallet address copied to clipboard.", variant: "success" });

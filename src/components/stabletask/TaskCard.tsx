@@ -1,8 +1,12 @@
+'use client'
+
 import { memo } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { useToast } from '@/components/ui/toast'
+import { copyText } from '@/lib/clipboard'
 import { cn } from '@/lib/utils'
 
 type TaskCardId = bigint | number | string
@@ -38,6 +42,7 @@ function getVisitUrlLabel(href: string) {
 }
 
 export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
+  const { toast } = useToast()
   const isClaimed = props.claimState === 'success'
   const isPending = props.claimState === 'pending'
   const isVisiting = props.visitState === 'pending'
@@ -60,6 +65,17 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   const handleTogglePin = () => {
     if (!props.onTogglePin || props.taskId === undefined) return
     props.onTogglePin(props.taskId, !isPinned)
+  }
+
+  const handleCopyLink = async () => {
+    if (!props.visitHref) return
+    try {
+      await copyText(props.visitHref)
+      toast({ title: 'Copied', description: 'Task link copied.', variant: 'success' })
+    } catch (error) {
+      console.error('Failed to copy task link:', error)
+      toast({ title: 'Copy failed', description: 'Could not copy task link.', variant: 'error' })
+    }
   }
 
   return (
@@ -134,15 +150,25 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
           </Button>
         </div>
         {props.visitHref && visitUrlLabel && (
-          <a
-            href={props.visitHref}
-            target="_blank"
-            rel="noreferrer noopener"
-            title={props.visitHref}
-            className="w-full truncate text-xs text-slate-500 underline-offset-4 hover:underline"
-          >
-            Link: {visitUrlLabel}
-          </a>
+          <div className="flex w-full items-center justify-between gap-3">
+            <a
+              href={props.visitHref}
+              target="_blank"
+              rel="noreferrer noopener"
+              title={props.visitHref}
+              className="min-w-0 flex-1 truncate text-xs text-slate-500 underline-offset-4 hover:underline"
+            >
+              Link: {visitUrlLabel}
+            </a>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              aria-label="Copy task link"
+            >
+              Copy
+            </button>
+          </div>
         )}
         {props.helperText && (
           <div className={cn('text-xs', props.claimState === 'error' ? 'text-destructive' : 'text-slate-500')}>

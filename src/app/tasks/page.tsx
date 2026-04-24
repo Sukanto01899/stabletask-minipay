@@ -910,6 +910,7 @@ export default function Page() {
                     title={task.title}
                     reward={`${formatCompactAmount(task.rewardTokenAmount)} ${stableTaskConfig.rewardToken.symbol}`}
                     deadlineLabel={formatDeadlineLabel(task.deadline)}
+                    visitHref={task.visitUrl}
                     isPinned={isTaskPinned(task.id)}
                     onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
                     isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
@@ -944,6 +945,7 @@ export default function Page() {
                     title={task.title}
                     reward={`${formatCompactAmount(task.rewardTokenAmount)} ${stableTaskConfig.rewardToken.symbol}`}
                     deadlineLabel={formatDeadlineLabel(task.deadline)}
+                    visitHref={task.visitUrl}
                     isPinned={isTaskPinned(task.id)}
                     onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
                     isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
@@ -978,6 +980,7 @@ export default function Page() {
                     title={task.title}
                     reward={`${formatCompactAmount(task.rewardTokenAmount)} ${stableTaskConfig.rewardToken.symbol}`}
                     deadlineLabel={formatDeadlineLabel(task.deadline)}
+                    visitHref={task.visitUrl}
                     isPinned={isTaskPinned(task.id)}
                     onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
                     isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}

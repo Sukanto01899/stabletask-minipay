@@ -1,14 +1,19 @@
+'use client'
+
 import { memo } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
+import { useToast } from '@/components/ui/toast'
+import { copyText } from '@/lib/clipboard'
 import { cn } from '@/lib/utils'
 
 export type KanbanTaskCardProps = {
   title: string
   reward: string
   deadlineLabel: string
+  visitHref?: string
   isPinned?: boolean
   onTogglePin?: (nextPinned: boolean) => void
   isOverdue?: boolean
@@ -18,8 +23,20 @@ export type KanbanTaskCardProps = {
 }
 
 export const KanbanTaskCard = memo(function KanbanTaskCard(props: KanbanTaskCardProps) {
+  const { toast } = useToast()
   const isPinned = Boolean(props.isPinned)
   const isOverdue = Boolean(props.isOverdue)
+
+  const handleCopyLink = async () => {
+    if (!props.visitHref) return
+    try {
+      await copyText(props.visitHref)
+      toast({ title: 'Copied', description: 'Task link copied.', variant: 'success' })
+    } catch (error) {
+      console.error('Failed to copy task link:', error)
+      toast({ title: 'Copy failed', description: 'Could not copy task link.', variant: 'error' })
+    }
+  }
 
   return (
     <Card
@@ -38,21 +55,34 @@ export const KanbanTaskCard = memo(function KanbanTaskCard(props: KanbanTaskCard
               </Badge>
             )}
           </div>
-          {props.onTogglePin && (
-            <button
-              type="button"
-              onClick={() => props.onTogglePin?.(!isPinned)}
-              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm shadow-sm transition ${
-                isPinned
-                  ? 'border-amber-200 bg-amber-50 text-amber-700'
-                  : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-              aria-label={isPinned ? 'Unpin task' : 'Pin task'}
-              title={isPinned ? 'Pinned' : 'Pin'}
-            >
-              {isPinned ? '★' : '☆'}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {props.visitHref && (
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="inline-flex h-7 items-center justify-center rounded-full border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+                aria-label="Copy task link"
+                title="Copy link"
+              >
+                Copy
+              </button>
+            )}
+            {props.onTogglePin && (
+              <button
+                type="button"
+                onClick={() => props.onTogglePin?.(!isPinned)}
+                className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm shadow-sm transition ${
+                  isPinned
+                    ? 'border-amber-200 bg-amber-50 text-amber-700'
+                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                }`}
+                aria-label={isPinned ? 'Unpin task' : 'Pin task'}
+                title={isPinned ? 'Pinned' : 'Pin'}
+              >
+                {isPinned ? '★' : '☆'}
+              </button>
+            )}
+          </div>
         </div>
         <div className="text-xs text-slate-500">{props.deadlineLabel}</div>
       </CardHeader>

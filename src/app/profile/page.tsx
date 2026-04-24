@@ -88,6 +88,7 @@ export default function ProfilePage() {
   const [taskViewPrefs, setTaskViewPrefs] = useState<TaskViewPreferences>({
     hideCompleted: false,
     showOnlyAccepted: false,
+    sortByDeadline: false,
   })
   const [toastPrefs, setToastPrefs] = useState<ToastPreferences>({
     toastOnSuccess: true,
@@ -357,6 +358,16 @@ export default function ProfilePage() {
               setTaskViewPrefs((prev) => ({
                 ...prev,
                 showOnlyAccepted: !prev.showOnlyAccepted,
+              })),
+          })}
+          {toggleRow({
+            label: 'Sort by deadline',
+            description: 'Pinned first, then soonest deadlines.',
+            value: taskViewPrefs.sortByDeadline,
+            onToggle: () =>
+              setTaskViewPrefs((prev) => ({
+                ...prev,
+                sortByDeadline: !prev.sortByDeadline,
               })),
           })}
         </div>

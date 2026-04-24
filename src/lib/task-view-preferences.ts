@@ -1,11 +1,13 @@
 export type TaskViewPreferences = {
   hideCompleted: boolean
   showOnlyAccepted: boolean
+  sortByDeadline: boolean
 }
 
 const DEFAULT_PREFS: TaskViewPreferences = {
   hideCompleted: false,
   showOnlyAccepted: false,
+  sortByDeadline: false,
 }
 
 export function taskViewPreferencesStorageKey(address?: string) {
@@ -20,9 +22,9 @@ export function readTaskViewPreferences(raw: string | null): TaskViewPreferences
     return {
       hideCompleted: Boolean(parsed?.hideCompleted),
       showOnlyAccepted: Boolean(parsed?.showOnlyAccepted),
+      sortByDeadline: Boolean(parsed?.sortByDeadline),
     }
   } catch {
     return DEFAULT_PREFS
   }
 }
-

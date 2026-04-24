@@ -158,6 +158,7 @@ export default function Page() {
   const [taskViewPrefs, setTaskViewPrefs] = useState<TaskViewPreferences>({
     hideCompleted: false,
     showOnlyAccepted: false,
+    sortByDeadline: false,
   })
   const [pullDistance, setPullDistance] = useState(0)
   const [pullReady, setPullReady] = useState(false)
@@ -614,6 +615,32 @@ export default function Page() {
     if (taskViewPrefs.showOnlyAccepted) {
       filtered = filtered.filter((task) => isTaskAccepted(task.id))
     }
+
+    const getDeadlineTs = (deadline: string | undefined) => {
+      if (!deadline) return null
+      const d = parseLocalDateOnly(deadline) ?? new Date(deadline)
+      if (Number.isNaN(d.getTime())) return null
+      d.setHours(0, 0, 0, 0)
+      return d.getTime()
+    }
+
+    if (taskViewPrefs.sortByDeadline) {
+      return [...filtered].sort((a, b) => {
+        const ap = isTaskPinned(a.id) ? 1 : 0
+        const bp = isTaskPinned(b.id) ? 1 : 0
+        if (ap !== bp) return bp - ap
+
+        const ad = getDeadlineTs(a.deadline)
+        const bd = getDeadlineTs(b.deadline)
+        if (ad === null && bd !== null) return 1
+        if (ad !== null && bd === null) return -1
+        if (ad !== null && bd !== null && ad !== bd) return ad - bd
+
+        if (a.id === b.id) return 0
+        return a.id > b.id ? 1 : -1
+      })
+    }
+
     const pinned: typeof filtered = []
     const unpinned: typeof filtered = []
     for (const task of filtered) {
@@ -627,6 +654,7 @@ export default function Page() {
     isTaskPinned,
     taskViewPrefs.hideCompleted,
     taskViewPrefs.showOnlyAccepted,
+    taskViewPrefs.sortByDeadline,
   ])
 
   const openTasks = visibleTasks.filter((task) => !task.isCompleted && !isTaskAccepted(task.id))

@@ -161,6 +161,8 @@ export default function Page() {
     showOnlyAccepted: false,
     sortByDeadline: false,
   })
+  const [isBatchClaiming, setIsBatchClaiming] = useState(false)
+  const [batchClaimProgress, setBatchClaimProgress] = useState<{ current: number; total: number } | null>(null)
   const [pullDistance, setPullDistance] = useState(0)
   const [pullReady, setPullReady] = useState(false)
   const pullStartYRef = useRef<number | null>(null)
@@ -682,6 +684,79 @@ export default function Page() {
     return `${label}: ${title}`
   }, [])
 
+  const handleBatchClaimEligible = useCallback(async () => {
+    if (isBatchClaiming) return
+    if (!address || !isConnected) {
+      toast({ title: 'Connect wallet', description: 'Connect your wallet to claim.', variant: 'error' })
+      return
+    }
+    if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
+      toast({ title: 'Missing vault', description: 'Set your vault address first.', variant: 'error' })
+      return
+    }
+    if (chainId !== ACTIVE_CHAIN_ID) {
+      toast({ title: 'Wrong network', description: `Switch to ${stableTaskConfig.chain.name}.`, variant: 'error' })
+      return
+    }
+    if (!publicClient) {
+      toast({ title: 'Unavailable', description: 'Public client not ready.', variant: 'error' })
+      return
+    }
+
+    const eligible = doneTasks.filter((task) => task.isCompleted && !task.hasClaimedPoint)
+    if (eligible.length === 0) {
+      toast({ title: 'Nothing to claim', description: 'No eligible tasks found.', variant: 'default' })
+      return
+    }
+
+    setIsBatchClaiming(true)
+    setBatchClaimProgress({ current: 0, total: eligible.length })
+    toast({ title: 'Batch claim', description: `Claiming ${eligible.length} tasks one-by-one.`, variant: 'default' })
+
+    try {
+      for (let index = 0; index < eligible.length; index += 1) {
+        const task = eligible[index]
+        setBatchClaimProgress({ current: index + 1, total: eligible.length })
+
+        setAcceptedTasks((prev) =>
+          prev[task.id.toString()] ? prev : { ...prev, [task.id.toString()]: true },
+        )
+
+        const hash = await writeContractAsync({
+          address: stableTaskConfig.contracts.rewardVaultAddress,
+          abi: stableTaskConfig.contracts.rewardVaultAbi,
+          functionName: 'claimTaskPoint',
+          args: [task.id],
+          chainId: ACTIVE_CHAIN_ID,
+        })
+
+        await publicClient.waitForTransactionReceipt({ hash })
+
+        pushActivity({ kind: 'claimed', taskId: task.id.toString(), title: task.title })
+      }
+
+      await loadTasks()
+      toast({ title: 'All claimed', description: 'Eligible tasks claimed successfully.', variant: 'success' })
+    } catch (error) {
+      console.error('Batch claim failed:', error)
+      toast({ title: 'Batch claim failed', description: 'Stopped early. You can try again.', variant: 'error' })
+    } finally {
+      setIsBatchClaiming(false)
+      setBatchClaimProgress(null)
+    }
+  }, [
+    address,
+    chainId,
+    doneTasks,
+    isBatchClaiming,
+    isConnected,
+    loadTasks,
+    publicClient,
+    pushActivity,
+    toast,
+    writeContractAsync,
+  ])
+
   const handleCreateTask = async () => {
     const trimmedTitle = newTask.title.trim()
     const trimmedDescription = newTask.description.trim()
@@ -1024,7 +1099,19 @@ export default function Page() {
             <div className="w-72 shrink-0 space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-900 backdrop-blur">
                 <span>Done</span>
-                <span className="text-xs font-semibold text-blue-700">{doneTasks.length}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleBatchClaimEligible}
+                    disabled={!isConnected || doneTasks.length === 0 || Boolean(pendingAction) || isBatchClaiming}
+                    className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
+                  >
+                    {isBatchClaiming && batchClaimProgress
+                      ? `Claiming ${batchClaimProgress.current}/${batchClaimProgress.total}…`
+                      : 'Claim eligible'}
+                  </button>
+                  <span className="text-xs font-semibold text-blue-700">{doneTasks.length}</span>
+                </div>
               </div>
               <div className="grid gap-3">
                 {isFetchingTasks && (

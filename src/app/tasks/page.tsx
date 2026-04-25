@@ -91,6 +91,48 @@ function getEthereumProvider() {
   return (window as Window & { ethereum?: unknown }).ethereum
 }
 
+async function estimateCeloGasFee(args: {
+  publicClient: ReturnType<typeof usePublicClient>
+  account: `0x${string}`
+  to: `0x${string}`
+  abi: readonly unknown[]
+  functionName: string
+  functionArgs: readonly unknown[]
+  value?: bigint
+}) {
+  const { publicClient, account, to, abi, functionName, functionArgs, value } = args
+  if (!publicClient) return null
+
+  try {
+    const gas = (await publicClient.estimateContractGas({
+      address: to,
+      abi,
+      functionName: functionName as never,
+      args: functionArgs as never,
+      account,
+      value,
+    })) as bigint
+
+    let gasPrice: bigint
+    try {
+      const fees = (await publicClient.estimateFeesPerGas()) as { maxFeePerGas?: bigint } | null
+      gasPrice = fees?.maxFeePerGas ?? ((await publicClient.getGasPrice()) as bigint)
+    } catch {
+      gasPrice = (await publicClient.getGasPrice()) as bigint
+    }
+
+    const fee = gas * gasPrice
+    return {
+      gas,
+      gasPrice,
+      fee,
+      feeFormatted: formatEther(fee),
+    }
+  } catch {
+    return null
+  }
+}
+
 function useAutoConnect(isConnected: boolean) {
   const connectors = useConnectors()
   const { connect, error, isPending } = useConnect()
@@ -163,6 +205,7 @@ export default function Page() {
   })
   const [isBatchClaiming, setIsBatchClaiming] = useState(false)
   const [batchClaimProgress, setBatchClaimProgress] = useState<{ current: number; total: number } | null>(null)
+  const [createGasFeeEstimate, setCreateGasFeeEstimate] = useState<string | null>(null)
   const [pullDistance, setPullDistance] = useState(0)
   const [pullReady, setPullReady] = useState(false)
   const pullStartYRef = useRef<number | null>(null)
@@ -506,6 +549,80 @@ export default function Page() {
     }
   }, [isCreateOpen, pendingAction])
 
+  useEffect(() => {
+    if (!isCreateOpen) {
+      setCreateGasFeeEstimate(null)
+      return
+    }
+    if (!address || !isConnected) {
+      setCreateGasFeeEstimate(null)
+      return
+    }
+    if (chainId !== ACTIVE_CHAIN_ID) {
+      setCreateGasFeeEstimate(null)
+      return
+    }
+    if (!publicClient) return
+    if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) return
+
+    const trimmedTitle = newTask.title.trim()
+    const trimmedDescription = newTask.description.trim()
+    const trimmedVisitUrl = newTask.visitUrl.trim()
+    if (!trimmedTitle || !trimmedDescription || !trimmedVisitUrl) {
+      setCreateGasFeeEstimate(null)
+      return
+    }
+    if (!/^https?:\/\//i.test(trimmedVisitUrl)) {
+      setCreateGasFeeEstimate(null)
+      return
+    }
+
+    let cancelled = false
+
+    const run = async () => {
+      const fee = await estimateCeloGasFee({
+        publicClient,
+        account: address,
+        to: stableTaskConfig.contracts.rewardVaultAddress,
+        abi: stableTaskConfig.contracts.rewardVaultAbi,
+        functionName: 'createPublicTask',
+        functionArgs: [
+          newTask.taskType === 'visit' ? 0 : 2,
+          parseEther(newTask.rewardXp || '0'),
+          parseEther(newTask.rewardTokenAmount || '0'),
+          encodeMetadataURI({
+            title: trimmedTitle,
+            description: trimmedDescription,
+            visitUrl: trimmedVisitUrl,
+            deadline: newTask.deadline.trim() || undefined,
+          }),
+        ],
+        value: publicTaskCreationFee,
+      })
+      if (cancelled) return
+      setCreateGasFeeEstimate(fee?.feeFormatted ?? null)
+    }
+
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    address,
+    chainId,
+    isConnected,
+    isCreateOpen,
+    newTask.deadline,
+    newTask.description,
+    newTask.rewardTokenAmount,
+    newTask.rewardXp,
+    newTask.taskType,
+    newTask.title,
+    newTask.visitUrl,
+    publicClient,
+    publicTaskCreationFee,
+  ])
+
   const errorMessage = providerMissing
     ? 'window.ethereum is required. Please run this app inside MiniPay.'
     : isDev && connectError
@@ -543,6 +660,23 @@ export default function Page() {
         description: 'Confirm the transaction in your wallet.',
         variant: 'default',
       })
+      if (publicClient) {
+        const fee = await estimateCeloGasFee({
+          publicClient,
+          account: address,
+          to: stableTaskConfig.contracts.rewardVaultAddress,
+          abi: stableTaskConfig.contracts.rewardVaultAbi,
+          functionName: 'selfCompleteTask',
+          functionArgs: [taskId],
+        })
+        if (fee) {
+          toast({
+            title: 'Estimated fee',
+            description: `${fee.feeFormatted} CELO (gas)`,
+            variant: 'default',
+          })
+        }
+      }
 
       try {
         await writeContractAsync({
@@ -559,7 +693,7 @@ export default function Page() {
         toast({ title: 'Failed', description: 'Could not mark task as done.', variant: 'error' })
       }
     },
-    [address, chainId, isConnected, toast, writeContractAsync],
+    [address, chainId, isConnected, publicClient, toast, writeContractAsync],
   )
 
   const handleClaim = useCallback(
@@ -588,6 +722,23 @@ export default function Page() {
         description: 'Confirm the transaction in your wallet.',
         variant: 'default',
       })
+      if (publicClient) {
+        const fee = await estimateCeloGasFee({
+          publicClient,
+          account: address,
+          to: stableTaskConfig.contracts.rewardVaultAddress,
+          abi: stableTaskConfig.contracts.rewardVaultAbi,
+          functionName: 'claimTaskPoint',
+          functionArgs: [taskId],
+        })
+        if (fee) {
+          toast({
+            title: 'Estimated fee',
+            description: `${fee.feeFormatted} CELO (gas)`,
+            variant: 'default',
+          })
+        }
+      }
 
       try {
         await writeContractAsync({
@@ -604,7 +755,7 @@ export default function Page() {
         toast({ title: 'Failed', description: 'Could not claim XP.', variant: 'error' })
       }
     },
-    [address, chainId, isConnected, toast, writeContractAsync],
+    [address, chainId, isConnected, publicClient, toast, writeContractAsync],
   )
 
   const handleVisitTask = useCallback(
@@ -713,6 +864,22 @@ export default function Page() {
     setBatchClaimProgress({ current: 0, total: eligible.length })
     toast({ title: 'Batch claim', description: `Claiming ${eligible.length} tasks one-by-one.`, variant: 'default' })
 
+    const firstFee = await estimateCeloGasFee({
+      publicClient,
+      account: address,
+      to: stableTaskConfig.contracts.rewardVaultAddress,
+      abi: stableTaskConfig.contracts.rewardVaultAbi,
+      functionName: 'claimTaskPoint',
+      functionArgs: [eligible[0].id],
+    })
+    if (firstFee) {
+      toast({
+        title: 'Estimated fee',
+        description: `${firstFee.feeFormatted} CELO (gas) per claim`,
+        variant: 'default',
+      })
+    }
+
     try {
       for (let index = 0; index < eligible.length; index += 1) {
         const task = eligible[index]
@@ -789,20 +956,49 @@ export default function Page() {
       setCreateError('Set your vault address in src/lib/contracts.ts first.')
       return
     }
-    if (chainId !== ACTIVE_CHAIN_ID) {
-      setCreateError(`Switch to ${stableTaskConfig.chain.name} to create tasks.`)
-      return
-    }
+      if (chainId !== ACTIVE_CHAIN_ID) {
+        setCreateError(`Switch to ${stableTaskConfig.chain.name} to create tasks.`)
+        return
+      }
 
-    setCreateError(null)
-    setLocalPageError(null)
-    setPendingAction({ kind: 'create' })
+      setCreateError(null)
+      setLocalPageError(null)
+      setPendingAction({ kind: 'create' })
 
-    try {
-      await writeContractAsync(
-        {
-          address: stableTaskConfig.contracts.rewardVaultAddress,
+      if (publicClient) {
+        const fee = await estimateCeloGasFee({
+          publicClient,
+          account: address,
+          to: stableTaskConfig.contracts.rewardVaultAddress,
           abi: stableTaskConfig.contracts.rewardVaultAbi,
+          functionName: 'createPublicTask',
+          functionArgs: [
+            newTask.taskType === 'visit' ? 0 : 2,
+            parseEther(newTask.rewardXp),
+            parseEther(newTask.rewardTokenAmount),
+            encodeMetadataURI({
+              title: trimmedTitle,
+              description: trimmedDescription,
+              visitUrl: trimmedVisitUrl,
+              deadline: trimmedDeadline || undefined,
+            }),
+          ],
+          value: publicTaskCreationFee,
+        })
+        if (fee) {
+          toast({
+            title: 'Estimated fee',
+            description: `${fee.feeFormatted} CELO (gas)`,
+            variant: 'default',
+          })
+        }
+      }
+
+      try {
+        await writeContractAsync(
+          {
+            address: stableTaskConfig.contracts.rewardVaultAddress,
+            abi: stableTaskConfig.contracts.rewardVaultAbi,
           functionName: 'createPublicTask',
           args: [
             newTask.taskType === 'visit' ? 0 : 2,
@@ -829,12 +1025,12 @@ export default function Page() {
         taskType: 'visit',
       })
       setIsCreateOpen(false)
-    } catch (creationError) {
-      console.error('Task creation failed:', creationError)
-      setCreateError('Task creation failed. Please try again.')
-      setPendingAction(null)
+      } catch (creationError) {
+        console.error('Task creation failed:', creationError)
+        setCreateError('Task creation failed. Please try again.')
+        setPendingAction(null)
+      }
     }
-  }
 
   if ((isConnecting || isPending) && !isConnected) {
     return (
@@ -1344,6 +1540,12 @@ export default function Page() {
               />
               <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs text-slate-600">
                 Users can create, visit, and claim vault XP here. External reward-token payouts still remain owner-only in the current contract.
+              </div>
+              <div className="rounded-2xl border border-blue-100/80 bg-white/70 px-3 py-2 text-xs text-slate-600">
+                Est. gas fee:{' '}
+                <span className="font-semibold text-slate-950">
+                  {createGasFeeEstimate ? `${createGasFeeEstimate} CELO` : '—'}
+                </span>
               </div>
               {createError && <p className="text-xs text-destructive">{createError}</p>}
               <div className="grid grid-cols-2 gap-3">

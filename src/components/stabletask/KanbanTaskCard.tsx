@@ -20,6 +20,9 @@ export type KanbanTaskCardProps = {
   actionLabel: string
   onAction?: () => void | Promise<void>
   actionDisabled?: boolean
+  secondaryActionLabel?: string
+  onSecondaryAction?: () => void | Promise<void>
+  secondaryActionDisabled?: boolean
 }
 
 export const KanbanTaskCard = memo(function KanbanTaskCard(props: KanbanTaskCardProps) {
@@ -95,14 +98,27 @@ export const KanbanTaskCard = memo(function KanbanTaskCard(props: KanbanTaskCard
         </div>
       </CardContent>
       <CardFooter className="pt-2">
-        <Button
-          type="button"
-          className="h-10 w-full rounded-2xl text-sm font-semibold"
-          onClick={props.onAction}
-          disabled={props.actionDisabled}
-        >
-          {props.actionLabel}
-        </Button>
+        <div className={props.onSecondaryAction ? 'grid w-full grid-cols-2 gap-2' : 'w-full'}>
+          <Button
+            type="button"
+            className="h-10 w-full rounded-2xl text-sm font-semibold"
+            onClick={props.onAction}
+            disabled={props.actionDisabled}
+          >
+            {props.actionLabel}
+          </Button>
+          {props.onSecondaryAction && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 w-full rounded-2xl text-sm font-semibold"
+              onClick={props.onSecondaryAction}
+              disabled={props.secondaryActionDisabled}
+            >
+              {props.secondaryActionLabel ?? 'Unaccept'}
+            </Button>
+          )}
+        </div>
       </CardFooter>
     </Card>
   )

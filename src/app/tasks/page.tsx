@@ -309,6 +309,19 @@ export default function Page() {
     [pushActivity, tasks, toast],
   )
 
+  const unacceptTask = useCallback(
+    (taskId: bigint) => {
+      setAcceptedTasks((prev) => {
+        const key = taskId.toString()
+        if (!prev[key]) return prev
+        const { [key]: _, ...rest } = prev
+        return rest
+      })
+      toast({ title: 'Unaccepted', description: 'Task moved back to Open.', variant: 'default' })
+    },
+    [toast],
+  )
+
   const isTaskAccepted = useCallback(
     (taskId: bigint) => Boolean(acceptedTasks[taskId.toString()]),
     [acceptedTasks],
@@ -1000,6 +1013,9 @@ export default function Page() {
                     actionLabel="Mark done"
                     onAction={() => handleVisitTask(task.id, task.visitUrl, task.isCompleted)}
                     actionDisabled={!isConnected || Boolean(pendingAction)}
+                    secondaryActionLabel="Unaccept"
+                    onSecondaryAction={() => unacceptTask(task.id)}
+                    secondaryActionDisabled={!isConnected || Boolean(pendingAction)}
                   />
                 ))}
               </div>

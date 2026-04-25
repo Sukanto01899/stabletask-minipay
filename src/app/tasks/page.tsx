@@ -198,6 +198,7 @@ export default function Page() {
   const [acceptedTasks, setAcceptedTasks] = useState<Record<string, true>>({})
   const [pinnedTasks, setPinnedTasks] = useState<Record<string, true>>({})
   const [activity, setActivity] = useState<ActivityItem[]>([])
+  const [taskNotes, setTaskNotes] = useState<Record<string, string>>({})
   const [taskViewPrefs, setTaskViewPrefs] = useState<TaskViewPreferences>({
     hideCompleted: false,
     showOnlyAccepted: false,
@@ -237,6 +238,11 @@ export default function Page() {
   const activityStorageKey = useMemo(() => {
     const normalizedAddress = address ? address.toLowerCase() : 'guest'
     return `stabletask:activity:${normalizedAddress}`
+  }, [address])
+
+  const notesStorageKey = useMemo(() => {
+    const normalizedAddress = address ? address.toLowerCase() : 'guest'
+    return `stabletask:notes:${normalizedAddress}`
   }, [address])
 
   const taskViewPrefsKey = useMemo(() => taskViewPreferencesStorageKey(address), [address])
@@ -316,6 +322,30 @@ export default function Page() {
       // ignore persistence failures
     }
   }, [activity, activityStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = window.localStorage.getItem(notesStorageKey)
+      if (!stored) {
+        setTaskNotes({})
+        return
+      }
+      const parsed = JSON.parse(stored) as Record<string, string>
+      setTaskNotes(parsed && typeof parsed === 'object' ? parsed : {})
+    } catch {
+      setTaskNotes({})
+    }
+  }, [notesStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(notesStorageKey, JSON.stringify(taskNotes))
+    } catch {
+      // ignore persistence failures
+    }
+  }, [notesStorageKey, taskNotes])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -833,6 +863,19 @@ export default function Page() {
     const label = item.kind === 'accepted' ? 'Accepted' : item.kind === 'done' ? 'Done' : 'Claimed'
     const title = item.title ?? (item.taskId ? `Task #${item.taskId}` : 'Task')
     return `${label}: ${title}`
+  }, [])
+
+  const handleNoteChange = useCallback((taskId: bigint, note: string) => {
+    setTaskNotes((prev) => {
+      const key = taskId.toString()
+      const trimmed = note
+      if (!trimmed) {
+        if (!prev[key]) return prev
+        const { [key]: _, ...rest } = prev
+        return rest
+      }
+      return { ...prev, [key]: trimmed }
+    })
   }, [])
 
   const handleBatchClaimEligible = useCallback(async () => {
@@ -1400,6 +1443,11 @@ export default function Page() {
                   }}
                   deadlineLabel={task.deadline ? formatDeadlineLabel(task.deadline) : undefined}
                   isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
+                  note={taskNotes[task.id.toString()] ?? ''}
+                  onNoteChange={(taskId, note) => {
+                    if (typeof taskId !== 'bigint') return
+                    handleNoteChange(taskId, note)
+                  }}
                   visitHref={task.visitUrl}
                   onVisit={handleVisitTask}
                   onClaim={handleClaimTask}

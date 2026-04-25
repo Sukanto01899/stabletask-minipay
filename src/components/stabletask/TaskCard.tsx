@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,8 @@ export type TaskCardProps = {
   onTogglePin?: (taskId: TaskCardId, nextPinned: boolean) => void
   deadlineLabel?: string
   isOverdue?: boolean
+  note?: string
+  onNoteChange?: (taskId: TaskCardId, note: string) => void
   visitHref?: string
   onVisit?: (taskId: TaskCardId, visitHref?: string, isVisited?: boolean) => void | Promise<void>
   onClaim?: (taskId: TaskCardId, isVisited?: boolean, isClaimed?: boolean) => void | Promise<void>
@@ -51,6 +53,7 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   const visitUrlLabel = props.visitHref ? getVisitUrlLabel(props.visitHref) : null
   const isPinned = Boolean(props.isPinned)
   const isOverdue = Boolean(props.isOverdue)
+  const [detailsOpen, setDetailsOpen] = useState(false)
 
   const handleVisit = () => {
     if (!props.onVisit || props.taskId === undefined) return
@@ -76,6 +79,11 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
       console.error('Failed to copy task link:', error)
       toast({ title: 'Copy failed', description: 'Could not copy task link.', variant: 'error' })
     }
+  }
+
+  const handleNoteChange = (value: string) => {
+    if (!props.onNoteChange || props.taskId === undefined) return
+    props.onNoteChange(props.taskId, value)
   }
 
   return (
@@ -149,6 +157,18 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
             {buttonLabel}
           </Button>
         </div>
+        {props.onNoteChange && !props.visitHref && (
+          <div className="flex w-full justify-end">
+            <button
+              type="button"
+              onClick={() => setDetailsOpen((prev) => !prev)}
+              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              aria-expanded={detailsOpen}
+            >
+              {detailsOpen ? 'Hide' : 'Details'}
+            </button>
+          </div>
+        )}
         {props.visitHref && visitUrlLabel && (
           <div className="flex w-full items-center justify-between gap-3">
             <a
@@ -160,14 +180,38 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
             >
               Link: {visitUrlLabel}
             </a>
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-              aria-label="Copy task link"
-            >
-              Copy
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              {props.onNoteChange && (
+                <button
+                  type="button"
+                  onClick={() => setDetailsOpen((prev) => !prev)}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                  aria-expanded={detailsOpen}
+                >
+                  {detailsOpen ? 'Hide' : 'Details'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                aria-label="Copy task link"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        )}
+        {props.onNoteChange && detailsOpen && (
+          <div className="w-full rounded-2xl border border-slate-200 bg-white/70 px-3 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Notes</div>
+            <textarea
+              value={props.note ?? ''}
+              onChange={(event) => handleNoteChange(event.target.value)}
+              rows={3}
+              placeholder="Add a note for yourself (saved on this device)."
+              className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+            />
           </div>
         )}
         {props.helperText && (

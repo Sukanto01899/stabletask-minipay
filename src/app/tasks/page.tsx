@@ -386,13 +386,29 @@ export default function Page() {
 
   const unacceptTask = useCallback(
     (taskId: bigint) => {
+      let snapshot: Record<string, true> | null = null
+      let didChange = false
+
       setAcceptedTasks((prev) => {
         const key = taskId.toString()
         if (!prev[key]) return prev
+        snapshot = prev
+        didChange = true
         const { [key]: _, ...rest } = prev
         return rest
       })
-      toast({ title: 'Unaccepted', description: 'Task moved back to Open.', variant: 'default' })
+
+      if (!didChange || !snapshot) return
+
+      toast({
+        title: 'Unaccepted',
+        description: 'Task moved back to Open.',
+        variant: 'default',
+        action: {
+          label: 'Undo',
+          onClick: () => setAcceptedTasks(snapshot ?? {}),
+        },
+      })
     },
     [toast],
   )
@@ -409,7 +425,10 @@ export default function Page() {
 
   const togglePinTask = useCallback(
     (taskId: bigint, nextPinned: boolean) => {
+      let snapshot: Record<string, true> | null = null
+
       setPinnedTasks((prev) => {
+        snapshot = prev
         const key = taskId.toString()
         if (nextPinned) return { ...prev, [key]: true }
         if (!prev[key]) return prev
@@ -420,6 +439,10 @@ export default function Page() {
         title: nextPinned ? 'Pinned' : 'Unpinned',
         description: nextPinned ? 'Task pinned to the top.' : 'Task unpinned.',
         variant: 'default',
+        action: {
+          label: 'Undo',
+          onClick: () => setPinnedTasks(snapshot ?? {}),
+        },
       })
     },
     [toast],

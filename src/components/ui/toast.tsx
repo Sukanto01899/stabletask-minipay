@@ -7,17 +7,24 @@ import { readToastPreferences, TOAST_PREFERENCES_STORAGE_KEY, type ToastPreferen
 
 type ToastVariant = 'default' | 'success' | 'error'
 
+export type ToastAction = {
+  label: string
+  onClick: () => void
+}
+
 export type ToastInput = {
   title: string
   description?: string
   variant?: ToastVariant
   durationMs?: number
+  action?: ToastAction
 }
 
 type ToastItem = Required<Pick<ToastInput, 'title'>> &
-  Omit<ToastInput, 'title'> & {
+  Omit<ToastInput, 'title' | 'action'> & {
     id: string
     createdAt: number
+    actionLabel?: string
   }
 
 type ToastContextValue = {
@@ -39,6 +46,7 @@ export function ToastProvider(props: { children: React.ReactNode }) {
     toastOnFailure: true,
   })
   const timeoutsRef = useRef<Map<string, number>>(new Map())
+  const actionsRef = useRef<Map<string, ToastAction['onClick']>>(new Map())
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -57,6 +65,7 @@ export function ToastProvider(props: { children: React.ReactNode }) {
     const timeoutId = timeoutsRef.current.get(id)
     if (timeoutId) window.clearTimeout(timeoutId)
     timeoutsRef.current.delete(id)
+    actionsRef.current.delete(id)
   }, [])
 
   const toast = useCallback(
@@ -72,9 +81,21 @@ export function ToastProvider(props: { children: React.ReactNode }) {
       const durationMs = input.durationMs ?? 2200
 
       setItems((prev) => [
-        { id, createdAt: Date.now(), title: input.title, description: input.description, variant, durationMs },
+        {
+          id,
+          createdAt: Date.now(),
+          title: input.title,
+          description: input.description,
+          variant,
+          durationMs,
+          actionLabel: input.action?.label,
+        },
         ...prev,
       ].slice(0, 3))
+
+      if (input.action?.onClick) {
+        actionsRef.current.set(id, input.action.onClick)
+      }
 
       const timeoutId = window.setTimeout(() => remove(id), durationMs)
       timeoutsRef.current.set(id, timeoutId)
@@ -99,10 +120,31 @@ export function ToastProvider(props: { children: React.ReactNode }) {
               role="status"
               aria-live="polite"
             >
-              <div className="text-sm font-semibold">{item.title}</div>
-              {item.description && (
-                <div className="mt-0.5 text-xs/relaxed opacity-80">{item.description}</div>
-              )}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold">{item.title}</div>
+                  {item.description && (
+                    <div className="mt-0.5 text-xs/relaxed opacity-80">{item.description}</div>
+                  )}
+                </div>
+                {item.actionLabel && (
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-full border border-border/70 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-white"
+                    onClick={() => {
+                      const action = actionsRef.current.get(item.id)
+                      remove(item.id)
+                      try {
+                        action?.()
+                      } catch (error) {
+                        console.error('Toast action failed:', error)
+                      }
+                    }}
+                  >
+                    {item.actionLabel}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

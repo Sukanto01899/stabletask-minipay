@@ -901,6 +901,13 @@ export default function Page() {
     })
   }, [])
 
+  const scrollToSection = useCallback((id: 'tasks-dashboard' | 'tasks-board' | 'tasks-list') => {
+    if (typeof document === 'undefined') return
+    const el = document.getElementById(id)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
   const handleBatchClaimEligible = useCallback(async () => {
     if (isBatchClaiming) return
     if (!address || !isConnected) {
@@ -1180,7 +1187,36 @@ export default function Page() {
           </div>
         )}
 
-        <section className="relative overflow-hidden rounded-[2rem] border border-blue-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(224,242,254,0.98)_60%,rgba(191,219,254,0.95))] px-5 py-5 shadow-[0_24px_60px_rgba(37,99,235,0.14)]">
+        <div className="sticky top-3 z-40">
+          <div className="flex items-center justify-between gap-2 rounded-[1.5rem] border border-blue-200/70 bg-white/85 p-2 shadow-sm backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => scrollToSection('tasks-dashboard')}
+              className="h-9 flex-1 rounded-full border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+            >
+              Dashboard
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('tasks-board')}
+              className="h-9 flex-1 rounded-full border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+            >
+              Board
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('tasks-list')}
+              className="h-9 flex-1 rounded-full border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+            >
+              List
+            </button>
+          </div>
+        </div>
+
+        <section
+          id="tasks-dashboard"
+          className="relative overflow-hidden rounded-[2rem] border border-blue-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(224,242,254,0.98)_60%,rgba(191,219,254,0.95))] px-5 py-5 shadow-[0_24px_60px_rgba(37,99,235,0.14)]"
+        >
           <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-blue-400/20 blur-2xl" />
           <div className="pointer-events-none absolute -left-6 bottom-0 h-24 w-24 rounded-full bg-cyan-300/25 blur-2xl" />
           <div className="relative flex items-start justify-between gap-4">
@@ -1278,7 +1314,7 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="space-y-3">
+        <section id="tasks-board" className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-950">Task Board</h2>
             <div className="text-xs text-slate-500">Open → In progress → Done</div>
@@ -1406,7 +1442,7 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="space-y-3">
+        <section id="tasks-list" className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-950">Task List</h2>
             <button

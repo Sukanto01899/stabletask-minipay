@@ -888,6 +888,21 @@ export default function Page() {
     return `${label}: ${title}`
   }, [])
 
+  const clearActivityLog = useCallback(() => {
+    const snapshot = activity
+    if (snapshot.length === 0) return
+    setActivity([])
+    toast({
+      title: 'Cleared',
+      description: 'Recent activity cleared (device only).',
+      variant: 'default',
+      action: {
+        label: 'Undo',
+        onClick: () => setActivity(snapshot),
+      },
+    })
+  }, [activity, toast])
+
   const handleNoteChange = useCallback((taskId: bigint, note: string) => {
     setTaskNotes((prev) => {
       const key = taskId.toString()
@@ -1291,7 +1306,17 @@ export default function Page() {
               <div className="text-sm font-semibold text-slate-950">Recent Activity</div>
               <div className="mt-1 text-xs text-slate-500">Saved on this device only.</div>
             </div>
-            <div className="text-xs font-semibold text-blue-700">{activityItems.length}/5</div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={clearActivityLog}
+                disabled={activity.length === 0}
+                className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
+              >
+                Clear
+              </button>
+              <div className="text-xs font-semibold text-blue-700">{activityItems.length}/5</div>
+            </div>
           </div>
 
           <div className="mt-4 grid gap-2">

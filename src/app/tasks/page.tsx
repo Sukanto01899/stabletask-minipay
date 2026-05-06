@@ -1470,16 +1470,6 @@ export default function Page() {
         <section id="tasks-list" className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-950">Task List</h2>
-            <button
-              type="button"
-              onClick={() => {
-                setCreateError(null)
-                setIsCreateOpen(true)
-              }}
-              className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-50"
-            >
-              Create Task
-            </button>
           </div>
           <div className="grid gap-4">
             {isFetchingTasks && (

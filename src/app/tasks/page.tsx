@@ -13,8 +13,6 @@ import {
 import { erc20Abi, formatEther, formatUnits, parseEther } from 'viem'
 
 import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
-import { KanbanTaskCard } from '@/components/stabletask/KanbanTaskCard'
-import { KanbanTaskCardSkeleton } from '@/components/stabletask/KanbanTaskCardSkeleton'
 import { TaskCard } from '@/components/stabletask/TaskCard'
 import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useToast } from '@/components/ui/toast'
@@ -204,8 +202,6 @@ export default function Page() {
     showOnlyAccepted: false,
     sortByDeadline: false,
   })
-  const [isBatchClaiming, setIsBatchClaiming] = useState(false)
-  const [batchClaimProgress, setBatchClaimProgress] = useState<{ current: number; total: number } | null>(null)
   const [createGasFeeEstimate, setCreateGasFeeEstimate] = useState<string | null>(null)
   const [pullDistance, setPullDistance] = useState(0)
   const [pullReady, setPullReady] = useState(false)
@@ -373,45 +369,6 @@ export default function Page() {
     }
     setActivity((prev) => [entry, ...prev].slice(0, 20))
   }, [])
-
-  const acceptTask = useCallback(
-    (taskId: bigint) => {
-      setAcceptedTasks((prev) => ({ ...prev, [taskId.toString()]: true }))
-      toast({ title: 'Accepted', description: 'Task moved to In progress.', variant: 'success' })
-      const taskTitle = tasks.find((task) => task.id === taskId)?.title
-      pushActivity({ kind: 'accepted', taskId: taskId.toString(), title: taskTitle })
-    },
-    [pushActivity, tasks, toast],
-  )
-
-  const unacceptTask = useCallback(
-    (taskId: bigint) => {
-      let snapshot: Record<string, true> | null = null
-      let didChange = false
-
-      setAcceptedTasks((prev) => {
-        const key = taskId.toString()
-        if (!prev[key]) return prev
-        snapshot = prev
-        didChange = true
-        const { [key]: _, ...rest } = prev
-        return rest
-      })
-
-      if (!didChange || !snapshot) return
-
-      toast({
-        title: 'Unaccepted',
-        description: 'Task moved back to Open.',
-        variant: 'default',
-        action: {
-          label: 'Undo',
-          onClick: () => setAcceptedTasks(snapshot ?? {}),
-        },
-      })
-    },
-    [toast],
-  )
 
   const isTaskAccepted = useCallback(
     (taskId: bigint) => Boolean(acceptedTasks[taskId.toString()]),
@@ -877,10 +834,6 @@ export default function Page() {
     taskViewPrefs.sortByDeadline,
   ])
 
-  const openTasks = visibleTasks.filter((task) => !task.isCompleted && !isTaskAccepted(task.id))
-  const inProgressTasks = visibleTasks.filter((task) => !task.isCompleted && isTaskAccepted(task.id))
-  const doneTasks = visibleTasks.filter((task) => task.isCompleted)
-
   const activityItems = useMemo(() => activity.slice(0, 5), [activity])
   const formatActivityLine = useCallback((item: ActivityItem) => {
     const label = item.kind === 'accepted' ? 'Accepted' : item.kind === 'done' ? 'Done' : 'Claimed'
@@ -916,101 +869,12 @@ export default function Page() {
     })
   }, [])
 
-  const scrollToSection = useCallback((id: 'tasks-dashboard' | 'tasks-board' | 'tasks-list') => {
+  const scrollToSection = useCallback((id: 'tasks-dashboard' | 'tasks-list') => {
     if (typeof document === 'undefined') return
     const el = document.getElementById(id)
     if (!el) return
     el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
-
-  const handleBatchClaimEligible = useCallback(async () => {
-    if (isBatchClaiming) return
-    if (!address || !isConnected) {
-      toast({ title: 'Connect wallet', description: 'Connect your wallet to claim.', variant: 'error' })
-      return
-    }
-    if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
-      toast({ title: 'Missing vault', description: 'Set your vault address first.', variant: 'error' })
-      return
-    }
-    if (chainId !== ACTIVE_CHAIN_ID) {
-      toast({ title: 'Wrong network', description: `Switch to ${stableTaskConfig.chain.name}.`, variant: 'error' })
-      return
-    }
-    if (!publicClient) {
-      toast({ title: 'Unavailable', description: 'Public client not ready.', variant: 'error' })
-      return
-    }
-
-    const eligible = doneTasks.filter((task) => task.isCompleted && !task.hasClaimedPoint)
-    if (eligible.length === 0) {
-      toast({ title: 'Nothing to claim', description: 'No eligible tasks found.', variant: 'default' })
-      return
-    }
-
-    setIsBatchClaiming(true)
-    setBatchClaimProgress({ current: 0, total: eligible.length })
-    toast({ title: 'Batch claim', description: `Claiming ${eligible.length} tasks one-by-one.`, variant: 'default' })
-
-    const firstFee = await estimateCeloGasFee({
-      publicClient,
-      account: address,
-      to: stableTaskConfig.contracts.rewardVaultAddress,
-      abi: stableTaskConfig.contracts.rewardVaultAbi,
-      functionName: 'claimTaskPoint',
-      functionArgs: [eligible[0].id],
-    })
-    if (firstFee) {
-      toast({
-        title: 'Estimated fee',
-        description: `${firstFee.feeFormatted} CELO (gas) per claim`,
-        variant: 'default',
-      })
-    }
-
-    try {
-      for (let index = 0; index < eligible.length; index += 1) {
-        const task = eligible[index]
-        setBatchClaimProgress({ current: index + 1, total: eligible.length })
-
-        setAcceptedTasks((prev) =>
-          prev[task.id.toString()] ? prev : { ...prev, [task.id.toString()]: true },
-        )
-
-        const hash = await writeContractAsync({
-          address: stableTaskConfig.contracts.rewardVaultAddress,
-          abi: stableTaskConfig.contracts.rewardVaultAbi,
-          functionName: 'claimTaskPoint',
-          args: [task.id],
-          chainId: ACTIVE_CHAIN_ID,
-        })
-
-        await publicClient.waitForTransactionReceipt({ hash })
-
-        pushActivity({ kind: 'claimed', taskId: task.id.toString(), title: task.title })
-      }
-
-      await loadTasks()
-      toast({ title: 'All claimed', description: 'Eligible tasks claimed successfully.', variant: 'success' })
-    } catch (error) {
-      console.error('Batch claim failed:', error)
-      toast({ title: 'Batch claim failed', description: 'Stopped early. You can try again.', variant: 'error' })
-    } finally {
-      setIsBatchClaiming(false)
-      setBatchClaimProgress(null)
-    }
-  }, [
-    address,
-    chainId,
-    doneTasks,
-    isBatchClaiming,
-    isConnected,
-    loadTasks,
-    publicClient,
-    pushActivity,
-    toast,
-    writeContractAsync,
-  ])
 
   const handleCreateTask = async () => {
     const trimmedTitle = newTask.title.trim()
@@ -1213,13 +1077,6 @@ export default function Page() {
             </button>
             <button
               type="button"
-              onClick={() => scrollToSection('tasks-board')}
-              className="h-9 flex-1 rounded-full border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
-            >
-              Board
-            </button>
-            <button
-              type="button"
               onClick={() => scrollToSection('tasks-list')}
               className="h-9 flex-1 rounded-full border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
             >
@@ -1336,134 +1193,6 @@ export default function Page() {
                 </div>
               </div>
             ))}
-          </div>
-        </section>
-
-        <section id="tasks-board" className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-950">Task Board</h2>
-            <div className="text-xs text-slate-500">Open → In progress → Done</div>
-          </div>
-
-          <div className="flex gap-4 overflow-x-auto pb-1">
-            <div className="w-72 shrink-0 space-y-3">
-              <div className="flex items-center justify-between rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-900 backdrop-blur">
-                <span>Open</span>
-                <span className="text-xs font-semibold text-blue-700">{openTasks.length}</span>
-              </div>
-              <div className="grid gap-3">
-                {isFetchingTasks && (
-                  <>
-                    <KanbanTaskCardSkeleton />
-                    <KanbanTaskCardSkeleton />
-                  </>
-                )}
-                {!isFetchingTasks && openTasks.length === 0 && (
-                  <div className="rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-3 text-xs text-slate-500 backdrop-blur">
-                    No open tasks.
-                  </div>
-                )}
-                {!isFetchingTasks && openTasks.map((task) => (
-                  <KanbanTaskCard
-                    key={task.id.toString()}
-                    title={task.title}
-                    reward={`${formatCompactAmount(task.rewardTokenAmount)} ${stableTaskConfig.rewardToken.symbol}`}
-                    deadlineLabel={formatDeadlineLabel(task.deadline)}
-                    visitHref={task.visitUrl}
-                    isPinned={isTaskPinned(task.id)}
-                    onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
-                    isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
-                    actionLabel="Accept"
-                    onAction={() => acceptTask(task.id)}
-                    actionDisabled={!isConnected}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="w-72 shrink-0 space-y-3">
-              <div className="flex items-center justify-between rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-900 backdrop-blur">
-                <span>In progress</span>
-                <span className="text-xs font-semibold text-blue-700">{inProgressTasks.length}</span>
-              </div>
-              <div className="grid gap-3">
-                {isFetchingTasks && (
-                  <>
-                    <KanbanTaskCardSkeleton />
-                    <KanbanTaskCardSkeleton />
-                  </>
-                )}
-                {!isFetchingTasks && inProgressTasks.length === 0 && (
-                  <div className="rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-3 text-xs text-slate-500 backdrop-blur">
-                    Accept a task to start.
-                  </div>
-                )}
-                {!isFetchingTasks && inProgressTasks.map((task) => (
-                  <KanbanTaskCard
-                    key={task.id.toString()}
-                    title={task.title}
-                    reward={`${formatCompactAmount(task.rewardTokenAmount)} ${stableTaskConfig.rewardToken.symbol}`}
-                    deadlineLabel={formatDeadlineLabel(task.deadline)}
-                    visitHref={task.visitUrl}
-                    isPinned={isTaskPinned(task.id)}
-                    onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
-                    isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
-                    actionLabel="Mark done"
-                    onAction={() => handleVisitTask(task.id, task.visitUrl, task.isCompleted)}
-                    actionDisabled={!isConnected || Boolean(pendingAction)}
-                    secondaryActionLabel="Unaccept"
-                    onSecondaryAction={() => unacceptTask(task.id)}
-                    secondaryActionDisabled={!isConnected || Boolean(pendingAction)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="w-72 shrink-0 space-y-3">
-              <div className="flex items-center justify-between rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-900 backdrop-blur">
-                <span>Done</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleBatchClaimEligible}
-                    disabled={!isConnected || doneTasks.length === 0 || Boolean(pendingAction) || isBatchClaiming}
-                    className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
-                  >
-                    {isBatchClaiming && batchClaimProgress
-                      ? `Claiming ${batchClaimProgress.current}/${batchClaimProgress.total}…`
-                      : 'Claim eligible'}
-                  </button>
-                  <span className="text-xs font-semibold text-blue-700">{doneTasks.length}</span>
-                </div>
-              </div>
-              <div className="grid gap-3">
-                {isFetchingTasks && (
-                  <>
-                    <KanbanTaskCardSkeleton />
-                    <KanbanTaskCardSkeleton />
-                  </>
-                )}
-                {!isFetchingTasks && doneTasks.length === 0 && (
-                  <div className="rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-3 text-xs text-slate-500 backdrop-blur">
-                    Finish a task to see it here.
-                  </div>
-                )}
-                {!isFetchingTasks && doneTasks.map((task) => (
-                  <KanbanTaskCard
-                    key={task.id.toString()}
-                    title={task.title}
-                    reward={`${formatCompactAmount(task.rewardTokenAmount)} ${stableTaskConfig.rewardToken.symbol}`}
-                    deadlineLabel={formatDeadlineLabel(task.deadline)}
-                    visitHref={task.visitUrl}
-                    isPinned={isTaskPinned(task.id)}
-                    onTogglePin={(nextPinned) => togglePinTask(task.id, nextPinned)}
-                    isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
-                    actionLabel="Done"
-                    actionDisabled
-                  />
-                ))}
-              </div>
-            </div>
           </div>
         </section>
 

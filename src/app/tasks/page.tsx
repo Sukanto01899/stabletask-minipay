@@ -10,7 +10,7 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from 'wagmi'
-import { erc20Abi, formatEther, formatUnits, parseEther } from 'viem'
+import { erc20Abi, formatEther, formatUnits, parseEther, parseUnits } from 'viem'
 
 import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
 import { TaskCard } from '@/components/stabletask/TaskCard'
@@ -213,7 +213,8 @@ export default function Page() {
     visitUrl: '',
     deadline: '',
     rewardXp: '5',
-    rewardTokenAmount: '0',
+    rewardTokenAmount: '0.01',
+    maxClaims: '1',
     taskType: 'visit' as TaskTypeOption,
   })
   const activeOnchainTasks = useMemo(() => tasks.filter((task) => task.active), [tasks])
@@ -511,7 +512,7 @@ export default function Page() {
           pushActivity({ kind: 'done', taskId: pendingAction.taskId.toString(), title: taskTitle })
         }
       } else if (pendingAction.kind === 'claim') {
-        toast({ title: 'Claimed', description: 'XP claimed successfully.', variant: 'success' })
+        toast({ title: 'Claimed', description: 'Rewards claimed successfully.', variant: 'success' })
         if (pendingAction.taskId) {
           pushActivity({ kind: 'claimed', taskId: pendingAction.taskId.toString(), title: taskTitle })
         }
@@ -527,14 +528,14 @@ export default function Page() {
       if (pendingAction.kind === 'visit') {
         toast({ title: 'Failed', description: 'Could not mark task as done.', variant: 'error' })
       } else if (pendingAction.kind === 'claim') {
-        toast({ title: 'Failed', description: 'Could not claim XP.', variant: 'error' })
+        toast({ title: 'Failed', description: 'Could not claim rewards.', variant: 'error' })
       }
       setLocalPageError(
         pendingAction.kind === 'create'
           ? 'Task creation failed. Please try again.'
           : pendingAction.kind === 'visit'
             ? 'Visit completion failed. Please try again.'
-            : 'XP claim failed. Please try again.',
+            : 'Reward claim failed. Please try again.',
       )
       setPendingAction(null)
     }
@@ -586,6 +587,11 @@ export default function Page() {
       setCreateGasFeeEstimate(null)
       return
     }
+    const maxClaims = Number(newTask.maxClaims)
+    if (!Number.isInteger(maxClaims) || maxClaims <= 0) {
+      setCreateGasFeeEstimate(null)
+      return
+    }
 
     let cancelled = false
 
@@ -599,7 +605,8 @@ export default function Page() {
         functionArgs: [
           newTask.taskType === 'visit' ? 0 : 2,
           parseEther(newTask.rewardXp || '0'),
-          parseEther(newTask.rewardTokenAmount || '0'),
+          parseUnits(newTask.rewardTokenAmount || '0', stableTaskConfig.rewardToken.decimals),
+          BigInt(maxClaims),
           encodeMetadataURI({
             title: trimmedTitle,
             description: trimmedDescription,
@@ -624,6 +631,7 @@ export default function Page() {
     isCreateOpen,
     newTask.deadline,
     newTask.description,
+    newTask.maxClaims,
     newTask.rewardTokenAmount,
     newTask.rewardXp,
     newTask.taskType,
@@ -709,7 +717,7 @@ export default function Page() {
   const handleClaim = useCallback(
     async (taskId: bigint, isVisited?: boolean, isClaimed?: boolean) => {
       if (!address || !isConnected) {
-        setLocalPageError('Connect your wallet to claim XP.')
+        setLocalPageError('Connect your wallet to claim rewards.')
         return
       }
       if (stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
@@ -717,7 +725,7 @@ export default function Page() {
         return
       }
       if (chainId !== ACTIVE_CHAIN_ID) {
-        setLocalPageError(`Switch to ${stableTaskConfig.chain.name} to claim XP.`)
+        setLocalPageError(`Switch to ${stableTaskConfig.chain.name} to claim rewards.`)
         return
       }
       if (pendingActionRef.current || isClaimed || !isVisited) return
@@ -760,9 +768,9 @@ export default function Page() {
         })
       } catch (claimError) {
         console.error('Claim failed:', claimError)
-        setLocalPageError('XP claim failed. Please try again.')
+        setLocalPageError('Reward claim failed. Please try again.')
         setPendingAction(null)
-        toast({ title: 'Failed', description: 'Could not claim XP.', variant: 'error' })
+        toast({ title: 'Failed', description: 'Could not claim rewards.', variant: 'error' })
       }
     },
     [address, chainId, isConnected, publicClient, toast, writeContractAsync],
@@ -883,6 +891,7 @@ export default function Page() {
     const trimmedDeadline = newTask.deadline.trim()
     const xpReward = Number(newTask.rewardXp)
     const rewardTokenAmount = Number(newTask.rewardTokenAmount)
+    const maxClaims = Number(newTask.maxClaims)
 
     if (!trimmedTitle || !trimmedDescription || !trimmedVisitUrl) {
       setCreateError('Title, description, and visit URL are required.')
@@ -896,8 +905,12 @@ export default function Page() {
       setCreateError('XP reward must be greater than 0.')
       return
     }
-    if (!Number.isFinite(rewardTokenAmount) || rewardTokenAmount < 0) {
-      setCreateError('Reward token amount must be 0 or greater.')
+    if (!Number.isFinite(rewardTokenAmount) || rewardTokenAmount <= 0) {
+      setCreateError('cUSD reward per user must be greater than 0.')
+      return
+    }
+    if (!Number.isInteger(maxClaims) || maxClaims <= 0) {
+      setCreateError('Claim slots must be a whole number greater than 0.')
       return
     }
     if (!address || !isConnected) {
@@ -927,7 +940,8 @@ export default function Page() {
           functionArgs: [
             newTask.taskType === 'visit' ? 0 : 2,
             parseEther(newTask.rewardXp),
-            parseEther(newTask.rewardTokenAmount),
+            parseUnits(newTask.rewardTokenAmount, stableTaskConfig.rewardToken.decimals),
+            BigInt(maxClaims),
             encodeMetadataURI({
               title: trimmedTitle,
               description: trimmedDescription,
@@ -947,6 +961,26 @@ export default function Page() {
       }
 
       try {
+        const rewardAmountRaw = parseUnits(newTask.rewardTokenAmount, stableTaskConfig.rewardToken.decimals)
+        const totalEscrow = rewardAmountRaw * BigInt(maxClaims)
+        if (totalEscrow > BigInt(0)) {
+          toast({
+            title: 'Approving cUSD',
+            description: `Approve ${formatUnits(totalEscrow, stableTaskConfig.rewardToken.decimals)} cUSD for the task escrow.`,
+            variant: 'default',
+          })
+          const approvalHash = await writeContractAsync({
+            address: stableTaskConfig.rewardToken.address,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [stableTaskConfig.contracts.rewardVaultAddress, totalEscrow],
+            chainId: ACTIVE_CHAIN_ID,
+          })
+          if (publicClient) {
+            await publicClient.waitForTransactionReceipt({ hash: approvalHash })
+          }
+        }
+
         await writeContractAsync(
           {
             address: stableTaskConfig.contracts.rewardVaultAddress,
@@ -955,7 +989,8 @@ export default function Page() {
           args: [
             newTask.taskType === 'visit' ? 0 : 2,
             parseEther(newTask.rewardXp),
-            parseEther(newTask.rewardTokenAmount),
+            rewardAmountRaw,
+            BigInt(maxClaims),
             encodeMetadataURI({
               title: trimmedTitle,
               description: trimmedDescription,
@@ -973,7 +1008,8 @@ export default function Page() {
         visitUrl: '',
         deadline: '',
         rewardXp: '5',
-        rewardTokenAmount: '0',
+        rewardTokenAmount: '0.01',
+        maxClaims: '1',
         taskType: 'visit',
       })
       setIsCreateOpen(false)
@@ -1054,7 +1090,7 @@ export default function Page() {
                 You have {pendingPayoutsCount} to claim
               </div>
               <div className="mt-0.5 text-xs text-slate-600">
-                Completed tasks are ready for XP claim.
+                Completed tasks are ready for reward claim.
               </div>
             </div>
             <Link
@@ -1228,8 +1264,9 @@ export default function Page() {
                     ? 'success'
                     : 'idle'
               const helperText = task.isCompleted
-                ? `Ready to claim ${task.rewardXp} XP.`
-                : 'Visit first to enable the XP claim.'
+                ? `Ready to claim ${task.rewardXp} XP and ${task.rewardTokenAmount} ${stableTaskConfig.rewardToken.symbol}.`
+                : 'Visit first to enable the reward claim.'
+              const rewardLabel = `${task.rewardXp} XP + ${task.rewardTokenAmount} ${stableTaskConfig.rewardToken.symbol}`
 
               return (
                 <TaskCard
@@ -1237,7 +1274,7 @@ export default function Page() {
                   taskId={task.id}
                   title={task.title}
                   description={task.description}
-                  reward={`${task.rewardXp} XP`}
+                  reward={rewardLabel}
                   tag={task.tag}
                   isPinned={isTaskPinned(task.id)}
                   onTogglePin={(taskId, nextPinned) => {
@@ -1386,11 +1423,31 @@ export default function Page() {
                   }))
                 }
                 inputMode="decimal"
-                placeholder="Optional external reward amount"
+                placeholder="cUSD reward per user"
+                className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+              />
+              <input
+                value={newTask.maxClaims}
+                onChange={(event) =>
+                  setNewTask((prev) => ({
+                    ...prev,
+                    maxClaims: event.target.value,
+                  }))
+                }
+                inputMode="numeric"
+                placeholder="How many users can claim"
                 className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
               />
               <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs text-slate-600">
-                Users can create, visit, and claim vault XP here. External reward-token payouts still remain owner-only in the current contract.
+                The vault escrows cUSD at creation. Total escrow:{' '}
+                <span className="font-semibold text-slate-950">
+                  {Number.isFinite(Number(newTask.rewardTokenAmount)) && Number.isFinite(Number(newTask.maxClaims))
+                    ? `${(Number(newTask.rewardTokenAmount) * Number(newTask.maxClaims)).toLocaleString(undefined, {
+                        maximumFractionDigits: 6,
+                      })} ${stableTaskConfig.rewardToken.symbol}`
+                    : `0 ${stableTaskConfig.rewardToken.symbol}`}
+                </span>
+                .
               </div>
               <div className="rounded-2xl border border-blue-100/80 bg-white/70 px-3 py-2 text-xs text-slate-600">
                 Est. gas fee:{' '}

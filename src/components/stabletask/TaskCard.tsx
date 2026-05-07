@@ -48,7 +48,7 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   const isClaimed = props.claimState === 'success'
   const isPending = props.claimState === 'pending'
   const isVisiting = props.visitState === 'pending'
-  const buttonLabel = isClaimed ? 'Claimed' : isPending ? 'Claiming...' : 'Claim XP'
+  const buttonLabel = isClaimed ? 'Claimed' : isPending ? 'Claiming...' : 'Claim'
   const visitLabel = props.isVisited ? 'Visited' : isVisiting ? 'Opening...' : 'Visit'
   const visitUrlLabel = props.visitHref ? getVisitUrlLabel(props.visitHref) : null
   const isPinned = Boolean(props.isPinned)

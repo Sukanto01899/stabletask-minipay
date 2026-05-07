@@ -16,7 +16,18 @@ export type TaskMetadata = {
   deadline?: string
 }
 
-type VaultTaskTuple = readonly [bigint, number, `0x${string}`, bigint, bigint, boolean, boolean, string]
+type VaultTaskTuple = readonly [
+  bigint,
+  number,
+  `0x${string}`,
+  bigint,
+  bigint,
+  bigint,
+  bigint,
+  boolean,
+  boolean,
+  string,
+]
 
 export type OnchainTask = {
   id: bigint
@@ -26,6 +37,8 @@ export type OnchainTask = {
   deadline?: string
   rewardXp: string
   rewardTokenAmount: string
+  maxClaims: bigint
+  claimCount: bigint
   tag: string
   taskType: number
   active: boolean
@@ -131,7 +144,8 @@ export function useVaultTasks() {
             functionName: 'tasks',
             args: [taskId],
           })
-          const [id, taskType, , pointReward, rewardAmount, active, , metadataURI] = taskResult as VaultTaskTuple
+          const [id, taskType, , pointReward, rewardAmount, maxClaims, claimCount, active, , metadataURI] =
+            taskResult as VaultTaskTuple
 
           const metadata = parseMetadataURI(metadataURI, id ?? taskId)
           const [isCompletedResult, hasClaimedPointResult] = address
@@ -161,6 +175,8 @@ export function useVaultTasks() {
             deadline: metadata.deadline,
             rewardXp: formatUnits(pointReward, 18),
             rewardTokenAmount: formatUnits(rewardAmount, stableTaskConfig.rewardToken.decimals),
+            maxClaims,
+            claimCount,
             tag: getTaskTag(taskType),
             taskType,
             active,

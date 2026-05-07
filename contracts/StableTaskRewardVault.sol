@@ -22,6 +22,8 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         address creator;
         uint256 pointReward;
         uint256 rewardAmount;
+        uint256 maxClaims;
+        uint256 claimCount;
         bool active;
         bool publicCreated;
         string metadataURI;
@@ -50,6 +52,7 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         address indexed creator,
         uint256 pointReward,
         uint256 rewardAmount,
+        uint256 maxClaims,
         bool publicCreated,
         string metadataURI
     );
@@ -63,6 +66,7 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
     );
     event PublicTaskCreationFeeUpdated(uint256 newFee);
     event VaultFunded(address indexed funder, uint256 amount);
+    event TaskRewardEscrowed(uint256 indexed taskId, address indexed creator, uint256 amount);
     event NativeFeesWithdrawn(address indexed recipient, uint256 amount);
     event DailyCheckIn(uint256 indexed taskId, address indexed user, uint256 indexed day);
     event TapRecorded(address indexed user, uint256 indexed day, uint256 tapCount, uint256 xpAmount);
@@ -71,6 +75,7 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
     error DailyTaskAlreadyExists(uint256 taskId);
     error InvalidTask(uint256 taskId);
     error InvalidTaskType();
+    error MaxClaimsReached(uint256 taskId);
     error TaskInactive(uint256 taskId);
     error TaskNotCompleted(uint256 taskId, address user);
     error ZeroAddress();
@@ -101,15 +106,17 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         TaskType taskType,
         uint256 pointReward,
         uint256 rewardAmount,
+        uint256 maxClaims,
         string calldata metadataURI
     ) external onlyOwner whenNotPaused returns (uint256 taskId) {
-        taskId = _createTask(taskType, msg.sender, pointReward, rewardAmount, metadataURI, false);
+        taskId = _createTask(taskType, msg.sender, pointReward, rewardAmount, maxClaims, metadataURI, false);
     }
 
     function createPublicTask(
         TaskType taskType,
         uint256 pointReward,
         uint256 rewardAmount,
+        uint256 maxClaims,
         string calldata metadataURI
     ) external payable whenNotPaused returns (uint256 taskId) {
         if (taskType != TaskType.Visit && taskType != TaskType.Reading) {
@@ -119,7 +126,7 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
             revert IncorrectFee(publicTaskCreationFee, msg.value);
         }
 
-        taskId = _createTask(taskType, msg.sender, pointReward, rewardAmount, metadataURI, true);
+        taskId = _createTask(taskType, msg.sender, pointReward, rewardAmount, maxClaims, metadataURI, true);
     }
 
     function markTaskCompleted(uint256 taskId, address user) external onlyOwner whenNotPaused {
@@ -232,6 +239,7 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
 
             dailyPointClaimed[taskId][msg.sender][day] = true;
             _mint(msg.sender, task.pointReward);
+            _claimEscrowedReward(taskId, task, msg.sender, true, day);
 
             emit PointClaimed(taskId, msg.sender, task.pointReward);
             return;
@@ -249,6 +257,7 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
 
         hasClaimedPoint[taskId][msg.sender] = true;
         _mint(msg.sender, task.pointReward);
+        _claimEscrowedReward(taskId, task, msg.sender, false, 0);
 
         emit PointClaimed(taskId, msg.sender, task.pointReward);
     }
@@ -276,8 +285,12 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
             if (task.rewardAmount == 0) {
                 revert ZeroAmount();
             }
+            if (task.claimCount >= task.maxClaims) {
+                revert MaxClaimsReached(taskId);
+            }
 
             dailyRewardClaimed[taskId][user][day] = true;
+            tasks[taskId].claimCount += 1;
             rewardToken.safeTransfer(user, task.rewardAmount);
 
             emit RewardClaimed(taskId, user, address(rewardToken), task.rewardAmount);
@@ -293,8 +306,12 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         if (task.rewardAmount == 0) {
             revert ZeroAmount();
         }
+        if (task.claimCount >= task.maxClaims) {
+            revert MaxClaimsReached(taskId);
+        }
 
         hasClaimedReward[taskId][user] = true;
+        tasks[taskId].claimCount += 1;
         rewardToken.safeTransfer(user, task.rewardAmount);
 
         emit RewardClaimed(taskId, user, address(rewardToken), task.rewardAmount);
@@ -353,6 +370,7 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
         address creator,
         uint256 pointReward,
         uint256 rewardAmount,
+        uint256 maxClaims,
         string calldata metadataURI,
         bool publicCreated
     ) internal returns (uint256 taskId) {
@@ -360,6 +378,9 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
             revert ZeroAddress();
         }
         if (pointReward == 0) {
+            revert ZeroAmount();
+        }
+        if (rewardAmount > 0 && maxClaims == 0) {
             revert ZeroAmount();
         }
         if (taskType == TaskType.DailyClaim && hasDailyTask) {
@@ -375,10 +396,18 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
             creator: creator,
             pointReward: pointReward,
             rewardAmount: rewardAmount,
+            maxClaims: maxClaims,
+            claimCount: 0,
             active: true,
             publicCreated: publicCreated,
             metadataURI: metadataURI
         });
+
+        uint256 escrowAmount = rewardAmount * maxClaims;
+        if (escrowAmount > 0) {
+            rewardToken.safeTransferFrom(creator, address(this), escrowAmount);
+            emit TaskRewardEscrowed(taskId, creator, escrowAmount);
+        }
 
         if (taskType == TaskType.DailyClaim) {
             hasDailyTask = true;
@@ -391,8 +420,34 @@ contract StableTaskRewardVault is ERC20, Ownable, Pausable {
             creator,
             pointReward,
             rewardAmount,
+            maxClaims,
             publicCreated,
             metadataURI
         );
+    }
+
+    function _claimEscrowedReward(
+        uint256 taskId,
+        Task memory task,
+        address user,
+        bool isDaily,
+        uint256 day
+    ) internal {
+        if (task.rewardAmount == 0) {
+            return;
+        }
+        if (task.claimCount >= task.maxClaims) {
+            revert MaxClaimsReached(taskId);
+        }
+
+        tasks[taskId].claimCount += 1;
+        if (isDaily) {
+            dailyRewardClaimed[taskId][user][day] = true;
+        } else {
+            hasClaimedReward[taskId][user] = true;
+        }
+
+        rewardToken.safeTransfer(user, task.rewardAmount);
+        emit RewardClaimed(taskId, user, address(rewardToken), task.rewardAmount);
     }
 }

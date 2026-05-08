@@ -233,19 +233,19 @@ export default function TapPage() {
         </p>
       )}
 
-      <section className="flex flex-1 items-center justify-center rounded-[2rem] border border-blue-200/70 bg-white/80 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+      <section className="game-panel-strong flex flex-1 items-center justify-center rounded-[1.5rem] p-5">
         <div className="flex w-full flex-col items-center justify-center text-center">
-          <div className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-blue-700/70">Tap To Earn</div>
+          <div className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-lime-200">Tap To Earn</div>
           <button
             type="button"
             onClick={handleTap}
             disabled={isBusy || isLoadingTapData || remainingTaps <= 0}
             aria-busy={isBusy}
-            className="relative flex h-52 w-52 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.92),rgba(96,165,250,0.95)_45%,rgba(29,78,216,1))] px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_28px_80px_rgba(37,99,235,0.35)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="relative flex h-52 w-52 items-center justify-center rounded-full border border-lime-300/35 bg-[radial-gradient(circle_at_35%_25%,rgba(236,253,245,0.95),rgba(20,184,166,0.96)_34%,rgba(15,23,42,1)_72%)] px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_0_0_8px_rgba(132,204,22,0.05),0_28px_90px_rgba(20,184,166,0.3)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isBusy && (
               <span aria-hidden className="pointer-events-none absolute inset-0">
-                <span className="absolute inset-3 rounded-full border border-white/25 bg-white/5 backdrop-blur-sm" />
+                <span className="absolute inset-3 rounded-full border border-lime-200/25 bg-white/5 backdrop-blur-sm" />
                 <span className="animate-tap-orbit absolute inset-2">
                   <span className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-white shadow-[0_10px_30px_rgba(255,255,255,0.35)]" />
                 </span>
@@ -256,43 +256,42 @@ export default function TapPage() {
               {remainingTaps <= 0 ? 'Limit Reached' : '+1 XP'}
             </span>
           </button>
-          <div className="mt-5 text-sm text-slate-600">
-            Tap sends one transaction and mints <span className="font-semibold text-slate-950">{tapXpReward} XP</span>.
+          <div className="mt-5 text-sm text-slate-300">
+            Tap sends one transaction and mints <span className="font-black text-lime-100">{tapXpReward} XP</span>.
           </div>
-          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-blue-100">
+          <div className="mt-2 h-3 w-full overflow-hidden rounded-full border border-cyan-300/20 bg-slate-900">
             <div
-              className="h-full rounded-full bg-blue-600 transition-[width]"
+              className="h-full rounded-full bg-gradient-to-r from-lime-300 via-cyan-300 to-amber-300 transition-[width]"
               style={{ width: `${dailyTapLimit === 0 ? 0 : (tapsToday / dailyTapLimit) * 100}%` }}
             />
           </div>
-          <div className="mt-2 text-xs text-slate-500">
+          <div className="mt-2 text-xs text-slate-400">
             {tapsToday} / {dailyTapLimit} taps used today
           </div>
         </div>
       </section>
 
-      <section className="relative overflow-hidden rounded-[2rem] border border-blue-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(224,242,254,0.98)_60%,rgba(191,219,254,0.95))] px-5 py-5 shadow-[0_24px_60px_rgba(37,99,235,0.14)]">
-        <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-blue-400/20 blur-2xl" />
-        <div className="pointer-events-none absolute -left-6 bottom-0 h-24 w-24 rounded-full bg-cyan-300/25 blur-2xl" />
+      <section className="game-panel relative overflow-hidden rounded-[1.5rem] px-5 py-5">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-lime-300 via-cyan-300 to-amber-300" />
         <div className="relative">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">Tap Arena</div>
-          <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-slate-950">
+          <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-200">Tap Arena</div>
+          <h2 className="mt-2 font-heading text-2xl font-black tracking-tight text-slate-50">
             Every tap is an onchain transaction and earns XP.
           </h2>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-slate-400">
             Each successful tap mints {tapXpReward} XP. Daily limit: {dailyTapLimit} taps.
           </p>
         </div>
         <div className="relative mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 backdrop-blur">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">Earned XP</div>
-            <div className="mt-1 text-xl font-bold text-slate-950">{xpBalance}</div>
-            <div className="text-xs text-slate-500">vault token balance</div>
+          <div className="rounded-xl border border-lime-300/20 bg-slate-900/72 px-4 py-3 backdrop-blur">
+            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">Earned XP</div>
+            <div className="mt-1 text-xl font-black text-slate-50">{xpBalance}</div>
+            <div className="text-xs text-slate-400">vault token balance</div>
           </div>
-          <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 backdrop-blur">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">Today&apos;s Taps</div>
-            <div className="mt-1 text-xl font-bold text-slate-950">{tapsToday}</div>
-            <div className="text-xs text-slate-500">{remainingTaps} remaining today</div>
+          <div className="rounded-xl border border-amber-300/20 bg-slate-900/72 px-4 py-3 backdrop-blur">
+            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-200">Today&apos;s Taps</div>
+            <div className="mt-1 text-xl font-black text-slate-50">{tapsToday}</div>
+            <div className="text-xs text-slate-400">{remainingTaps} remaining today</div>
           </div>
         </div>
       </section>

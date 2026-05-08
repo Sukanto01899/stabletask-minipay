@@ -16,7 +16,7 @@ export function BottomNav(props: { items: BottomNavItem[] }) {
   const pathname = usePathname()
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-blue-200/70 bg-white/70 backdrop-blur-xl">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-cyan-300/20 bg-slate-950/82 backdrop-blur-xl">
       <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
         {props.items.map((item) => {
           const isActive = item.href === '/tasks' ? pathname === '/' || pathname === '/tasks' : pathname === item.href
@@ -24,10 +24,10 @@ export function BottomNav(props: { items: BottomNavItem[] }) {
             <Link
               key={item.label}
               className={cn(
-                'group flex min-w-20 flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition',
+                'group flex min-w-20 flex-col items-center gap-1 rounded-xl border px-3 py-2 text-xs font-bold transition',
                 isActive
-                  ? 'bg-blue-600 text-white shadow-[0_10px_30px_rgba(37,99,235,0.28)]'
-                  : 'text-slate-500 hover:bg-blue-50 hover:text-blue-700',
+                  ? 'border-lime-300/35 bg-lime-300/14 text-lime-100 shadow-[0_0_28px_rgba(132,204,22,0.18)]'
+                  : 'border-transparent text-slate-400 hover:border-cyan-300/20 hover:bg-cyan-300/10 hover:text-cyan-100',
               )}
               href={item.href}
             >
@@ -36,7 +36,7 @@ export function BottomNav(props: { items: BottomNavItem[] }) {
                 icon={item.icon}
                 size={22}
                 strokeWidth={2}
-                className={cn('transition', isActive ? 'text-cyan-100' : 'text-slate-400 group-hover:text-blue-700')}
+                className={cn('transition', isActive ? 'text-lime-100' : 'text-slate-400 group-hover:text-cyan-100')}
               />
               {item.label}
             </Link>

@@ -48,16 +48,16 @@ function buildAddChainParams(chain: typeof stableTaskConfig.chain) {
 
 const HEADER_COPY: Record<string, { title: string; subtitle: string }> = {
   "/tasks": {
-    title: "Tasks",
-    subtitle: "Complete tasks and earn cUSD.",
+    title: "Quest Board",
+    subtitle: "Complete quests, claim XP, and pull cUSD from the vault.",
   },
   "/tap": {
-    title: "Tap",
-    subtitle: "Tap onchain and earn 1 XP per transaction.",
+    title: "Tap Arena",
+    subtitle: "Hit the chain and stack XP one tap at a time.",
   },
   "/rewards": {
-    title: "Rewards",
-    subtitle: "Track your claimed rewards and progress.",
+    title: "Loot",
+    subtitle: "Track claimed rewards and player progress.",
   },
   "/profile": {
     title: "Profile",
@@ -85,7 +85,7 @@ export function AppShell(props: { children: React.ReactNode }) {
     return (
       HEADER_COPY[pathname] ?? {
         title: "StableTask",
-        subtitle: "Complete tasks and earn cUSD.",
+        subtitle: "Quest, tap, and claim cUSD rewards.",
       }
     );
   }, [pathname]);
@@ -213,28 +213,31 @@ export function AppShell(props: { children: React.ReactNode }) {
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.22),_transparent_58%)]" />
-      <div className="pointer-events-none absolute right-[-72px] top-14 h-40 w-40 rounded-full bg-sky-300/25 blur-3xl" />
-      <div className="pointer-events-none absolute left-[-88px] top-40 h-52 w-52 rounded-full bg-blue-500/15 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 opacity-45 [background-image:linear-gradient(rgba(34,211,238,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(250,204,21,0.06)_1px,transparent_1px)] [background-size:34px_34px]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-lime-300/70 to-transparent" />
 
       <header className="mx-auto w-full max-w-md px-5 pt-6">
-        <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-[linear-gradient(140deg,rgba(15,23,42,0.96),rgba(29,78,216,0.92)_45%,rgba(56,189,248,0.84))] px-5 py-5 text-white shadow-[0_24px_80px_rgba(37,99,235,0.28)]">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.24),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(125,211,252,0.24),transparent_28%)]" />
+        <div className="game-panel-strong relative overflow-hidden rounded-[1.5rem] px-5 py-5 text-white">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-lime-300 via-cyan-300 to-amber-300" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(20,184,166,0.16),transparent_34%,rgba(245,158,11,0.13)_74%,transparent)]" />
           <div className="flex items-start justify-between gap-3">
             <div className="relative z-10">
-              <h1 className="mt-3 font-heading text-[2rem] font-bold leading-none tracking-tight">
+              <div className="text-[11px] font-black uppercase tracking-[0.28em] text-lime-200">
+                StableTask
+              </div>
+              <h1 className="mt-2 font-heading text-[2rem] font-black leading-none tracking-tight text-slate-50">
                 {header.title}
               </h1>
             </div>
             <div className="relative z-10 flex items-center gap-2">
-              <Badge className="border border-white/15 bg-white/12 text-sky-50 backdrop-blur">
+              <Badge className="game-chip backdrop-blur">
                 Celo
               </Badge>
               {isConnected ? (
                 <button
                   type="button"
                   onClick={() => setWalletSheetOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/12 px-3 py-1 text-xs font-semibold text-sky-50 backdrop-blur transition hover:bg-white/18"
+                  className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-50 backdrop-blur transition hover:bg-cyan-300/16"
                   aria-label="Wallet menu"
                 >
                   <span>{shortAddress ?? "No wallet"}</span>
@@ -246,14 +249,14 @@ export function AppShell(props: { children: React.ReactNode }) {
                   size="sm"
                   onClick={handleConnect}
                   disabled={isConnectPending}
-                  className="border border-white/15 bg-white/12 text-sky-50 hover:bg-white/18"
+                  className="border border-lime-300/30 bg-lime-300/15 text-lime-50 hover:bg-lime-300/22"
                 >
                   {isConnectPending ? "Connecting..." : "Connect"}
                 </Button>
               )}
             </div>
           </div>
-          <p className="relative z-10 mt-3 max-w-[18rem] text-sm text-sky-100/90">
+          <p className="relative z-10 mt-3 max-w-[18rem] text-sm text-slate-300">
             {header.subtitle}
           </p>
         </div>
@@ -286,7 +289,7 @@ export function AppShell(props: { children: React.ReactNode }) {
             aria-label="Close wallet actions"
           />
           <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md px-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)]">
-            <div className="relative overflow-hidden rounded-[1.75rem] border border-border/60 bg-background/95 p-4 shadow-2xl">
+            <div className="game-panel-strong relative overflow-hidden rounded-[1.5rem] p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-xs text-muted-foreground">

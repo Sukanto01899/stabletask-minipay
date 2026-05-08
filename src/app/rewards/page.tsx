@@ -52,41 +52,41 @@ export default function RewardsPage() {
       )}
 
       <section className="space-y-4">
-        <div className="rounded-[2rem] border border-emerald-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.94),rgba(236,253,245,0.98)_55%,rgba(209,250,229,0.96))] p-5 shadow-[0_24px_60px_rgba(16,185,129,0.12)]">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">Rewards</div>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Claimed rewards live here.</h2>
-          <p className="mt-2 text-sm text-slate-600">
+        <div className="game-panel-strong rounded-[1.5rem] p-5">
+          <div className="text-[11px] font-black uppercase tracking-[0.24em] text-lime-200">Loot</div>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-50">Claimed rewards live here.</h2>
+          <p className="mt-2 text-sm text-slate-400">
             Totals across your claims, plus a quick view of your most recent rewards.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-emerald-200/70 bg-white/90 p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700/80">
+          <div className="rounded-xl border border-lime-300/20 bg-slate-950/72 p-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">
               Total claimed XP
             </div>
-            <div className="mt-1 text-2xl font-semibold text-slate-950">{totalClaimedXp}</div>
-            <div className="text-xs text-slate-500">from {claimedTasks.length} claims</div>
+            <div className="mt-1 text-2xl font-black text-slate-50">{totalClaimedXp}</div>
+            <div className="text-xs text-slate-400">from {claimedTasks.length} claims</div>
           </div>
-          <div className="rounded-2xl border border-emerald-200/70 bg-white/90 p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700/80">
+          <div className="rounded-xl border border-amber-300/20 bg-slate-950/72 p-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-200">
               Total claimed cUSD
             </div>
-            <div className="mt-1 text-2xl font-semibold text-slate-950">{totalClaimedCusd}</div>
-            <div className="text-xs text-slate-500">from task rewards</div>
+            <div className="mt-1 text-2xl font-black text-slate-50">{totalClaimedCusd}</div>
+            <div className="text-xs text-slate-400">from task rewards</div>
           </div>
         </div>
 
         <div className="space-y-3">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <div className="text-lg font-semibold text-slate-950">Last 5 claims</div>
-              <div className="text-xs text-slate-500">
-                XP balance: <span className="font-semibold text-slate-950">{xpBalance}</span>
+              <div className="text-lg font-black text-slate-50">Last 5 claims</div>
+              <div className="text-xs text-slate-400">
+                XP balance: <span className="font-black text-lime-100">{xpBalance}</span>
               </div>
             </div>
-            <div className="text-xs text-slate-500">
-              Total claims: <span className="font-semibold text-slate-950">{claimedTasks.length}</span>
+            <div className="text-xs text-slate-400">
+              Total claims: <span className="font-black text-slate-50">{claimedTasks.length}</span>
             </div>
           </div>
 
@@ -98,7 +98,7 @@ export default function RewardsPage() {
           )}
 
           {!isFetchingTasks && recentClaims.length === 0 && (
-            <div className="rounded-2xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">
+            <div className="game-panel rounded-xl p-4 text-sm text-slate-400">
               No claimed tasks yet.
             </div>
           )}
@@ -121,7 +121,7 @@ export default function RewardsPage() {
           ))}
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">
+        <div className="game-panel rounded-xl p-4 text-sm text-slate-400">
           Status: {isConnected ? 'Connected' : 'Not connected'} · Wallet:{' '}
           {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'No wallet'} · Chain: {chainId ?? '—'}
         </div>
@@ -129,4 +129,3 @@ export default function RewardsPage() {
     </main>
   )
 }
-

@@ -1045,7 +1045,7 @@ export default function Page() {
       onTouchCancel={handleTouchEnd}
     >
       {isDev && (
-        <div className="fixed bottom-20 left-4 z-50 rounded-full border border-blue-200/70 bg-white/90 px-3 py-1 text-xs shadow">
+        <div className="fixed bottom-20 left-4 z-50 rounded-full border border-cyan-300/25 bg-slate-950/90 px-3 py-1 text-xs text-slate-200 shadow">
           <span>connected: {isConnected ? 'yes' : 'no'}</span>
           <span className="mx-2 text-muted-foreground">|</span>
           <span>chainId: {chainId ?? '—'}</span>
@@ -1059,7 +1059,7 @@ export default function Page() {
             transition: isPullingRef.current ? 'none' : 'height 180ms ease',
           }}
         >
-          <div className="flex h-full items-end justify-center pb-2 text-xs font-semibold text-slate-600">
+          <div className="flex h-full items-end justify-center pb-2 text-xs font-semibold text-lime-200">
             {isRefreshing ? 'Refreshingâ€¦' : pullReady ? 'Release to refresh' : 'Pull to refresh'}
           </div>
         </div>
@@ -1084,18 +1084,18 @@ export default function Page() {
         )}
 
         {isConnected && !isFetchingTasks && pendingPayoutsCount > 0 && (
-          <div className="flex items-center justify-between gap-3 rounded-[1.5rem] border border-emerald-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.94),rgba(236,253,245,0.98)_55%,rgba(209,250,229,0.96))] px-4 py-3 shadow-sm">
+          <div className="game-panel flex items-center justify-between gap-3 rounded-[1.25rem] px-4 py-3">
             <div>
-              <div className="text-sm font-semibold text-slate-950">
+              <div className="text-sm font-black text-lime-100">
                 You have {pendingPayoutsCount} to claim
               </div>
-              <div className="mt-0.5 text-xs text-slate-600">
+              <div className="mt-0.5 text-xs text-slate-400">
                 Completed tasks are ready for reward claim.
               </div>
             </div>
             <Link
               href="/rewards"
-              className="shrink-0 rounded-full border border-emerald-200 bg-white/80 px-4 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-white"
+              className="shrink-0 rounded-full border border-lime-300/35 bg-lime-300/15 px-4 py-2 text-xs font-bold text-lime-100 transition hover:bg-lime-300/22"
             >
               View
             </Link>
@@ -1103,18 +1103,18 @@ export default function Page() {
         )}
 
         <div className="sticky top-3 z-40">
-          <div className="flex items-center justify-between gap-2 rounded-[1.5rem] border border-blue-200/70 bg-white/85 p-2 shadow-sm backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-2 rounded-[1.25rem] border border-cyan-300/20 bg-slate-950/78 p-2 shadow-sm backdrop-blur-sm">
             <button
               type="button"
               onClick={() => scrollToSection('tasks-dashboard')}
-              className="h-9 flex-1 rounded-full border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+              className="h-9 flex-1 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/16"
             >
               Dashboard
             </button>
             <button
               type="button"
               onClick={() => scrollToSection('tasks-list')}
-              className="h-9 flex-1 rounded-full border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+              className="h-9 flex-1 rounded-full border border-amber-300/25 bg-amber-300/10 px-3 text-sm font-bold text-amber-100 transition hover:bg-amber-300/16"
             >
               List
             </button>
@@ -1123,19 +1123,18 @@ export default function Page() {
 
         <section
           id="tasks-dashboard"
-          className="relative overflow-hidden rounded-[2rem] border border-blue-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(224,242,254,0.98)_60%,rgba(191,219,254,0.95))] px-5 py-5 shadow-[0_24px_60px_rgba(37,99,235,0.14)]"
+          className="game-panel-strong relative overflow-hidden rounded-[1.5rem] px-5 py-5"
         >
-          <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-blue-400/20 blur-2xl" />
-          <div className="pointer-events-none absolute -left-6 bottom-0 h-24 w-24 rounded-full bg-cyan-300/25 blur-2xl" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-lime-300 via-cyan-300 to-amber-300" />
           <div className="relative flex items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-700">
+              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-lime-200">
                 Stable Task
               </div>
-              <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight text-slate-950">
+              <h2 className="mt-2 font-heading text-2xl font-black tracking-tight text-slate-50">
                 Your dashboard
               </h2>
-              <p className="mt-2 max-w-[16rem] text-sm text-slate-600">
+              <p className="mt-2 max-w-[16rem] text-sm text-slate-400">
                 Balance, active tasks, and payouts at a glance.
               </p>
             </div>
@@ -1144,7 +1143,7 @@ export default function Page() {
                 type="button"
                 onClick={handleRefresh}
                 disabled={!isConnected || isFetchingTasks || isFetchingBalance}
-                className="h-11 rounded-2xl border border-blue-200 bg-white/80 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
+                className="h-11 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/16 disabled:opacity-60"
               >
                 {isFetchingTasks || isFetchingBalance ? 'Refreshing…' : 'Refresh'}
               </button>
@@ -1154,7 +1153,7 @@ export default function Page() {
                   setCreateError(null)
                   setIsCreateOpen(true)
                 }}
-                className="h-11 rounded-2xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(37,99,235,0.25)] transition hover:bg-blue-700 disabled:opacity-60"
+                className="h-11 rounded-xl bg-lime-300 px-5 text-sm font-black text-slate-950 shadow-[0_0_36px_rgba(132,204,22,0.22)] transition hover:bg-lime-200 disabled:opacity-60"
                 disabled={!isConnected}
               >
                 Create Task
@@ -1163,68 +1162,68 @@ export default function Page() {
           </div>
 
           <div className="relative mt-4 grid grid-cols-3 gap-3">
-            <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">
+            <div className="rounded-xl border border-cyan-300/20 bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">
                 Balance (cUSD)
               </div>
-              <div className="mt-1 text-xl font-bold text-slate-950">
+              <div className="mt-1 text-xl font-black text-slate-50">
                 {isFetchingBalance ? '...' : formatCompactAmount(cusdBalance, 2)}
               </div>
             </div>
-            <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">
+            <div className="rounded-xl border border-lime-300/20 bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">
                 Active tasks
               </div>
-              <div className="mt-1 text-xl font-bold text-slate-950">{activeTasksCount}</div>
+              <div className="mt-1 text-xl font-black text-slate-50">{activeTasksCount}</div>
             </div>
-            <div className="rounded-3xl border border-white/70 bg-white/70 px-4 py-3 shadow-sm backdrop-blur">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700/70">
+            <div className="rounded-xl border border-amber-300/20 bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-200">
                 Pending payouts
               </div>
-              <div className="mt-1 text-xl font-bold text-slate-950">{pendingPayoutsCount}</div>
+              <div className="mt-1 text-xl font-black text-slate-50">{pendingPayoutsCount}</div>
             </div>
           </div>
 
-          <div className="relative mt-3 rounded-2xl border border-blue-100/80 bg-white/60 px-4 py-3 text-sm text-slate-600 backdrop-blur">
+          <div className="relative mt-3 rounded-xl border border-cyan-300/20 bg-slate-950/45 px-4 py-3 text-sm text-slate-400 backdrop-blur">
             Public task fee:{' '}
-            <span className="font-semibold text-slate-950">
+            <span className="font-black text-slate-50">
               {formatEther(publicTaskCreationFee)} CELO
             </span>
           </div>
         </section>
 
-        <section className="rounded-[1.75rem] border border-blue-200/70 bg-white/80 px-5 py-5 shadow-sm backdrop-blur-sm">
+        <section className="game-panel rounded-[1.25rem] px-5 py-5">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-slate-950">Recent Activity</div>
-              <div className="mt-1 text-xs text-slate-500">Saved on this device only.</div>
+              <div className="text-sm font-black text-slate-50">Recent Activity</div>
+              <div className="mt-1 text-xs text-slate-400">Saved on this device only.</div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={clearActivityLog}
                 disabled={activity.length === 0}
-                className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-[11px] font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
+                className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-[11px] font-bold text-cyan-100 transition hover:bg-cyan-300/16 disabled:opacity-60"
               >
                 Clear
               </button>
-              <div className="text-xs font-semibold text-blue-700">{activityItems.length}/5</div>
+              <div className="text-xs font-bold text-lime-200">{activityItems.length}/5</div>
             </div>
           </div>
 
           <div className="mt-4 grid gap-2">
             {activityItems.length === 0 && (
-              <div className="rounded-2xl border border-blue-200/60 bg-blue-50/40 px-4 py-3 text-xs text-slate-600">
+              <div className="rounded-xl border border-cyan-300/20 bg-slate-900/65 px-4 py-3 text-xs text-slate-400">
                 No activity yet. Accept, complete, or claim a task to see it here.
               </div>
             )}
             {activityItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-start justify-between gap-3 rounded-2xl border border-blue-200/60 bg-white/70 px-4 py-3"
+                className="flex items-start justify-between gap-3 rounded-xl border border-cyan-300/20 bg-slate-900/65 px-4 py-3"
               >
-                <div className="text-sm font-semibold text-slate-950">{formatActivityLine(item)}</div>
-                <div className="shrink-0 text-xs text-slate-500">
+                <div className="text-sm font-semibold text-slate-100">{formatActivityLine(item)}</div>
+                <div className="shrink-0 text-xs text-slate-400">
                   {activityDateFormatter.format(new Date(item.createdAt))}
                 </div>
               </div>
@@ -1234,7 +1233,7 @@ export default function Page() {
 
         <section id="tasks-list" className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-950">Task List</h2>
+            <h2 className="text-lg font-black text-slate-50">Task List</h2>
           </div>
           <div className="grid gap-4">
             {isFetchingTasks && (
@@ -1245,7 +1244,7 @@ export default function Page() {
               </>
             )}
             {!isFetchingTasks && visibleTasks.length === 0 && (
-              <div className="rounded-[1.75rem] border border-blue-200/70 bg-white/80 px-4 py-5 text-sm text-slate-500 shadow-sm">
+              <div className="game-panel rounded-[1.25rem] px-4 py-5 text-sm text-slate-400">
                 No active vault tasks right now. Claimed items now appear in the Rewards tab.
               </div>
             )}
@@ -1307,7 +1306,7 @@ export default function Page() {
 
       {isCreateOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/45 px-4 pb-4 pt-10 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 px-4 pb-4 pt-10 backdrop-blur-sm sm:items-center"
           onClick={() => {
             if (!pendingAction) {
               setIsCreateOpen(false)
@@ -1315,25 +1314,25 @@ export default function Page() {
           }}
         >
           <div
-            className="w-full max-w-md rounded-[2rem] border border-blue-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.98))] p-5 shadow-[0_30px_90px_rgba(15,23,42,0.28)]"
+            className="game-panel-strong w-full max-w-md rounded-[1.5rem] p-5"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold text-slate-950">Create a task</div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="text-sm font-black text-slate-50">Create a task</div>
+                <div className="mt-1 text-xs text-slate-400">
                   Create a public visit or reading task directly in the vault.
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700">
+                <div className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-100">
                   Onchain
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
                   disabled={Boolean(pendingAction)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-200 bg-white text-lg text-slate-500 transition hover:bg-blue-50 disabled:opacity-60"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-cyan-300/20 bg-slate-900/80 text-lg text-slate-300 transition hover:bg-cyan-300/10 disabled:opacity-60"
                   aria-label="Close create task modal"
                 >
                   ×
@@ -1351,7 +1350,7 @@ export default function Page() {
                   }))
                 }
                 placeholder="Task title"
-                className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+                className="h-11 rounded-xl border border-cyan-300/20 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-lime-300/50"
               />
               <textarea
                 value={newTask.description}
@@ -1363,7 +1362,7 @@ export default function Page() {
                 }
                 placeholder="Describe what the user must do"
                 rows={3}
-                className="rounded-2xl border border-blue-200 bg-slate-50/80 px-3 py-2 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+                className="rounded-xl border border-cyan-300/20 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-lime-300/50"
               />
               <input
                 value={newTask.visitUrl}
@@ -1374,7 +1373,7 @@ export default function Page() {
                   }))
                 }
                 placeholder="https://example.com/task"
-                className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+                className="h-11 rounded-xl border border-cyan-300/20 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-lime-300/50"
               />
               <input
                 value={newTask.deadline}
@@ -1385,7 +1384,7 @@ export default function Page() {
                   }))
                 }
                 type="date"
-                className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+                className="h-11 rounded-xl border border-cyan-300/20 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-lime-300/50"
               />
               <div className="grid grid-cols-[1fr_112px] gap-3">
                 <select
@@ -1396,7 +1395,7 @@ export default function Page() {
                       taskType: event.target.value as TaskTypeOption,
                     }))
                   }
-                  className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none focus:border-blue-400"
+                  className="h-11 rounded-xl border border-cyan-300/20 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none focus:border-lime-300/50"
                 >
                   <option value="visit">Visit task</option>
                   <option value="reading">Reading task</option>
@@ -1411,7 +1410,7 @@ export default function Page() {
                   }
                   inputMode="decimal"
                   placeholder="5"
-                  className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+                  className="h-11 rounded-xl border border-cyan-300/20 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-lime-300/50"
                 />
               </div>
               <input
@@ -1424,7 +1423,7 @@ export default function Page() {
                 }
                 inputMode="decimal"
                 placeholder="cUSD reward per user"
-                className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+                className="h-11 rounded-xl border border-cyan-300/20 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-lime-300/50"
               />
               <input
                 value={newTask.maxClaims}
@@ -1436,11 +1435,11 @@ export default function Page() {
                 }
                 inputMode="numeric"
                 placeholder="How many users can claim"
-                className="h-11 rounded-2xl border border-blue-200 bg-slate-50/80 px-3 text-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-400"
+                className="h-11 rounded-xl border border-cyan-300/20 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-lime-300/50"
               />
-              <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs text-slate-600">
+              <div className="rounded-xl border border-lime-300/20 bg-lime-300/10 px-3 py-2 text-xs text-slate-300">
                 The vault escrows cUSD at creation. Total escrow:{' '}
-                <span className="font-semibold text-slate-950">
+                <span className="font-black text-lime-100">
                   {Number.isFinite(Number(newTask.rewardTokenAmount)) && Number.isFinite(Number(newTask.maxClaims))
                     ? `${(Number(newTask.rewardTokenAmount) * Number(newTask.maxClaims)).toLocaleString(undefined, {
                         maximumFractionDigits: 6,
@@ -1449,9 +1448,9 @@ export default function Page() {
                 </span>
                 .
               </div>
-              <div className="rounded-2xl border border-blue-100/80 bg-white/70 px-3 py-2 text-xs text-slate-600">
+              <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">
                 Est. gas fee:{' '}
-                <span className="font-semibold text-slate-950">
+                <span className="font-black text-cyan-100">
                   {createGasFeeEstimate ? `${createGasFeeEstimate} CELO` : '—'}
                 </span>
               </div>
@@ -1461,7 +1460,7 @@ export default function Page() {
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
                   disabled={Boolean(pendingAction)}
-                  className="h-11 rounded-2xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-60"
+                  className="h-11 rounded-xl border border-cyan-300/25 bg-slate-900/80 px-4 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/10 disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -1469,7 +1468,7 @@ export default function Page() {
                   type="button"
                   onClick={handleCreateTask}
                   disabled={Boolean(pendingAction)}
-                  className="h-11 rounded-2xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
+                  className="h-11 rounded-xl bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200 disabled:opacity-60"
                 >
                   {pendingAction?.kind === 'create' ? 'Creating...' : 'Save task'}
                 </button>

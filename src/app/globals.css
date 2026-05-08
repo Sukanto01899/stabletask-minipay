@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  background-color: #eff6ff;
-  color: #0f172a;
-  color-scheme: light;
+  background-color: #050816;
+  color: #e5f0ff;
+  color-scheme: dark;
   font-family: var(--font-sans), system-ui, sans-serif;
   font-synthesis: none;
   font-weight: 400;
@@ -17,38 +17,38 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
-  --background: oklch(0.98 0.015 245);
-  --foreground: oklch(0.24 0.045 255);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.045 255);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.045 255);
-  --primary: oklch(0.58 0.2 255);
-  --primary-foreground: oklch(0.99 0.01 250);
-  --secondary: oklch(0.93 0.045 240);
-  --secondary-foreground: oklch(0.3 0.06 250);
-  --muted: oklch(0.95 0.025 240);
-  --muted-foreground: oklch(0.5 0.06 250);
-  --accent: oklch(0.92 0.06 225);
-  --accent-foreground: oklch(0.3 0.08 245);
+  --background: oklch(0.145 0.05 270);
+  --foreground: oklch(0.94 0.025 240);
+  --card: oklch(0.22 0.045 265);
+  --card-foreground: oklch(0.95 0.025 240);
+  --popover: oklch(0.19 0.05 265);
+  --popover-foreground: oklch(0.95 0.025 240);
+  --primary: oklch(0.78 0.18 155);
+  --primary-foreground: oklch(0.12 0.04 260);
+  --secondary: oklch(0.29 0.06 255);
+  --secondary-foreground: oklch(0.91 0.03 235);
+  --muted: oklch(0.25 0.04 260);
+  --muted-foreground: oklch(0.72 0.04 245);
+  --accent: oklch(0.72 0.19 75);
+  --accent-foreground: oklch(0.14 0.04 260);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.03 240);
-  --input: oklch(0.88 0.03 240);
-  --ring: oklch(0.7 0.15 250);
-  --chart-1: oklch(0.78 0.18 245);
-  --chart-2: oklch(0.72 0.19 225);
-  --chart-3: oklch(0.68 0.15 205);
-  --chart-4: oklch(0.62 0.14 265);
-  --chart-5: oklch(0.54 0.11 285);
+  --border: oklch(0.42 0.08 255 / 62%);
+  --input: oklch(0.29 0.055 260);
+  --ring: oklch(0.78 0.18 155);
+  --chart-1: oklch(0.78 0.18 155);
+  --chart-2: oklch(0.76 0.19 75);
+  --chart-3: oklch(0.7 0.19 25);
+  --chart-4: oklch(0.66 0.16 205);
+  --chart-5: oklch(0.68 0.17 315);
   --radius: 0.625rem;
-  --sidebar: oklch(0.98 0.015 245);
-  --sidebar-foreground: oklch(0.24 0.045 255);
-  --sidebar-primary: oklch(0.58 0.2 255);
-  --sidebar-primary-foreground: oklch(0.99 0.01 250);
-  --sidebar-accent: oklch(0.93 0.045 240);
-  --sidebar-accent-foreground: oklch(0.3 0.06 250);
-  --sidebar-border: oklch(0.88 0.03 240);
-  --sidebar-ring: oklch(0.7 0.15 250);
+  --sidebar: oklch(0.18 0.05 265);
+  --sidebar-foreground: oklch(0.94 0.025 240);
+  --sidebar-primary: oklch(0.78 0.18 155);
+  --sidebar-primary-foreground: oklch(0.12 0.04 260);
+  --sidebar-accent: oklch(0.28 0.06 255);
+  --sidebar-accent-foreground: oklch(0.94 0.025 240);
+  --sidebar-border: oklch(0.42 0.08 255 / 62%);
+  --sidebar-ring: oklch(0.78 0.18 155);
 }
 
 @theme inline {
@@ -135,9 +135,10 @@
   body {
     @apply bg-background text-foreground;
     background-image:
-      radial-gradient(circle at top left, rgba(59, 130, 246, 0.22), transparent 32%),
-      radial-gradient(circle at top right, rgba(14, 165, 233, 0.18), transparent 28%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 246, 255, 0.98) 55%, rgba(224, 242, 254, 0.95) 100%);
+      linear-gradient(rgba(20, 184, 166, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(251, 191, 36, 0.06) 1px, transparent 1px),
+      linear-gradient(180deg, #050816 0%, #111827 52%, #07111f 100%);
+    background-size: 28px 28px, 28px 28px, auto;
     min-height: 100vh;
   }
   html {
@@ -161,6 +162,15 @@
   }
 }
 
+@keyframes game-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
 @layer utilities {
   .animate-tap-orbit {
     animation: tap-orbit 900ms linear infinite;
@@ -169,6 +179,18 @@
   .animate-tap-pulse {
     animation: tap-pulse 1200ms ease-in-out infinite;
   }
+
+  .game-panel {
+    @apply border border-cyan-400/25 bg-slate-950/72 shadow-[0_18px_70px_rgba(0,0,0,0.38)] backdrop-blur-md;
+  }
+
+  .game-panel-strong {
+    @apply border border-lime-300/35 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.96))] shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_22px_80px_rgba(0,0,0,0.48)];
+  }
+
+  .game-chip {
+    @apply border border-amber-300/30 bg-amber-300/10 text-amber-100;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -176,4 +198,42 @@
   .animate-tap-pulse {
     animation: none;
   }
+}
+
+/* Darken legacy light utility classes still used by older screens. */
+.bg-white,
+.bg-white\/70,
+.bg-white\/75,
+.bg-white\/80,
+.bg-white\/85,
+.bg-white\/90,
+.bg-slate-50,
+.bg-slate-50\/80,
+.bg-blue-50,
+.bg-blue-50\/40,
+.bg-blue-50\/70 {
+  background-color: rgb(15 23 42 / 0.78) !important;
+}
+
+.text-slate-950,
+.text-slate-900 {
+  color: rgb(248 250 252) !important;
+}
+
+.text-slate-700,
+.text-slate-600,
+.text-slate-500 {
+  color: rgb(148 163 184) !important;
+}
+
+.border-slate-200,
+.border-slate-200\/70,
+.border-blue-200,
+.border-blue-200\/60,
+.border-blue-200\/70,
+.border-blue-200\/80,
+.border-blue-100,
+.border-blue-100\/80,
+.border-white\/70 {
+  border-color: rgb(34 211 238 / 0.22) !important;
 }

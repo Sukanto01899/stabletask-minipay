@@ -30,29 +30,12 @@ type PendingAction = {
   taskId?: bigint
 }
 
-type ActivityKind = 'accepted' | 'done' | 'claimed'
-
-type ActivityItem = {
-  id: string
-  kind: ActivityKind
-  taskId?: string
-  title?: string
-  createdAt: number
-}
-
 function formatCompactAmount(raw: string | null | undefined, maxFractionDigits = 2) {
   if (!raw) return '—'
   const numeric = Number(raw)
   if (!Number.isFinite(numeric)) return raw
   return numeric.toLocaleString(undefined, { maximumFractionDigits: maxFractionDigits })
 }
-
-const activityDateFormatter = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-})
 
 function formatDeadlineLabel(deadline: string | undefined) {
   if (!deadline) return 'No deadline'
@@ -195,7 +178,6 @@ export default function Page() {
   const [isFetchingBalance, setIsFetchingBalance] = useState(false)
   const [acceptedTasks, setAcceptedTasks] = useState<Record<string, true>>({})
   const [pinnedTasks, setPinnedTasks] = useState<Record<string, true>>({})
-  const [activity, setActivity] = useState<ActivityItem[]>([])
   const [taskNotes, setTaskNotes] = useState<Record<string, string>>({})
   const [taskViewPrefs, setTaskViewPrefs] = useState<TaskViewPreferences>({
     hideCompleted: false,
@@ -233,11 +215,6 @@ export default function Page() {
   const pinnedStorageKey = useMemo(() => {
     const normalizedAddress = address ? address.toLowerCase() : 'guest'
     return `stabletask:pinned:${normalizedAddress}`
-  }, [address])
-
-  const activityStorageKey = useMemo(() => {
-    const normalizedAddress = address ? address.toLowerCase() : 'guest'
-    return `stabletask:activity:${normalizedAddress}`
   }, [address])
 
   const notesStorageKey = useMemo(() => {
@@ -302,30 +279,6 @@ export default function Page() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     try {
-      const stored = window.localStorage.getItem(activityStorageKey)
-      if (!stored) {
-        setActivity([])
-        return
-      }
-      const parsed = JSON.parse(stored) as ActivityItem[]
-      setActivity(Array.isArray(parsed) ? parsed : [])
-    } catch {
-      setActivity([])
-    }
-  }, [activityStorageKey])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    try {
-      window.localStorage.setItem(activityStorageKey, JSON.stringify(activity))
-    } catch {
-      // ignore persistence failures
-    }
-  }, [activity, activityStorageKey])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    try {
       const stored = window.localStorage.getItem(notesStorageKey)
       if (!stored) {
         setTaskNotes({})
@@ -360,19 +313,6 @@ export default function Page() {
       // ignore persistence failures
     }
   }, [taskViewPrefs, taskViewPrefsKey])
-
-  const pushActivity = useCallback((item: Omit<ActivityItem, 'id' | 'createdAt'>) => {
-    const id =
-      typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(16).slice(2)}`
-    const entry: ActivityItem = {
-      id,
-      createdAt: Date.now(),
-      ...item,
-    }
-    setActivity((prev) => [entry, ...prev].slice(0, 20))
-  }, [])
 
   const isTaskAccepted = useCallback(
     (taskId: bigint) => Boolean(acceptedTasks[taskId.toString()]),
@@ -506,24 +446,15 @@ export default function Page() {
   useEffect(() => {
     if (!pendingAction) return
     if (isConfirmed) {
-      const taskTitle = pendingAction.taskId
-        ? tasks.find((task) => task.id === pendingAction.taskId)?.title
-        : undefined
       if (pendingAction.kind === 'visit') {
         toast({ title: 'Done', description: 'Task marked as done.', variant: 'success' })
-        if (pendingAction.taskId) {
-          pushActivity({ kind: 'done', taskId: pendingAction.taskId.toString(), title: taskTitle })
-        }
       } else if (pendingAction.kind === 'claim') {
         toast({ title: 'Claimed', description: 'Rewards claimed successfully.', variant: 'success' })
-        if (pendingAction.taskId) {
-          pushActivity({ kind: 'claimed', taskId: pendingAction.taskId.toString(), title: taskTitle })
-        }
       }
       setPendingAction(null)
       void loadTasks()
     }
-  }, [isConfirmed, loadTasks, pendingAction, pushActivity, tasks, toast])
+  }, [isConfirmed, loadTasks, pendingAction, toast])
 
   useEffect(() => {
     if (!pendingAction) return
@@ -845,28 +776,6 @@ export default function Page() {
     taskViewPrefs.sortByDeadline,
   ])
 
-  const activityItems = useMemo(() => activity.slice(0, 5), [activity])
-  const formatActivityLine = useCallback((item: ActivityItem) => {
-    const label = item.kind === 'accepted' ? 'Accepted' : item.kind === 'done' ? 'Done' : 'Claimed'
-    const title = item.title ?? (item.taskId ? `Task #${item.taskId}` : 'Task')
-    return `${label}: ${title}`
-  }, [])
-
-  const clearActivityLog = useCallback(() => {
-    const snapshot = activity
-    if (snapshot.length === 0) return
-    setActivity([])
-    toast({
-      title: 'Cleared',
-      description: 'Recent activity cleared (device only).',
-      variant: 'default',
-      action: {
-        label: 'Undo',
-        onClick: () => setActivity(snapshot),
-      },
-    })
-  }, [activity, toast])
-
   const handleNoteChange = useCallback((taskId: bigint, note: string) => {
     setTaskNotes((prev) => {
       const key = taskId.toString()
@@ -1166,45 +1075,6 @@ export default function Page() {
             <span className="font-black text-slate-50">
               {formatEther(publicTaskCreationFee)} CELO
             </span>
-          </div>
-        </section>
-
-        <section className="game-panel rounded-[1.25rem] px-5 py-5">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <div className="text-sm font-black text-slate-50">Recent Activity</div>
-              <div className="mt-1 text-xs text-slate-400">Saved on this device only.</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={clearActivityLog}
-                disabled={activity.length === 0}
-                className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-[11px] font-bold text-cyan-100 transition hover:bg-cyan-300/16 disabled:opacity-60"
-              >
-                Clear
-              </button>
-              <div className="text-xs font-bold text-lime-200">{activityItems.length}/5</div>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-2">
-            {activityItems.length === 0 && (
-              <div className="rounded-xl border border-cyan-300/20 bg-slate-900/65 px-4 py-3 text-xs text-slate-400">
-                No activity yet. Accept, complete, or claim a task to see it here.
-              </div>
-            )}
-            {activityItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-start justify-between gap-3 rounded-xl border border-cyan-300/20 bg-slate-900/65 px-4 py-3"
-              >
-                <div className="text-sm font-semibold text-slate-100">{formatActivityLine(item)}</div>
-                <div className="shrink-0 text-xs text-slate-400">
-                  {activityDateFormatter.format(new Date(item.createdAt))}
-                </div>
-              </div>
-            ))}
           </div>
         </section>
 

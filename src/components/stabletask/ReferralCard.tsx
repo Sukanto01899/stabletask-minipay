@@ -61,15 +61,15 @@ export function ReferralCard(props: { code: string; reward: string }) {
   }
 
   return (
-    <Card className="rounded-[1.75rem] border border-blue-200/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(219,234,254,0.96))] py-5 shadow-[0_18px_50px_rgba(59,130,246,0.12)]">
+    <Card className="game-panel-strong rounded-[1.25rem] py-5">
       <CardHeader>
-        <div className="text-lg font-semibold text-slate-950">Referral Boost</div>
-        <div className="text-sm text-slate-600">
+        <div className="text-lg font-black text-slate-50">Referral Boost</div>
+        <div className="text-sm text-slate-400">
           Share your code and earn {props.reward} cUSD per friend.
         </div>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-3">
-        <div className="min-w-0 rounded-2xl border border-dashed border-blue-300 bg-white/80 px-4 py-3 text-sm font-semibold text-blue-800">
+        <div className="min-w-0 rounded-xl border border-dashed border-lime-300/35 bg-slate-900/75 px-4 py-3 text-sm font-black text-lime-100">
           <div className="truncate">{codeAvailable ? props.code : 'No referral code yet'}</div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -78,7 +78,7 @@ export function ReferralCard(props: { code: string; reward: string }) {
             variant="secondary"
             disabled={!codeAvailable}
             onClick={handleShare}
-            className="h-11 rounded-2xl px-4 text-sm font-semibold"
+            className="h-11 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 text-sm font-bold text-cyan-100 hover:bg-cyan-300/16"
           >
             Share
           </Button>
@@ -87,7 +87,7 @@ export function ReferralCard(props: { code: string; reward: string }) {
             variant="secondary"
             disabled={!codeAvailable}
             onClick={handleCopy}
-            className="h-11 rounded-2xl px-4 text-sm font-semibold"
+            className="h-11 rounded-xl border border-lime-300/25 bg-lime-300/12 px-4 text-sm font-bold text-lime-100 hover:bg-lime-300/18"
           >
             {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
           </Button>

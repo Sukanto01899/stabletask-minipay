@@ -1017,12 +1017,6 @@ export default function Page() {
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-lime-200">
                 Stable Task
               </div>
-              <h2 className="mt-2 font-heading text-2xl font-black tracking-tight text-slate-50">
-                Your dashboard
-              </h2>
-              <p className="mt-2 max-w-[16rem] text-sm text-slate-400">
-                Balance, active tasks, and payouts at a glance.
-              </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button
@@ -1070,12 +1064,6 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="relative mt-3 rounded-xl border border-cyan-300/20 bg-slate-950/45 px-4 py-3 text-sm text-slate-400 backdrop-blur">
-            Public task fee:{' '}
-            <span className="font-black text-slate-50">
-              {formatEther(publicTaskCreationFee)} CELO
-            </span>
-          </div>
         </section>
 
         <section id="tasks-list" className="space-y-3">

@@ -363,44 +363,6 @@ export default function ProfilePage() {
       </section>
 
       <section className="game-panel rounded-[1.25rem] p-5">
-        <div className="text-sm font-black text-slate-50">Recent Claims</div>
-        <div className="mt-1 text-xs text-slate-400">Latest reward payouts tied to your account.</div>
-
-        <div className="mt-4 grid gap-3">
-          {isLoading && (
-            <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4 text-sm text-slate-400">
-              Loading profile activity...
-            </div>
-          )}
-          {!isLoading && claims.length === 0 && (
-            <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4 text-sm text-slate-400">
-              No claims recorded yet for this wallet.
-            </div>
-          )}
-          {claims.slice(0, 4).map((claim) => (
-            <div
-              key={claim._id}
-              className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-bold text-slate-50">{claim.task?.title || 'Reward claim'}</div>
-                  <div className="mt-1 text-xs text-slate-400">{formatDate(claim.claimedAt)}</div>
-                </div>
-                <div className="rounded-full border border-lime-300/35 bg-lime-300/12 px-3 py-1 text-xs font-bold text-lime-100">
-                  {claim.amountCusd.toFixed(2)} cUSD
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-400">
-                <span>Status: {claim.status}</span>
-                <span>{claim.txHash ? `${claim.txHash.slice(0, 8)}...${claim.txHash.slice(-6)}` : 'No tx hash'}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="game-panel rounded-[1.25rem] p-5">
         <div className="text-sm font-black text-slate-50">Referral</div>
         <div className="mt-1 text-xs text-slate-400">Keep your referral code with the rest of your account tools.</div>
 

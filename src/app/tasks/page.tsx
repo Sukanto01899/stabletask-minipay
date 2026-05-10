@@ -217,7 +217,10 @@ export default function Page() {
     maxClaims: '1',
     taskType: 'visit' as TaskTypeOption,
   })
-  const activeOnchainTasks = useMemo(() => tasks.filter((task) => task.active), [tasks])
+  const activeOnchainTasks = useMemo(
+    () => tasks.filter((task) => task.active && (task.maxClaims === BigInt(0) || task.claimCount < task.maxClaims)),
+    [tasks],
+  )
   const baseVisibleTasks = activeOnchainTasks.filter((task) => !task.hasClaimedPoint)
   const activeTasksCount = activeOnchainTasks.filter((task) => !task.isCompleted && !task.hasClaimedPoint).length
   const pendingPayoutsCount = activeOnchainTasks.filter((task) => task.isCompleted && !task.hasClaimedPoint).length
@@ -877,13 +880,6 @@ export default function Page() {
     })
   }, [])
 
-  const scrollToSection = useCallback((id: 'tasks-dashboard' | 'tasks-list') => {
-    if (typeof document === 'undefined') return
-    const el = document.getElementById(id)
-    if (!el) return
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
-
   const handleCreateTask = async () => {
     const trimmedTitle = newTask.title.trim()
     const trimmedDescription = newTask.description.trim()
@@ -1102,25 +1098,6 @@ export default function Page() {
           </div>
         )}
 
-        <div className="sticky top-3 z-40">
-          <div className="flex items-center justify-between gap-2 rounded-[1.25rem] border border-cyan-300/20 bg-slate-950/78 p-2 shadow-sm backdrop-blur-sm">
-            <button
-              type="button"
-              onClick={() => scrollToSection('tasks-dashboard')}
-              className="h-9 flex-1 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/16"
-            >
-              Dashboard
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('tasks-list')}
-              className="h-9 flex-1 rounded-full border border-amber-300/25 bg-amber-300/10 px-3 text-sm font-bold text-amber-100 transition hover:bg-amber-300/16"
-            >
-              List
-            </button>
-          </div>
-        </div>
-
         <section
           id="tasks-dashboard"
           className="game-panel-strong relative overflow-hidden rounded-[1.5rem] px-5 py-5"
@@ -1262,9 +1239,13 @@ export default function Page() {
                   : task.hasClaimedPoint
                     ? 'success'
                     : 'idle'
+              const claimsLeft =
+                task.maxClaims === BigInt(0) ? null : task.maxClaims > task.claimCount ? task.maxClaims - task.claimCount : BigInt(0)
               const helperText = task.isCompleted
                 ? `Ready to claim ${task.rewardXp} XP and ${task.rewardTokenAmount} ${stableTaskConfig.rewardToken.symbol}.`
-                : 'Visit first to enable the reward claim.'
+                : claimsLeft === null
+                  ? 'Visit first to enable the reward claim.'
+                  : `Visit first to claim reward. ${claimsLeft.toString()} slots left.`
               const rewardLabel = `${task.rewardXp} XP + ${task.rewardTokenAmount} ${stableTaskConfig.rewardToken.symbol}`
 
               return (

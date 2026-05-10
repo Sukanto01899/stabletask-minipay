@@ -81,7 +81,7 @@ function getRiskTone(suspiciousClaimCount: number) {
 }
 
 export default function ProfilePage() {
-  const { address, isConnected, chainId } = useConnection()
+  const { address, isConnected } = useConnection()
   const [profile, setProfile] = useState<ProfilePayload | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
@@ -302,38 +302,6 @@ export default function ProfilePage() {
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-rose-200">Last Reward</div>
           <div className="mt-2 text-lg font-black text-slate-50">{lastClaimDisplay}</div>
           <div className="mt-1 text-xs text-slate-400">Most recent claim activity</div>
-        </div>
-      </section>
-
-      <section className="game-panel rounded-[1.25rem] p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-black text-slate-50">Account Overview</div>
-            <div className="mt-1 text-xs text-slate-400">A cleaner view of your wallet reputation and app access.</div>
-          </div>
-          <div className="rounded-full border border-lime-300/30 bg-lime-300/12 px-3 py-1 text-xs font-bold text-lime-100">
-            {isConnected ? 'Active' : 'Offline'}
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-3">
-          <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Wallet Address</div>
-            <div className="mt-1 break-all text-sm font-semibold text-slate-50">{address ?? 'No wallet connected'}</div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Network</div>
-              <div className="mt-1 text-sm font-semibold text-slate-50">{chainId ? `Chain ID ${chainId}` : 'Unavailable'}</div>
-            </div>
-            <div className="rounded-xl border border-amber-300/20 bg-slate-900/70 px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-200">Risk Signals</div>
-              <div className="mt-1 text-sm font-semibold text-slate-50">{profile?.suspiciousClaimCount ?? 0} flags</div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-3 text-sm text-slate-300">
-            {riskTone.description}
-          </div>
         </div>
       </section>
 

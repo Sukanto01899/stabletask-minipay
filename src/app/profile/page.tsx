@@ -251,34 +251,16 @@ export default function ProfilePage() {
         </p>
       )}
 
-      <section className="game-panel-strong relative overflow-hidden rounded-[1.5rem] p-5">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-lime-300 via-cyan-300 to-amber-300" />
-        <div className="relative flex items-start gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-lime-300/30 bg-[linear-gradient(180deg,rgba(20,184,166,0.9),rgba(15,23,42,1))] text-xl font-black text-white shadow-[0_0_42px_rgba(20,184,166,0.2)]">
-            {address ? address.slice(2, 4).toUpperCase() : 'ST'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-lime-200">Player Profile</div>
-            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-50">
-              {isConnected ? 'StableTask member record' : 'Connect your wallet to unlock your profile'}
-            </h2>
-            <p className="mt-2 text-sm text-slate-400">
-              Wallet identity, reward history, referral activity, and account trust signals in one place.
-            </p>
+      <section className="relative flex items-center justify-between gap-3 rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4 backdrop-blur">
+        <div className="min-w-0">
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Primary Wallet</div>
+          <div className="mt-1 truncate text-lg font-black text-slate-50">{formatWallet(address)}</div>
+          <div className="mt-1 text-xs text-slate-400">
+            {profile?.referralCode ? `Referral code: ${profile.referralCode}` : 'Referral code will appear after account setup.'}
           </div>
         </div>
-
-        <div className="relative mt-5 flex items-center justify-between gap-3 rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4 backdrop-blur">
-          <div className="min-w-0">
-            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Primary Wallet</div>
-            <div className="mt-1 truncate text-lg font-black text-slate-50">{formatWallet(address)}</div>
-            <div className="mt-1 text-xs text-slate-400">
-              {profile?.referralCode ? `Referral code: ${profile.referralCode}` : 'Referral code will appear after account setup.'}
-            </div>
-          </div>
-          <div className={`rounded-full border px-3 py-1 text-xs font-bold ${riskTone.className}`}>
-            {riskTone.label}
-          </div>
+        <div className={`rounded-full border px-3 py-1 text-xs font-bold ${riskTone.className}`}>
+          {riskTone.label}
         </div>
       </section>
 

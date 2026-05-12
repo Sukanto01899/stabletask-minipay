@@ -273,15 +273,6 @@ export default function TapPage() {
 
       <section className="game-panel relative overflow-hidden rounded-[1.5rem] px-5 py-5">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-lime-300 via-cyan-300 to-amber-300" />
-        <div className="relative">
-          <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-200">Tap Arena</div>
-          <h2 className="mt-2 font-heading text-2xl font-black tracking-tight text-slate-50">
-            Every tap is an onchain transaction and earns XP.
-          </h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Each successful tap mints {tapXpReward} XP. Daily limit: {dailyTapLimit} taps.
-          </p>
-        </div>
         <div className="relative mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-lime-300/20 bg-slate-900/72 px-4 py-3 backdrop-blur">
             <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">Earned XP</div>

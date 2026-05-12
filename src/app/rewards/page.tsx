@@ -121,10 +121,7 @@ export default function RewardsPage() {
           ))}
         </div>
 
-        <div className="game-panel rounded-xl p-4 text-sm text-slate-400">
-          Status: {isConnected ? 'Connected' : 'Not connected'} · Wallet:{' '}
-          {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'No wallet'} · Chain: {chainId ?? '—'}
-        </div>
+
       </section>
     </main>
   )

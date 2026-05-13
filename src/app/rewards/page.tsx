@@ -19,7 +19,7 @@ function safeParseUnits(value: string | undefined, decimals: number) {
 }
 
 export default function RewardsPage() {
-  const { address, isConnected, chainId } = useConnection()
+  useConnection()
   const { tasks, xpBalance, isFetchingTasks, pageError } = useVaultTasks()
 
   const claimedTasks = useMemo(() => tasks.filter((task) => task.hasClaimedPoint), [tasks])
@@ -52,14 +52,6 @@ export default function RewardsPage() {
       )}
 
       <section className="space-y-4">
-        <div className="game-panel-strong rounded-[1.5rem] p-5">
-          <div className="text-[11px] font-black uppercase tracking-[0.24em] text-lime-200">Loot</div>
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-50">Claimed rewards live here.</h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Totals across your claims, plus a quick view of your most recent rewards.
-          </p>
-        </div>
-
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-lime-300/20 bg-slate-950/72 p-4">
             <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">

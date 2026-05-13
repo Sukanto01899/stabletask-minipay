@@ -56,7 +56,7 @@ const HEADER_COPY: Record<string, { title: string; subtitle: string }> = {
     subtitle: "Hit the chain and stack XP one tap at a time.",
   },
   "/rewards": {
-    title: "Loot",
+    title: "Rewards",
     subtitle: "Track claimed rewards and player progress.",
   },
   "/profile": {

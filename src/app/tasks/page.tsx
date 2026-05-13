@@ -949,13 +949,6 @@ export default function Page() {
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
     >
-      {isDev && (
-        <div className="fixed bottom-20 left-4 z-50 rounded-full border border-cyan-300/25 bg-slate-950/90 px-3 py-1 text-xs text-slate-200 shadow">
-          <span>connected: {isConnected ? 'yes' : 'no'}</span>
-          <span className="mx-2 text-muted-foreground">|</span>
-          <span>chainId: {chainId ?? '—'}</span>
-        </div>
-      )}
       <div className="mx-auto w-full max-w-md px-5 pt-2">
         <div
           className="overflow-hidden rounded-2xl"

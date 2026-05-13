@@ -56,30 +56,6 @@ function formatDate(value?: string | Date | null) {
   return dateFormatter.format(date)
 }
 
-function getRiskTone(suspiciousClaimCount: number) {
-  if (suspiciousClaimCount <= 0) {
-    return {
-      label: 'Trusted',
-      className: 'border-lime-300/35 bg-lime-300/12 text-lime-100',
-      description: 'No suspicious claim behavior has been recorded on this account.',
-    }
-  }
-
-  if (suspiciousClaimCount < 3) {
-    return {
-      label: 'Reviewing',
-      className: 'border-amber-300/35 bg-amber-300/12 text-amber-100',
-      description: 'Some claim activity has been flagged. Keep usage clean and consistent.',
-    }
-  }
-
-  return {
-    label: 'High Risk',
-    className: 'border-rose-300/35 bg-rose-500/15 text-rose-100',
-    description: 'This wallet has repeated suspicious claim signals and may require review.',
-  }
-}
-
 export default function ProfilePage() {
   const { address, isConnected } = useConnection()
   const [profile, setProfile] = useState<ProfilePayload | null>(null)
@@ -165,26 +141,6 @@ export default function ProfilePage() {
     }
   }, [toastPrefs])
 
-  const riskTone = useMemo(() => {
-    if (!isConnected) {
-      return {
-        label: 'Offline',
-        className: 'border-cyan-300/20 bg-slate-900/70 text-slate-300',
-        description: 'Connect your wallet to load trust signals and recent reward activity.',
-      }
-    }
-
-    if (isLoading && !profile) {
-      return {
-        label: 'Loading',
-        className: 'border-cyan-300/20 bg-slate-900/70 text-slate-300',
-        description: 'Loading trust signals and recent reward activity.',
-      }
-    }
-
-    return getRiskTone(profile?.suspiciousClaimCount ?? 0)
-  }, [isConnected, isLoading, profile])
-
   const claims = profile?.claims ?? []
   const referrals = profile?.referrals ?? []
 
@@ -258,9 +214,6 @@ export default function ProfilePage() {
           <div className="mt-1 text-xs text-slate-400">
             {profile?.referralCode ? `Referral code: ${profile.referralCode}` : 'Referral code will appear after account setup.'}
           </div>
-        </div>
-        <div className={`rounded-full border px-3 py-1 text-xs font-bold ${riskTone.className}`}>
-          {riskTone.label}
         </div>
       </section>
 
@@ -349,7 +302,13 @@ export default function ProfilePage() {
         <div className="mt-1 text-xs text-slate-400">Keep your referral code with the rest of your account tools.</div>
 
         <div className="mt-4">
-          <ReferralCard code={profile?.referralCode ?? ''} reward="0.75" />
+          {profile?.referralCode ? (
+            <ReferralCard code={profile.referralCode} reward="0.75" />
+          ) : (
+            <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4 text-sm text-slate-400">
+              Referral code will appear after account setup.
+            </div>
+          )}
         </div>
       </section>
 

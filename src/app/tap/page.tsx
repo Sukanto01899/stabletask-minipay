@@ -8,6 +8,7 @@ import {
   usePublicClient,
   useWaitForTransactionReceipt,
   useWriteContract,
+  type Connector,
 } from 'wagmi'
 import { erc20Abi, formatUnits } from 'viem'
 
@@ -15,6 +16,33 @@ import { stableTaskConfig } from '@/lib/app-config'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+const WALLET_META: Record<string, { border: string; bg: string; icon: string; desc: string }> = {
+  metaMask: {
+    border: 'border-orange-400/35',
+    bg: 'hover:bg-orange-400/10',
+    icon: 'bg-orange-500/20 text-orange-300',
+    desc: 'Connect with MetaMask',
+  },
+  rabby: {
+    border: 'border-purple-400/35',
+    bg: 'hover:bg-purple-400/10',
+    icon: 'bg-purple-500/20 text-purple-300',
+    desc: 'Connect with Rabby Wallet',
+  },
+  injected: {
+    border: 'border-cyan-400/35',
+    bg: 'hover:bg-cyan-400/10',
+    icon: 'bg-cyan-500/20 text-cyan-300',
+    desc: 'MiniPay or browser wallet',
+  },
+}
+
+const WALLET_LETTER: Record<string, string> = {
+  metaMask: 'M',
+  rabby: 'R',
+  injected: 'W',
+}
 
 export default function TapPage() {
   const { address, isConnected, chainId } = useConnection()
@@ -28,7 +56,6 @@ export default function TapPage() {
       query: { enabled: Boolean(tapHash) },
     })
 
-  const isDev = process.env.NODE_ENV === 'development'
   const [xpBalance, setXpBalance] = useState('0')
   const [tapsToday, setTapsToday] = useState(0)
   const [remainingTaps, setRemainingTaps] = useState(1000)
@@ -36,6 +63,8 @@ export default function TapPage() {
   const [tapXpReward, setTapXpReward] = useState('1')
   const [isLoadingTapData, setIsLoadingTapData] = useState(false)
   const [tapError, setTapError] = useState<string | null>(null)
+  const [connectError, setConnectError] = useState<string | null>(null)
+  const [connectingId, setConnectingId] = useState<string | null>(null)
   const [bubbles, setBubbles] = useState<{ id: number; x: number; y: number }[]>([])
   const bubbleIdRef = useRef(0)
 
@@ -116,11 +145,21 @@ export default function TapPage() {
 
   const isBusy = isWritePending || isConfirming
 
-  const handleConnect = () => {
-    const [primaryConnector] = connectors
-    if (primaryConnector) {
-      connect({ connector: primaryConnector })
-    }
+  const handleConnectWith = (connector: Connector) => {
+    setConnectingId(connector.id)
+    setConnectError(null)
+    connect(
+      { connector },
+      {
+        onError(err) {
+          setConnectError(err.message ?? 'Failed to connect. Make sure the wallet is installed.')
+          setConnectingId(null)
+        },
+        onSuccess() {
+          setConnectingId(null)
+        },
+      },
+    )
   }
 
   const handleTap = async () => {
@@ -181,21 +220,53 @@ export default function TapPage() {
           <div className="mb-4 text-sm font-black uppercase tracking-[0.22em] text-lime-200">Tap To Earn</div>
 
           {!isConnected ? (
-            <div className="flex flex-col items-center gap-6">
-              {/* Dimmed tap circle placeholder */}
-              <div className="relative flex h-52 w-52 items-center justify-center rounded-full border-2 border-lime-300/20 bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.15)_0%,rgba(20,184,166,0.18)_36%,rgba(8,16,42,0.85)_100%)] opacity-50 blur-[1px]">
-                <span className="text-3xl font-black text-white/30">+1 XP</span>
+            <div className="flex w-full flex-col items-center gap-5">
+              {/* Dimmed placeholder circle */}
+              <div className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-lime-300/15 bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.08)_0%,rgba(20,184,166,0.12)_36%,rgba(8,16,42,0.9)_100%)] opacity-40 blur-[1.5px]">
+                <span className="text-2xl font-black text-white/20">+1 XP</span>
               </div>
-              <div className="flex flex-col items-center gap-3">
-                <p className="text-sm text-slate-400">Connect your wallet to start tapping</p>
-                <button
-                  type="button"
-                  onClick={handleConnect}
-                  disabled={isConnecting}
-                  className="rounded-2xl border border-lime-300/40 bg-lime-400/10 px-8 py-3 text-sm font-black uppercase tracking-[0.18em] text-lime-200 shadow-[0_0_24px_rgba(132,204,22,0.15)] transition hover:bg-lime-400/20 hover:shadow-[0_0_32px_rgba(132,204,22,0.25)] active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isConnecting ? 'Connecting…' : 'Connect Wallet'}
-                </button>
+
+              <div className="w-full">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                  Choose wallet to connect
+                </p>
+
+                {connectError && (
+                  <p className="mb-3 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                    {connectError}
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-2">
+                  {connectors.map(connector => {
+                    const meta = WALLET_META[connector.id] ?? WALLET_META.injected
+                    const letter = WALLET_LETTER[connector.id] ?? 'W'
+                    const isLoading = isConnecting && connectingId === connector.id
+
+                    return (
+                      <button
+                        key={connector.uid}
+                        type="button"
+                        onClick={() => handleConnectWith(connector)}
+                        disabled={isConnecting}
+                        className={`flex items-center gap-4 rounded-2xl border bg-slate-900/60 px-4 py-3 text-left backdrop-blur transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${meta.border} ${meta.bg}`}
+                      >
+                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-black ${meta.icon}`}>
+                          {letter}
+                        </span>
+                        <span className="flex flex-col">
+                          <span className="text-sm font-black text-slate-100">{connector.name}</span>
+                          <span className="text-xs text-slate-500">
+                            {isLoading ? 'Connecting…' : meta.desc}
+                          </span>
+                        </span>
+                        {isLoading && (
+                          <span className="ml-auto animate-pulse text-slate-400">●</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           ) : (

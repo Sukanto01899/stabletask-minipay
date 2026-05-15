@@ -146,6 +146,20 @@
   }
 }
 
+@keyframes float-up {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-90px) scale(1.35);
+    opacity: 0;
+  }
+}
+
 @keyframes tap-orbit {
   to {
     transform: rotate(360deg);
@@ -172,6 +186,10 @@
 }
 
 @layer utilities {
+  .animate-float-up {
+    animation: float-up 850ms ease-out forwards;
+  }
+
   .animate-tap-orbit {
     animation: tap-orbit 900ms linear infinite;
   }

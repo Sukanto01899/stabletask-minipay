@@ -241,8 +241,14 @@ export default function TapPage() {
             onClick={handleTap}
             disabled={isBusy || isLoadingTapData || remainingTaps <= 0}
             aria-busy={isBusy}
-            className="relative flex h-52 w-52 items-center justify-center rounded-full border border-lime-300/35 bg-[radial-gradient(circle_at_35%_25%,rgba(236,253,245,0.95),rgba(20,184,166,0.96)_34%,rgba(15,23,42,1)_72%)] px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_0_0_8px_rgba(132,204,22,0.05),0_28px_90px_rgba(20,184,166,0.3)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+            className="relative flex h-52 w-52 items-center justify-center rounded-full border-2 border-lime-300/50 bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.95)_0%,rgba(204,251,241,0.88)_8%,rgba(20,184,166,0.97)_36%,rgba(8,16,42,1)_68%,rgba(4,8,24,1)_100%)] px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_0_0_12px_rgba(132,204,22,0.08),0_32px_100px_rgba(20,184,166,0.42),inset_0_-14px_32px_rgba(0,0,0,0.65),inset_0_7px_18px_rgba(255,255,255,0.22)] transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
           >
+            {/* 3D specular highlights */}
+            <span aria-hidden className="pointer-events-none absolute inset-0 rounded-full overflow-hidden">
+              <span className="absolute left-[16%] top-[8%] h-16 w-20 rounded-full bg-white opacity-20 blur-[12px]" />
+              <span className="absolute left-[25%] top-[13%] h-7 w-8 rounded-full bg-white opacity-55 blur-[5px]" />
+              <span className="absolute bottom-[7%] left-1/2 h-7 w-36 -translate-x-1/2 rounded-full bg-black opacity-40 blur-xl" />
+            </span>
             {isBusy && (
               <span aria-hidden className="pointer-events-none absolute inset-0">
                 <span className="absolute inset-3 rounded-full border border-lime-200/25 bg-white/5 backdrop-blur-sm" />

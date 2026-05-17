@@ -13,9 +13,7 @@ type ProfileClaim = {
   status: 'pending' | 'confirmed' | 'failed'
   txHash?: string | null
   claimedAt?: string | Date | null
-  task?: {
-    title?: string
-  } | null
+  task?: { title?: string } | null
 }
 
 type ProfileReferral = {
@@ -49,11 +47,77 @@ function formatWallet(address?: string) {
 
 function formatDate(value?: string | Date | null) {
   if (!value) return 'No activity yet'
-
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return 'No activity yet'
-
   return dateFormatter.format(date)
+}
+
+function ToggleRow(props: {
+  label: string
+  description: string
+  value: boolean
+  onToggle: () => void
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-3">
+      <div>
+        <div className="text-sm font-bold text-slate-50">{props.label}</div>
+        <div className="mt-1 text-xs text-slate-400">{props.description}</div>
+      </div>
+      <button
+        type="button"
+        onClick={props.onToggle}
+        aria-pressed={props.value}
+        className={`relative h-7 w-12 shrink-0 rounded-full border transition ${
+          props.value ? 'border-lime-300/40 bg-lime-300/20' : 'border-cyan-300/20 bg-slate-950'
+        }`}
+      >
+        <span
+          className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full shadow-sm transition ${
+            props.value ? 'left-6 bg-lime-300' : 'left-1 bg-slate-500'
+          }`}
+        />
+      </button>
+    </div>
+  )
+}
+
+function StatCard(props: {
+  label: string
+  value: string
+  description: string
+  labelColor: string
+  borderColor: string
+  loading: boolean
+}) {
+  return (
+    <div className={`rounded-xl border ${props.borderColor} bg-slate-950/72 p-4 shadow-sm`}>
+      <div className={`text-[11px] font-black uppercase tracking-[0.2em] ${props.labelColor}`}>
+        {props.label}
+      </div>
+      {props.loading ? (
+        <div className="skeleton-shimmer mt-2 h-8 w-28 rounded-lg" />
+      ) : (
+        <div className="mt-2 text-2xl font-black text-slate-50">{props.value}</div>
+      )}
+      <div className="mt-1 text-xs text-slate-400">{props.description}</div>
+    </div>
+  )
+}
+
+function ReferralRowSkeleton() {
+  return (
+    <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          <div className="skeleton-shimmer h-4 w-32 rounded-full" />
+          <div className="skeleton-shimmer h-3 w-20 rounded-full" />
+        </div>
+        <div className="skeleton-shimmer h-6 w-16 rounded-full" />
+      </div>
+      <div className="skeleton-shimmer mt-3 h-4 w-40 rounded-full" />
+    </div>
+  )
 }
 
 export default function ProfilePage() {
@@ -90,11 +154,7 @@ export default function ProfilePage() {
         const response = await fetch(`/api/profile?walletAddress=${encodeURIComponent(address)}`, {
           signal: controller.signal,
         })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile.')
-        }
-
+        if (!response.ok) throw new Error('Failed to fetch profile.')
         const data = (await response.json()) as { profile: ProfilePayload }
         setProfile(data.profile)
       } catch (error) {
@@ -102,24 +162,19 @@ export default function ProfilePage() {
         console.error('Failed to load profile:', error)
         setPageError('Failed to load your profile details.')
       } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false)
-        }
+        if (!controller.signal.aborted) setIsLoading(false)
       }
     }
 
     void loadProfile()
-
     return () => controller.abort()
   }, [address, isConnected])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
     setTaskViewPrefs(readTaskViewPreferences(window.localStorage.getItem(taskViewPrefsKey)))
   }, [taskViewPrefsKey])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
     try {
       window.localStorage.setItem(taskViewPrefsKey, JSON.stringify(taskViewPrefs))
     } catch {
@@ -128,12 +183,10 @@ export default function ProfilePage() {
   }, [taskViewPrefs, taskViewPrefsKey])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
     setToastPrefs(readToastPreferences(window.localStorage.getItem(TOAST_PREFERENCES_STORAGE_KEY)))
   }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
     try {
       window.localStorage.setItem(TOAST_PREFERENCES_STORAGE_KEY, JSON.stringify(toastPrefs))
     } catch {
@@ -141,16 +194,11 @@ export default function ProfilePage() {
     }
   }, [toastPrefs])
 
-  const claims = profile?.claims ?? []
   const referrals = profile?.referrals ?? []
-
-  const completedReferrals = useMemo(() => {
-    return referrals.reduce((count, referral) => (referral.status === 'completed' ? count + 1 : count), 0)
-  }, [referrals])
-
-  const claimCountDisplay = profile ? String(claims.length) : isLoading ? '—' : '0'
-  const totalClaimedDisplay = profile ? `${profile.totalClaimedCusd.toFixed(2)} cUSD` : isLoading ? '—' : '0.00 cUSD'
-  const lastClaimDisplay = profile ? formatDate(profile.lastClaimAt) : isLoading ? '—' : formatDate(null)
+  const completedReferrals = useMemo(
+    () => referrals.reduce((n, r) => (r.status === 'completed' ? n + 1 : n), 0),
+    [referrals],
+  )
 
   if (!isConnected) {
     return (
@@ -169,36 +217,6 @@ export default function ProfilePage() {
     )
   }
 
-  const toggleRow = (props: {
-    label: string
-    description: string
-    value: boolean
-    onToggle: () => void
-  }) => {
-    return (
-      <div className="flex items-start justify-between gap-4 rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-3">
-        <div>
-          <div className="text-sm font-bold text-slate-50">{props.label}</div>
-          <div className="mt-1 text-xs text-slate-400">{props.description}</div>
-        </div>
-        <button
-          type="button"
-          onClick={props.onToggle}
-          aria-pressed={props.value}
-          className={`relative h-7 w-12 shrink-0 rounded-full border transition ${
-            props.value ? 'border-lime-300/40 bg-lime-300/20' : 'border-cyan-300/20 bg-slate-950'
-          }`}
-        >
-          <span
-            className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full shadow-sm transition ${
-              props.value ? 'left-6 bg-lime-300' : 'left-1 bg-slate-500'
-            }`}
-          />
-        </button>
-      </div>
-    )
-  }
-
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-4">
       {pageError && (
@@ -212,95 +230,95 @@ export default function ProfilePage() {
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Primary Wallet</div>
           <div className="mt-1 truncate text-lg font-black text-slate-50">{formatWallet(address)}</div>
           <div className="mt-1 text-xs text-slate-400">
-            {profile?.referralCode ? `Referral code: ${profile.referralCode}` : 'Referral code will appear after account setup.'}
+            {profile?.referralCode
+              ? `Referral code: ${profile.referralCode}`
+              : 'Referral code will appear after account setup.'}
           </div>
         </div>
       </section>
 
       <section className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl border border-lime-300/20 bg-slate-950/72 p-4 shadow-sm">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">Total Claimed</div>
-          <div className="mt-2 text-2xl font-black text-slate-50">{totalClaimedDisplay}</div>
-          <div className="mt-1 text-xs text-slate-400">Lifetime reward withdrawals</div>
-        </div>
-        <div className="rounded-xl border border-cyan-300/20 bg-slate-950/72 p-4 shadow-sm">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Claims Logged</div>
-          <div className="mt-2 text-2xl font-black text-slate-50">{claimCountDisplay}</div>
-          <div className="mt-1 text-xs text-slate-400">Recorded reward claims</div>
-        </div>
-        <div className="rounded-xl border border-amber-300/20 bg-slate-950/72 p-4 shadow-sm">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-200">Referrals Won</div>
-          <div className="mt-2 text-2xl font-black text-slate-50">{profile ? completedReferrals : isLoading ? '—' : '0'}</div>
-          <div className="mt-1 text-xs text-slate-400">Completed referral conversions</div>
-        </div>
-        <div className="rounded-xl border border-rose-300/20 bg-slate-950/72 p-4 shadow-sm">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-rose-200">Last Reward</div>
-          <div className="mt-2 text-lg font-black text-slate-50">{lastClaimDisplay}</div>
-          <div className="mt-1 text-xs text-slate-400">Most recent claim activity</div>
-        </div>
+        <StatCard
+          label="Total Claimed"
+          value={profile ? `${profile.totalClaimedCusd.toFixed(2)} cUSD` : '0.00 cUSD'}
+          description="Lifetime reward withdrawals"
+          labelColor="text-lime-200"
+          borderColor="border-lime-300/20"
+          loading={isLoading}
+        />
+        <StatCard
+          label="Claims Logged"
+          value={profile ? String(profile.claims.length) : '0'}
+          description="Recorded reward claims"
+          labelColor="text-cyan-200"
+          borderColor="border-cyan-300/20"
+          loading={isLoading}
+        />
+        <StatCard
+          label="Referrals Won"
+          value={profile ? String(completedReferrals) : '0'}
+          description="Completed referral conversions"
+          labelColor="text-amber-200"
+          borderColor="border-amber-300/20"
+          loading={isLoading}
+        />
+        <StatCard
+          label="Last Reward"
+          value={profile ? formatDate(profile.lastClaimAt) : formatDate(null)}
+          description="Most recent claim activity"
+          labelColor="text-rose-200"
+          borderColor="border-rose-300/20"
+          loading={isLoading}
+        />
       </section>
 
       <section className="game-panel rounded-[1.25rem] p-5">
         <div className="text-sm font-black text-slate-50">Task Preferences</div>
         <div className="mt-1 text-xs text-slate-400">These filters apply on the Tasks screen for this wallet.</div>
-
         <div className="mt-4 grid gap-3">
-          {toggleRow({
-            label: 'Hide completed tasks',
-            description: 'Hide tasks you already marked done.',
-            value: taskViewPrefs.hideCompleted,
-            onToggle: () =>
-              setTaskViewPrefs((prev) => ({ ...prev, hideCompleted: !prev.hideCompleted })),
-          })}
-          {toggleRow({
-            label: 'Show only accepted',
-            description: 'Only show tasks you accepted (or started).',
-            value: taskViewPrefs.showOnlyAccepted,
-            onToggle: () =>
-              setTaskViewPrefs((prev) => ({
-                ...prev,
-                showOnlyAccepted: !prev.showOnlyAccepted,
-              })),
-          })}
-          {toggleRow({
-            label: 'Sort by deadline',
-            description: 'Pinned first, then soonest deadlines.',
-            value: taskViewPrefs.sortByDeadline,
-            onToggle: () =>
-              setTaskViewPrefs((prev) => ({
-                ...prev,
-                sortByDeadline: !prev.sortByDeadline,
-              })),
-          })}
+          <ToggleRow
+            label="Hide completed tasks"
+            description="Hide tasks you already marked done."
+            value={taskViewPrefs.hideCompleted}
+            onToggle={() => setTaskViewPrefs((prev) => ({ ...prev, hideCompleted: !prev.hideCompleted }))}
+          />
+          <ToggleRow
+            label="Show only accepted"
+            description="Only show tasks you accepted (or started)."
+            value={taskViewPrefs.showOnlyAccepted}
+            onToggle={() => setTaskViewPrefs((prev) => ({ ...prev, showOnlyAccepted: !prev.showOnlyAccepted }))}
+          />
+          <ToggleRow
+            label="Sort by deadline"
+            description="Pinned first, then soonest deadlines."
+            value={taskViewPrefs.sortByDeadline}
+            onToggle={() => setTaskViewPrefs((prev) => ({ ...prev, sortByDeadline: !prev.sortByDeadline }))}
+          />
         </div>
       </section>
 
       <section className="game-panel rounded-[1.25rem] p-5">
         <div className="text-sm font-black text-slate-50">Notifications</div>
         <div className="mt-1 text-xs text-slate-400">Control which toast messages you want to see.</div>
-
         <div className="mt-4 grid gap-3">
-          {toggleRow({
-            label: 'Toast on success',
-            description: 'Show toasts for successful actions (copy/accept/done/claim).',
-            value: toastPrefs.toastOnSuccess,
-            onToggle: () =>
-              setToastPrefs((prev) => ({ ...prev, toastOnSuccess: !prev.toastOnSuccess })),
-          })}
-          {toggleRow({
-            label: 'Toast on failure',
-            description: 'Show toasts when something fails (tx rejected, copy failed, etc).',
-            value: toastPrefs.toastOnFailure,
-            onToggle: () =>
-              setToastPrefs((prev) => ({ ...prev, toastOnFailure: !prev.toastOnFailure })),
-          })}
+          <ToggleRow
+            label="Toast on success"
+            description="Show toasts for successful actions (copy/accept/done/claim)."
+            value={toastPrefs.toastOnSuccess}
+            onToggle={() => setToastPrefs((prev) => ({ ...prev, toastOnSuccess: !prev.toastOnSuccess }))}
+          />
+          <ToggleRow
+            label="Toast on failure"
+            description="Show toasts when something fails (tx rejected, copy failed, etc)."
+            value={toastPrefs.toastOnFailure}
+            onToggle={() => setToastPrefs((prev) => ({ ...prev, toastOnFailure: !prev.toastOnFailure }))}
+          />
         </div>
       </section>
 
       <section className="game-panel rounded-[1.25rem] p-5">
         <div className="text-sm font-black text-slate-50">Referral</div>
         <div className="mt-1 text-xs text-slate-400">Keep your referral code with the rest of your account tools.</div>
-
         <div className="mt-4">
           {profile?.referralCode ? (
             <ReferralCard code={profile.referralCode} reward="0.75" />
@@ -315,33 +333,39 @@ export default function ProfilePage() {
       <section className="game-panel rounded-[1.25rem] p-5">
         <div className="text-sm font-black text-slate-50">Referral Activity</div>
         <div className="mt-1 text-xs text-slate-400">Monitor code performance and referred-account outcomes.</div>
-
         <div className="mt-4 grid gap-3">
+          {isLoading && (
+            <>
+              <ReferralRowSkeleton />
+              <ReferralRowSkeleton />
+            </>
+          )}
           {!isLoading && referrals.length === 0 && (
             <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4 text-sm text-slate-400">
               No referral activity has been recorded yet.
             </div>
           )}
-          {referrals.slice(0, 4).map((referral) => (
-            <div key={referral._id} className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-bold text-slate-50">{referral.code}</div>
-                  <div className="mt-1 text-xs text-slate-400">{formatDate(referral.createdAt)}</div>
+          {!isLoading &&
+            referrals.slice(0, 4).map((referral) => (
+              <div key={referral._id} className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-bold text-slate-50">{referral.code}</div>
+                    <div className="mt-1 text-xs text-slate-400">{formatDate(referral.createdAt)}</div>
+                  </div>
+                  <div
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                      referral.status === 'completed'
+                        ? 'border-lime-300/35 bg-lime-300/12 text-lime-100'
+                        : 'border-amber-300/35 bg-amber-300/12 text-amber-100'
+                    }`}
+                  >
+                    {referral.status}
+                  </div>
                 </div>
-                <div
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                    referral.status === 'completed'
-                      ? 'border-lime-300/35 bg-lime-300/12 text-lime-100'
-                      : 'border-amber-300/35 bg-amber-300/12 text-amber-100'
-                  }`}
-                >
-                  {referral.status}
-                </div>
+                <div className="mt-3 text-sm text-slate-300">Reward value: {referral.rewardCusd.toFixed(2)} cUSD</div>
               </div>
-              <div className="mt-3 text-sm text-slate-300">Reward value: {referral.rewardCusd.toFixed(2)} cUSD</div>
-            </div>
-          ))}
+            ))}
         </div>
       </section>
     </main>

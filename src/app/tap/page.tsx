@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   useConnect,
   useConnectors,
@@ -44,6 +44,29 @@ const WALLET_LETTER: Record<string, string> = {
   injected: 'W',
 }
 
+function StatCard(props: {
+  label: string
+  labelColor: string
+  borderColor: string
+  value: string
+  sub: string
+  loading: boolean
+}) {
+  return (
+    <div className={`rounded-xl border ${props.borderColor} bg-slate-900/72 px-4 py-3 backdrop-blur`}>
+      <div className={`text-[11px] font-black uppercase tracking-[0.2em] ${props.labelColor}`}>
+        {props.label}
+      </div>
+      {props.loading ? (
+        <div className="skeleton-shimmer mt-1 h-7 w-20 rounded-lg" />
+      ) : (
+        <div className="mt-1 text-xl font-black text-slate-50">{props.value}</div>
+      )}
+      <div className="text-xs text-slate-400">{props.sub}</div>
+    </div>
+  )
+}
+
 export default function TapPage() {
   const { address, isConnected, chainId } = useConnection()
   const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
@@ -68,10 +91,8 @@ export default function TapPage() {
   const [bubbles, setBubbles] = useState<{ id: number; x: number; y: number }[]>([])
   const bubbleIdRef = useRef(0)
 
-  async function loadTapData() {
-    if (!publicClient || stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) {
-      return
-    }
+  const loadTapData = useCallback(async () => {
+    if (!publicClient || stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) return
 
     setIsLoadingTapData(true)
     try {
@@ -125,17 +146,15 @@ export default function TapPage() {
     } finally {
       setIsLoadingTapData(false)
     }
-  }
-
-  useEffect(() => {
-    void loadTapData()
   }, [publicClient, address])
 
   useEffect(() => {
-    if (isConfirmed) {
-      void loadTapData()
-    }
-  }, [isConfirmed])
+    void loadTapData()
+  }, [loadTapData])
+
+  useEffect(() => {
+    if (isConfirmed) void loadTapData()
+  }, [isConfirmed, loadTapData])
 
   useEffect(() => {
     if (writeError || isReceiptError) {
@@ -144,6 +163,7 @@ export default function TapPage() {
   }, [writeError, isReceiptError])
 
   const isBusy = isWritePending || isConfirming
+  const isLimitReached = remainingTaps <= 0
 
   const handleConnectWith = (connector: Connector) => {
     setConnectingId(connector.id)
@@ -175,7 +195,7 @@ export default function TapPage() {
       setTapError(`Switch to ${stableTaskConfig.chain.name} to tap.`)
       return
     }
-    if (remainingTaps <= 0) {
+    if (isLimitReached) {
       setTapError('Daily tap limit reached. Come back tomorrow.')
       return
     }
@@ -196,7 +216,7 @@ export default function TapPage() {
   }
 
   const handleTapClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!isBusy && !isLoadingTapData && remainingTaps > 0) {
+    if (!isBusy && !isLoadingTapData && !isLimitReached) {
       const rect = e.currentTarget.getBoundingClientRect()
       const x = e.clientX - rect.left + (Math.random() - 0.5) * 40
       const y = e.clientY - rect.top
@@ -206,6 +226,8 @@ export default function TapPage() {
     }
     await handleTap()
   }
+
+  const tapProgress = dailyTapLimit === 0 ? 0 : (tapsToday / dailyTapLimit) * 100
 
   return (
     <main className="mx-auto flex min-h-[calc(100dvh-12rem)] w-full max-w-md flex-col gap-6 px-5 pb-28 pt-4">
@@ -261,7 +283,7 @@ export default function TapPage() {
                           </span>
                         </span>
                         {isLoading && (
-                          <span className="ml-auto animate-pulse text-slate-400">●</span>
+                          <span className="ml-auto h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-slate-600 border-t-slate-300" />
                         )}
                       </button>
                     )
@@ -274,16 +296,22 @@ export default function TapPage() {
               <button
                 type="button"
                 onClick={handleTapClick}
-                disabled={isBusy || isLoadingTapData || remainingTaps <= 0}
+                disabled={isBusy || isLoadingTapData || isLimitReached}
                 aria-busy={isBusy}
-                className="relative flex h-52 w-52 items-center justify-center rounded-full border-2 border-lime-300/50 bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.95)_0%,rgba(204,251,241,0.88)_8%,rgba(20,184,166,0.97)_36%,rgba(8,16,42,1)_68%,rgba(4,8,24,1)_100%)] px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_0_0_12px_rgba(132,204,22,0.08),0_32px_100px_rgba(20,184,166,0.42),inset_0_-14px_32px_rgba(0,0,0,0.65),inset_0_7px_18px_rgba(255,255,255,0.22)] transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
+                className={`relative flex h-52 w-52 items-center justify-center rounded-full border-2 px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_0_0_12px_rgba(132,204,22,0.08),0_32px_100px_rgba(20,184,166,0.42),inset_0_-14px_32px_rgba(0,0,0,0.65),inset_0_7px_18px_rgba(255,255,255,0.22)] transition active:scale-[0.97] disabled:cursor-not-allowed ${
+                  isLimitReached
+                    ? 'border-slate-600/50 bg-[radial-gradient(circle_at_30%_22%,rgba(30,41,59,0.9)_0%,rgba(15,23,42,0.98)_60%)] opacity-50'
+                    : 'border-lime-300/50 bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.95)_0%,rgba(204,251,241,0.88)_8%,rgba(20,184,166,0.97)_36%,rgba(8,16,42,1)_68%,rgba(4,8,24,1)_100%)]'
+                }`}
               >
-                {/* 3D specular highlights */}
-                <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
-                  <span className="absolute left-[16%] top-[8%] h-16 w-20 rounded-full bg-white opacity-20 blur-md" />
-                  <span className="absolute left-[25%] top-[13%] h-7 w-8 rounded-full bg-white opacity-55 blur-[5px]" />
-                  <span className="absolute bottom-[7%] left-1/2 h-7 w-36 -translate-x-1/2 rounded-full bg-black opacity-40 blur-xl" />
-                </span>
+                {/* 3D specular highlights — hidden when limit reached */}
+                {!isLimitReached && (
+                  <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
+                    <span className="absolute left-[16%] top-[8%] h-16 w-20 rounded-full bg-white opacity-20 blur-md" />
+                    <span className="absolute left-[25%] top-[13%] h-7 w-8 rounded-full bg-white opacity-55 blur-[5px]" />
+                    <span className="absolute bottom-[7%] left-1/2 h-7 w-36 -translate-x-1/2 rounded-full bg-black opacity-40 blur-xl" />
+                  </span>
+                )}
                 {/* +1 floating bubbles */}
                 {bubbles.map(b => (
                   <span
@@ -305,21 +333,43 @@ export default function TapPage() {
                   </span>
                 )}
                 <span className={isBusy ? 'opacity-90' : undefined}>
-                  {remainingTaps <= 0 ? 'Limit Reached' : '+1 XP'}
+                  {isLimitReached ? 'Limit Reached' : '+1 XP'}
                 </span>
               </button>
-              <div className="mt-5 text-sm text-slate-300">
-                Tap sends one transaction and mints <span className="font-black text-lime-100">{tapXpReward} XP</span>.
-              </div>
-              <div className="mt-2 h-3 w-full overflow-hidden rounded-full border border-cyan-300/20 bg-slate-900">
-                <div
-                  className="h-full rounded-full bg-linear-to-r from-lime-300 via-cyan-300 to-amber-300 transition-[width]"
-                  style={{ width: `${dailyTapLimit === 0 ? 0 : (tapsToday / dailyTapLimit) * 100}%` }}
-                />
-              </div>
-              <div className="mt-2 text-xs text-slate-400">
-                {tapsToday} / {dailyTapLimit} taps used today
-              </div>
+
+              {isLimitReached ? (
+                <p className="mt-4 text-xs text-slate-500">
+                  Daily limit reached — resets at midnight UTC.
+                </p>
+              ) : (
+                <div className="mt-5 text-sm text-slate-300">
+                  Tap sends one transaction and mints{' '}
+                  <span className="font-black text-lime-100">{tapXpReward} XP</span>.
+                </div>
+              )}
+
+              {isLoadingTapData ? (
+                <div className="skeleton-shimmer mt-2 h-3 w-full rounded-full" />
+              ) : (
+                <div className="mt-2 h-3 w-full overflow-hidden rounded-full border border-cyan-300/20 bg-slate-900">
+                  <div
+                    className={`h-full rounded-full transition-[width] ${
+                      isLimitReached
+                        ? 'bg-slate-600'
+                        : 'bg-linear-to-r from-lime-300 via-cyan-300 to-amber-300'
+                    }`}
+                    style={{ width: `${tapProgress}%` }}
+                  />
+                </div>
+              )}
+
+              {isLoadingTapData ? (
+                <div className="skeleton-shimmer mt-2 h-3 w-36 rounded-full" />
+              ) : (
+                <div className="mt-2 text-xs text-slate-400">
+                  {tapsToday} / {dailyTapLimit} taps used today
+                </div>
+              )}
             </>
           )}
         </div>
@@ -328,16 +378,22 @@ export default function TapPage() {
       <section className="game-panel relative overflow-hidden rounded-[1.5rem] px-5 py-5">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-lime-300 via-cyan-300 to-amber-300" />
         <div className="relative mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-lime-300/20 bg-slate-900/72 px-4 py-3 backdrop-blur">
-            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">Earned XP</div>
-            <div className="mt-1 text-xl font-black text-slate-50">{xpBalance}</div>
-            <div className="text-xs text-slate-400">vault token balance</div>
-          </div>
-          <div className="rounded-xl border border-amber-300/20 bg-slate-900/72 px-4 py-3 backdrop-blur">
-            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-200">Today&apos;s Taps</div>
-            <div className="mt-1 text-xl font-black text-slate-50">{tapsToday}</div>
-            <div className="text-xs text-slate-400">{remainingTaps} remaining today</div>
-          </div>
+          <StatCard
+            label="Earned XP"
+            labelColor="text-lime-200"
+            borderColor="border-lime-300/20"
+            value={xpBalance}
+            sub="vault token balance"
+            loading={isLoadingTapData}
+          />
+          <StatCard
+            label="Today's Taps"
+            labelColor="text-amber-200"
+            borderColor="border-amber-300/20"
+            value={String(tapsToday)}
+            sub={`${remainingTaps} remaining today`}
+            loading={isLoadingTapData}
+          />
         </div>
       </section>
     </main>

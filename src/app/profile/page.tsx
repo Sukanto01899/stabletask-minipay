@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useConnection } from 'wagmi'
 
 import { ReferralCard } from '@/components/stabletask/ReferralCard'
+import { copyText } from '@/lib/clipboard'
 import { readTaskViewPreferences, taskViewPreferencesStorageKey, type TaskViewPreferences } from '@/lib/task-view-preferences'
 import { readToastPreferences, TOAST_PREFERENCES_STORAGE_KEY, type ToastPreferences } from '@/lib/toast-preferences'
 
@@ -89,7 +90,9 @@ function StatCard(props: {
   labelColor: string
   borderColor: string
   loading: boolean
+  valueSize?: 'lg' | '2xl'
 }) {
+  const sizeClass = props.valueSize === 'lg' ? 'text-lg' : 'text-2xl'
   return (
     <div className={`rounded-xl border ${props.borderColor} bg-slate-950/72 p-4 shadow-sm`}>
       <div className={`text-[11px] font-black uppercase tracking-[0.2em] ${props.labelColor}`}>
@@ -98,7 +101,7 @@ function StatCard(props: {
       {props.loading ? (
         <div className="skeleton-shimmer mt-2 h-8 w-28 rounded-lg" />
       ) : (
-        <div className="mt-2 text-2xl font-black text-slate-50">{props.value}</div>
+        <div className={`mt-2 ${sizeClass} font-black text-slate-50`}>{props.value}</div>
       )}
       <div className="mt-1 text-xs text-slate-400">{props.description}</div>
     </div>
@@ -120,11 +123,18 @@ function ReferralRowSkeleton() {
   )
 }
 
+const CLAIM_STATUS_COLOR: Record<ProfileClaim['status'], string> = {
+  confirmed: 'text-lime-400',
+  pending: 'text-amber-400',
+  failed: 'text-rose-400',
+}
+
 export default function ProfilePage() {
   const { address, isConnected } = useConnection()
   const [profile, setProfile] = useState<ProfilePayload | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
+  const [addressCopied, setAddressCopied] = useState(false)
   const [taskViewPrefs, setTaskViewPrefs] = useState<TaskViewPreferences>({
     hideCompleted: false,
     showOnlyAccepted: false,
@@ -200,22 +210,35 @@ export default function ProfilePage() {
     [referrals],
   )
 
+  const handleCopyAddress = async () => {
+    if (!address) return
+    try {
+      await copyText(address)
+      setAddressCopied(true)
+      setTimeout(() => setAddressCopied(false), 1600)
+    } catch {
+      // ignore
+    }
+  }
+
   if (!isConnected) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-4">
-        <section className="game-panel-strong rounded-[1.5rem] p-5">
-          <div className="text-sm font-black text-slate-50">Connect to view your profile</div>
-          <div className="mt-1 text-xs text-slate-400">
-            Link a wallet to see claims, referrals, and account trust signals.
+        <section className="game-panel-strong flex flex-col items-center rounded-[1.5rem] p-8 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/8 text-2xl font-black text-cyan-400/50">
+            ?
           </div>
-          <div className="mt-4 rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Wallet Status</div>
-            <div className="mt-1 text-sm font-semibold text-slate-50">{formatWallet(address)}</div>
+          <div className="mt-4 text-base font-black text-slate-50">No wallet connected</div>
+          <div className="mt-2 max-w-[260px] text-sm text-slate-400">
+            Connect a wallet on the Tap page to see your claims, referrals, and account details.
           </div>
         </section>
       </main>
     )
   }
+
+  const monogram = address ? address.slice(2, 4).toUpperCase() : '??'
+  const isTrusted = profile !== null && profile.suspiciousClaimCount === 0
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-4">
@@ -225,18 +248,44 @@ export default function ProfilePage() {
         </p>
       )}
 
-      <section className="relative flex items-center justify-between gap-3 rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-4 backdrop-blur">
-        <div className="min-w-0">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Primary Wallet</div>
-          <div className="mt-1 truncate text-lg font-black text-slate-50">{formatWallet(address)}</div>
-          <div className="mt-1 text-xs text-slate-400">
-            {profile?.referralCode
-              ? `Referral code: ${profile.referralCode}`
-              : 'Referral code will appear after account setup.'}
+      {/* Wallet hero */}
+      <section className="relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-900/70 px-5 py-5 backdrop-blur">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-cyan-300/35 to-transparent" />
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10 text-xl font-black text-cyan-100">
+            {monogram}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Primary Wallet</div>
+              {isTrusted && (
+                <span className="rounded-full border border-lime-300/35 bg-lime-300/12 px-2 py-0.5 text-[10px] font-black text-lime-200">
+                  Trusted
+                </span>
+              )}
+            </div>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="truncate text-lg font-black text-slate-50">{formatWallet(address)}</span>
+              <button
+                type="button"
+                onClick={handleCopyAddress}
+                className="shrink-0 rounded-lg border border-cyan-300/20 bg-slate-950/60 px-2 py-0.5 text-[11px] font-semibold text-slate-400 transition hover:bg-cyan-300/10 hover:text-slate-200"
+              >
+                {addressCopied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+            {isLoading ? (
+              <div className="skeleton-shimmer mt-1.5 h-3 w-36 rounded-full" />
+            ) : (
+              <div className="mt-1 text-xs text-slate-400">
+                {profile?.referralCode ? `Code: ${profile.referralCode}` : 'No referral code yet'}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
+      {/* Stats grid */}
       <section className="grid grid-cols-2 gap-3">
         <StatCard
           label="Total Claimed"
@@ -269,8 +318,42 @@ export default function ProfilePage() {
           labelColor="text-rose-200"
           borderColor="border-rose-300/20"
           loading={isLoading}
+          valueSize="lg"
         />
       </section>
+
+      {/* Recent claims */}
+      {!isLoading && profile && profile.claims.length > 0 && (
+        <section className="game-panel rounded-[1.25rem] p-5">
+          <div className="text-sm font-black text-slate-50">Recent Claims</div>
+          <div className="mt-1 text-xs text-slate-400">Your latest reward claim activity.</div>
+          <div className="mt-4 grid gap-3">
+            {profile.claims.slice(0, 3).map((claim) => (
+              <div
+                key={claim._id}
+                className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-4 py-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-bold text-slate-50">
+                      {claim.task?.title ?? 'Task reward'}
+                    </div>
+                    <div className="mt-0.5 text-xs text-slate-400">{formatDate(claim.claimedAt)}</div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="text-sm font-black text-lime-100">
+                      +{claim.amountCusd.toFixed(2)} cUSD
+                    </div>
+                    <div className={`mt-0.5 text-[10px] font-semibold ${CLAIM_STATUS_COLOR[claim.status]}`}>
+                      {claim.status}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="game-panel rounded-[1.25rem] p-5">
         <div className="text-sm font-black text-slate-50">Task Preferences</div>
@@ -363,7 +446,9 @@ export default function ProfilePage() {
                     {referral.status}
                   </div>
                 </div>
-                <div className="mt-3 text-sm text-slate-300">Reward value: {referral.rewardCusd.toFixed(2)} cUSD</div>
+                <div className="mt-3 text-sm text-slate-300">
+                  Reward value: {referral.rewardCusd.toFixed(2)} cUSD
+                </div>
               </div>
             ))}
         </div>

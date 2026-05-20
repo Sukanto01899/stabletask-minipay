@@ -958,7 +958,7 @@ export default function Page() {
           }}
         >
           <div className="flex h-full items-end justify-center pb-2 text-xs font-semibold text-lime-200">
-            {isRefreshing ? 'Refreshingâ€¦' : pullReady ? 'Release to refresh' : 'Pull to refresh'}
+            {isRefreshing ? 'Refreshing…' : pullReady ? 'Release to refresh' : 'Pull to refresh'}
           </div>
         </div>
       </div>
@@ -982,21 +982,27 @@ export default function Page() {
         )}
 
         {isConnected && !isFetchingTasks && pendingPayoutsCount > 0 && (
-          <div className="game-panel flex items-center justify-between gap-3 rounded-[1.25rem] px-4 py-3">
-            <div>
-              <div className="text-sm font-black text-lime-100">
-                You have {pendingPayoutsCount} to claim
+          <div className="relative overflow-hidden rounded-[1.25rem] border border-amber-300/30 bg-amber-300/8 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3 shrink-0">
+                <span className="animate-tap-pulse absolute inline-flex h-full w-full rounded-full bg-amber-400/60" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-400" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-black text-amber-100">
+                  {pendingPayoutsCount} task{pendingPayoutsCount !== 1 ? 's' : ''} ready to claim
+                </div>
+                <div className="mt-0.5 text-xs text-slate-400">
+                  Complete your claims to earn XP and cUSD rewards.
+                </div>
               </div>
-              <div className="mt-0.5 text-xs text-slate-400">
-                Completed tasks are ready for reward claim.
-              </div>
+              <Link
+                href="/rewards"
+                className="shrink-0 rounded-full border border-amber-300/35 bg-amber-300/15 px-4 py-2 text-xs font-bold text-amber-100 transition hover:bg-amber-300/25"
+              >
+                Claim now
+              </Link>
             </div>
-            <Link
-              href="/rewards"
-              className="shrink-0 rounded-full border border-lime-300/35 bg-lime-300/15 px-4 py-2 text-xs font-bold text-lime-100 transition hover:bg-lime-300/22"
-            >
-              View
-            </Link>
           </div>
         )}
 
@@ -1005,20 +1011,30 @@ export default function Page() {
           className="game-panel-strong relative overflow-hidden rounded-[1.5rem] px-5 py-5"
         >
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-lime-300 via-cyan-300 to-amber-300" />
-          <div className="relative flex items-start justify-between gap-4">
-            <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-lime-200">
-                Stable Task
-              </div>
+          <div className="relative flex items-center justify-between gap-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-500">
+              Overview
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onClick={handleRefresh}
                 disabled={!isConnected || isFetchingTasks || isFetchingBalance}
-                className="h-11 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 text-sm font-bold text-cyan-100 transition hover:bg-cyan-300/16 disabled:opacity-60"
+                aria-label="Refresh tasks"
+                title="Refresh"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100 transition hover:bg-cyan-300/16 disabled:opacity-60"
               >
-                {isFetchingTasks || isFetchingBalance ? 'Refreshing…' : 'Refresh'}
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0V5.36l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z"
+                    clipRule="evenodd"
+                  />
+                </svg>
               </button>
               <button
                 type="button"
@@ -1026,10 +1042,10 @@ export default function Page() {
                   setCreateError(null)
                   setIsCreateOpen(true)
                 }}
-                className="h-11 rounded-xl bg-lime-300 px-5 text-sm font-black text-slate-950 shadow-[0_0_36px_rgba(132,204,22,0.22)] transition hover:bg-lime-200 disabled:opacity-60"
+                className="h-9 rounded-xl bg-lime-300 px-4 text-sm font-black text-slate-950 shadow-[0_0_36px_rgba(132,204,22,0.22)] transition hover:bg-lime-200 disabled:opacity-60"
                 disabled={!isConnected}
               >
-                Create Task
+                + Create
               </button>
             </div>
           </div>
@@ -1037,31 +1053,67 @@ export default function Page() {
           <div className="relative mt-4 grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-cyan-300/20 bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur">
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">
-                Balance (cUSD)
+                cUSD
               </div>
               <div className="mt-1 text-xl font-black text-slate-50">
-                {isFetchingBalance ? '...' : formatCompactAmount(cusdBalance, 2)}
+                {isFetchingBalance ? (
+                  <div className="skeleton-shimmer h-7 w-14 rounded-lg" />
+                ) : (
+                  formatCompactAmount(cusdBalance, 2)
+                )}
               </div>
+              <div className="text-xs text-slate-500">wallet balance</div>
             </div>
             <div className="rounded-xl border border-lime-300/20 bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur">
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">
-                Active tasks
+                Quests
               </div>
-              <div className="mt-1 text-xl font-black text-slate-50">{activeTasksCount}</div>
+              <div className="mt-1 text-xl font-black text-slate-50">
+                {isFetchingTasks ? (
+                  <div className="skeleton-shimmer h-7 w-8 rounded-lg" />
+                ) : (
+                  activeTasksCount
+                )}
+              </div>
+              <div className="text-xs text-slate-500">active now</div>
             </div>
-            <div className="rounded-xl border border-amber-300/20 bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur">
+            <div
+              className={`rounded-xl border bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur ${
+                pendingPayoutsCount > 0 ? 'border-amber-300/35' : 'border-amber-300/20'
+              }`}
+            >
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-200">
-                Pending payouts
+                Claimable
               </div>
-              <div className="mt-1 text-xl font-black text-slate-50">{pendingPayoutsCount}</div>
+              <div className="mt-1 flex items-center gap-1.5 text-xl font-black text-slate-50">
+                {isFetchingTasks ? (
+                  <div className="skeleton-shimmer h-7 w-8 rounded-lg" />
+                ) : (
+                  <>
+                    {pendingPayoutsCount > 0 && (
+                      <span className="animate-tap-pulse inline-block h-2 w-2 rounded-full bg-amber-400" />
+                    )}
+                    {pendingPayoutsCount}
+                  </>
+                )}
+              </div>
+              <div className="text-xs text-slate-500">ready to claim</div>
             </div>
           </div>
-
         </section>
 
         <section id="tasks-list" className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-black text-slate-50">Task List</h2>
+            <h2 className="text-lg font-black text-slate-50">
+              {isFetchingTasks
+                ? 'Quests'
+                : `Quests${visibleTasks.length > 0 ? ` (${visibleTasks.length})` : ''}`}
+            </h2>
+            {!isFetchingTasks && (taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted) && (
+              <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
+                Filtered
+              </span>
+            )}
           </div>
           <div className="grid gap-4">
             {isFetchingTasks && (
@@ -1072,8 +1124,26 @@ export default function Page() {
               </>
             )}
             {!isFetchingTasks && visibleTasks.length === 0 && (
-              <div className="game-panel rounded-[1.25rem] px-4 py-5 text-sm text-slate-400">
-                No active vault tasks right now. Claimed items now appear in the Rewards tab.
+              <div className="game-panel flex flex-col items-center rounded-[1.25rem] px-4 py-10 text-center">
+                <svg
+                  className="h-10 w-10 text-slate-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"
+                  />
+                </svg>
+                <div className="mt-3 text-sm font-bold text-slate-300">No active quests right now</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted
+                    ? 'Some quests may be hidden by your active filters.'
+                    : 'Claimed rewards appear in the Rewards tab.'}
+                </div>
               </div>
             )}
             {visibleTasks.map((task) => {

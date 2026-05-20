@@ -1,13 +1,13 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useConnection } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
 
-import { TaskCard } from '@/components/stabletask/TaskCard'
-import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
-import { useVaultTasks } from '@/hooks/useVaultTasks'
+import { useVaultTasks, type OnchainTask } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
+import { Badge } from '@/components/ui/badge'
 
 function safeParseUnits(value: string | undefined, decimals: number) {
   if (!value) return BigInt(0)
@@ -16,6 +16,13 @@ function safeParseUnits(value: string | undefined, decimals: number) {
   } catch {
     return BigInt(0)
   }
+}
+
+function formatAmount(value: string) {
+  const num = parseFloat(value)
+  if (isNaN(num)) return '0'
+  if (num === Math.floor(num)) return num.toLocaleString()
+  return num.toLocaleString(undefined, { maximumFractionDigits: 4 })
 }
 
 function StatCard(props: {
@@ -41,16 +48,131 @@ function StatCard(props: {
   )
 }
 
+function XpHero({ xpBalance, loading }: { xpBalance: string; loading: boolean }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-lime-300/25 bg-[linear-gradient(135deg,rgba(15,23,42,0.97),rgba(5,10,28,0.98))] px-5 py-5 shadow-[0_0_40px_rgba(132,204,22,0.12)]">
+      <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-lime-300/10 blur-2xl" />
+      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">XP Balance</div>
+      {loading ? (
+        <div className="skeleton-shimmer mt-2 h-10 w-36 rounded-lg" />
+      ) : (
+        <div className="mt-1 flex items-end gap-2">
+          <span className="text-4xl font-black tabular-nums leading-none text-slate-50">
+            {formatAmount(xpBalance)}
+          </span>
+          <span className="mb-0.5 text-xl font-black text-lime-300">XP</span>
+        </div>
+      )}
+      <div className="mt-2 text-xs text-slate-400">Current XP token balance in wallet</div>
+    </div>
+  )
+}
+
+function ProgressSection({
+  claimed,
+  total,
+  loading,
+}: {
+  claimed: number
+  total: number
+  loading: boolean
+}) {
+  const pct = total > 0 ? Math.round((claimed / total) * 100) : 0
+  return (
+    <div className="rounded-2xl border border-cyan-300/20 bg-slate-950/50 px-4 py-4">
+      <div className="flex items-center justify-between">
+        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">
+          Quest Progress
+        </div>
+        {loading ? (
+          <div className="skeleton-shimmer h-3 w-20 rounded-full" />
+        ) : (
+          <div className="text-xs text-slate-400">
+            <span className="font-black text-slate-50">{claimed}</span>
+            {' / '}
+            <span className="font-black text-slate-50">{total}</span>
+            {' tasks'}
+          </div>
+        )}
+      </div>
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-800/80">
+        {loading ? (
+          <div className="skeleton-shimmer h-full w-full" />
+        ) : (
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-lime-400/90 to-cyan-400/80 transition-all duration-700"
+            style={{ width: `${pct}%` }}
+          />
+        )}
+      </div>
+      {!loading && total > 0 && (
+        <div className="mt-1.5 text-right text-[11px] text-slate-500">{pct}% complete</div>
+      )}
+    </div>
+  )
+}
+
+function ClaimRow({ task }: { task: OnchainTask }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-lime-300/15 bg-slate-950/50 px-4 py-3 transition hover:border-lime-300/25">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-lime-300/30 bg-lime-300/10 text-lime-300">
+        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+          <path
+            fillRule="evenodd"
+            d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-bold text-slate-50">{task.title}</div>
+        {task.tag && (
+          <Badge className="mt-0.5 border border-cyan-300/30 bg-cyan-300/10 text-[10px] text-cyan-100 shadow-sm">
+            {task.tag}
+          </Badge>
+        )}
+      </div>
+      <div className="shrink-0 text-right">
+        <div className="text-sm font-black text-lime-300">+{formatAmount(task.rewardXp)} XP</div>
+        {parseFloat(task.rewardTokenAmount) > 0 && (
+          <div className="text-xs font-semibold text-amber-300">
+            +{formatAmount(task.rewardTokenAmount)} {stableTaskConfig.rewardToken.symbol}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ClaimRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-lime-300/10 bg-slate-950/50 px-4 py-3">
+      <div className="skeleton-shimmer h-8 w-8 shrink-0 rounded-full" />
+      <div className="flex-1 space-y-1.5">
+        <div className="skeleton-shimmer h-4 w-40 rounded-full" />
+        <div className="skeleton-shimmer h-3 w-14 rounded-full" />
+      </div>
+      <div className="space-y-1">
+        <div className="skeleton-shimmer h-4 w-16 rounded-full" />
+        <div className="skeleton-shimmer h-3 w-12 rounded-full" />
+      </div>
+    </div>
+  )
+}
+
 export default function RewardsPage() {
   const { isConnected } = useConnection()
   const { tasks, xpBalance, isFetchingTasks, pageError } = useVaultTasks()
+  const [showAll, setShowAll] = useState(false)
 
   const claimedTasks = useMemo(() => tasks.filter((task) => task.hasClaimedPoint), [tasks])
 
-  const recentClaims = useMemo(
-    () => [...claimedTasks].sort((a, b) => (a.id > b.id ? -1 : 1)).slice(0, 5),
+  const sortedClaims = useMemo(
+    () => [...claimedTasks].sort((a, b) => (a.id > b.id ? -1 : 1)),
     [claimedTasks],
   )
+
+  const visibleClaims = showAll ? sortedClaims : sortedClaims.slice(0, 5)
 
   const totalClaimedXp = useMemo(() => {
     const total = claimedTasks.reduce((sum, task) => sum + safeParseUnits(task.rewardXp, 18), BigInt(0))
@@ -66,102 +188,103 @@ export default function RewardsPage() {
   }, [claimedTasks])
 
   const claimsListTitle = isFetchingTasks
-    ? 'Recent Claims'
-    : recentClaims.length === 0
-      ? 'Recent Claims'
-      : recentClaims.length === 1
-        ? 'Last claim'
-        : `Last ${recentClaims.length} claims`
-
-  const claimCountSub = isFetchingTasks
-    ? 'loading…'
-    : `from ${claimedTasks.length} claim${claimedTasks.length !== 1 ? 's' : ''}`
+    ? 'Claimed Tasks'
+    : claimedTasks.length === 0
+      ? 'Claimed Tasks'
+      : `Claimed (${claimedTasks.length})`
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-4">
+    <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-5 pb-28 pt-4">
       {pageError && (
         <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
           {pageError}
         </p>
       )}
 
-      <section className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            label="Total claimed XP"
-            labelColor="text-lime-200"
-            borderColor="border-lime-300/20"
-            value={totalClaimedXp}
-            sub={claimCountSub}
-            loading={isFetchingTasks}
-          />
-          <StatCard
-            label="Total claimed cUSD"
-            labelColor="text-amber-200"
-            borderColor="border-amber-300/20"
-            value={totalClaimedCusd}
-            sub="from task rewards"
-            loading={isFetchingTasks}
-          />
+      <XpHero xpBalance={xpBalance} loading={isFetchingTasks} />
+
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard
+          label="Earned XP"
+          labelColor="text-lime-200"
+          borderColor="border-lime-300/20"
+          value={formatAmount(totalClaimedXp)}
+          sub={`from ${claimedTasks.length} task${claimedTasks.length !== 1 ? 's' : ''}`}
+          loading={isFetchingTasks}
+        />
+        <StatCard
+          label={`Earned ${stableTaskConfig.rewardToken.symbol}`}
+          labelColor="text-amber-200"
+          borderColor="border-amber-300/20"
+          value={formatAmount(totalClaimedCusd)}
+          sub="from task rewards"
+          loading={isFetchingTasks}
+        />
+      </div>
+
+      <ProgressSection
+        claimed={claimedTasks.length}
+        total={tasks.length}
+        loading={isFetchingTasks}
+      />
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-base font-black text-slate-50">{claimsListTitle}</div>
+          {!isFetchingTasks && sortedClaims.length > 5 && (
+            <button
+              type="button"
+              onClick={() => setShowAll((prev) => !prev)}
+              className="rounded-full border border-cyan-300/20 bg-slate-900/70 px-3 py-1 text-xs font-semibold text-slate-300 transition hover:bg-cyan-300/10"
+            >
+              {showAll ? 'Show less' : `Show all ${sortedClaims.length}`}
+            </button>
+          )}
         </div>
 
-        <div className="space-y-3">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <div className="text-lg font-black text-slate-50">{claimsListTitle}</div>
-              <div className="flex items-center gap-1 text-xs text-slate-400">
-                <span>XP balance:</span>
-                {isFetchingTasks ? (
-                  <span className="skeleton-shimmer inline-block h-3 w-14 rounded-full align-middle" />
-                ) : (
-                  <span className="font-black text-lime-100">{xpBalance}</span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-slate-400">
-              <span>Total claims:</span>
-              {isFetchingTasks ? (
-                <span className="skeleton-shimmer inline-block h-3 w-6 rounded-full align-middle" />
-              ) : (
-                <span className="font-black text-slate-50">{claimedTasks.length}</span>
-              )}
-            </div>
-          </div>
+        {isFetchingTasks && (
+          <>
+            <ClaimRowSkeleton />
+            <ClaimRowSkeleton />
+            <ClaimRowSkeleton />
+          </>
+        )}
 
-          {isFetchingTasks && (
-            <>
-              <TaskCardSkeleton />
-              <TaskCardSkeleton />
-            </>
-          )}
-
-          {!isFetchingTasks && recentClaims.length === 0 && (
-            <div className="game-panel rounded-xl p-4 text-sm text-slate-400">
-              {isConnected
-                ? 'No claimed tasks yet.'
-                : 'Connect a wallet to see your claimed tasks.'}
-            </div>
-          )}
-
-          {!isFetchingTasks &&
-            recentClaims.map((task) => (
-              <TaskCard
-                key={task.id.toString()}
-                title={task.title}
-                description={task.description}
-                reward={`+${task.rewardXp} XP • +${task.rewardTokenAmount} ${stableTaskConfig.rewardToken.symbol}`}
-                tag={task.tag}
-                visitHref={task.visitUrl}
-                isVisited
-                visitState="success"
-                claimState="success"
-                visitDisabled
-                claimDisabled
-                helperText="Claim recorded in rewards history."
+        {!isFetchingTasks && claimedTasks.length === 0 && (
+          <div className="game-panel rounded-xl px-4 py-8 text-center">
+            <svg
+              className="mx-auto h-10 w-10 text-slate-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"
               />
-            ))}
-        </div>
-      </section>
+            </svg>
+            <div className="mt-3 text-sm font-bold text-slate-200">No claimed tasks yet</div>
+            <div className="mt-1 text-xs text-slate-400">
+              {isConnected
+                ? 'Complete tasks to earn XP and cUSD rewards.'
+                : 'Connect a wallet to track your rewards.'}
+            </div>
+            {isConnected && (
+              <Link
+                href="/tasks"
+                className="mt-4 inline-block rounded-full border border-cyan-300/30 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+              >
+                Browse Tasks
+              </Link>
+            )}
+          </div>
+        )}
+
+        {!isFetchingTasks &&
+          visibleClaims.map((task) => <ClaimRow key={task.id.toString()} task={task} />)}
+      </div>
     </main>
   )
 }

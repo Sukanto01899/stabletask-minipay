@@ -25,6 +25,29 @@ function formatAmount(value: string) {
   return num.toLocaleString(undefined, { maximumFractionDigits: 4 })
 }
 
+type Tier = {
+  label: string
+  min: number
+  max: number
+  color: string
+  border: string
+  bg: string
+  glow: string
+  next: number | null
+}
+
+const XP_TIERS: Tier[] = [
+  { label: 'Novice',   min: 0,     max: 99,    color: 'text-slate-300',  border: 'border-slate-400/40',  bg: 'bg-slate-400/10',  glow: 'rgba(148,163,184,0.15)', next: 100 },
+  { label: 'Explorer', min: 100,   max: 499,   color: 'text-cyan-300',   border: 'border-cyan-400/40',   bg: 'bg-cyan-400/10',   glow: 'rgba(34,211,238,0.15)',  next: 500 },
+  { label: 'Pioneer',  min: 500,   max: 1999,  color: 'text-lime-300',   border: 'border-lime-400/40',   bg: 'bg-lime-400/10',   glow: 'rgba(163,230,53,0.15)',  next: 2000 },
+  { label: 'Champion', min: 2000,  max: 9999,  color: 'text-amber-300',  border: 'border-amber-400/40',  bg: 'bg-amber-400/10',  glow: 'rgba(251,191,36,0.15)',  next: 10000 },
+  { label: 'Legend',   min: 10000, max: Infinity, color: 'text-violet-300', border: 'border-violet-400/40', bg: 'bg-violet-400/10', glow: 'rgba(167,139,250,0.15)', next: null },
+]
+
+function getTier(xp: number): Tier {
+  return XP_TIERS.findLast((t) => xp >= t.min) ?? XP_TIERS[0]
+}
+
 function StatCard(props: {
   label: string
   labelColor: string
@@ -49,10 +72,38 @@ function StatCard(props: {
 }
 
 function XpHero({ xpBalance, loading }: { xpBalance: string; loading: boolean }) {
+  const xp = parseFloat(xpBalance) || 0
+  const tier = getTier(xp)
+  const tierIndex = XP_TIERS.indexOf(tier)
+  const nextTier = XP_TIERS[tierIndex + 1]
+  const levelPct =
+    tier.next !== null
+      ? Math.min(100, Math.round(((xp - tier.min) / (tier.next - tier.min)) * 100))
+      : 100
+
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-lime-300/25 bg-[linear-gradient(135deg,rgba(15,23,42,0.97),rgba(5,10,28,0.98))] px-5 py-5 shadow-[0_0_40px_rgba(132,204,22,0.12)]">
+    <div
+      className="relative overflow-hidden rounded-2xl border border-lime-300/25 px-5 py-5"
+      style={{
+        background: 'linear-gradient(135deg,rgba(15,23,42,0.97),rgba(5,10,28,0.98))',
+        boxShadow: `0 0 40px ${tier.glow}`,
+      }}
+    >
       <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-lime-300/10 blur-2xl" />
-      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">XP Balance</div>
+
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">XP Balance</div>
+        {loading ? (
+          <div className="skeleton-shimmer h-5 w-16 rounded-full" />
+        ) : (
+          <span
+            className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${tier.color} ${tier.border} ${tier.bg}`}
+          >
+            {tier.label}
+          </span>
+        )}
+      </div>
+
       {loading ? (
         <div className="skeleton-shimmer mt-2 h-10 w-36 rounded-lg" />
       ) : (
@@ -63,7 +114,31 @@ function XpHero({ xpBalance, loading }: { xpBalance: string; loading: boolean })
           <span className="mb-0.5 text-xl font-black text-lime-300">XP</span>
         </div>
       )}
-      <div className="mt-2 text-xs text-slate-400">Current XP token balance in wallet</div>
+
+      {!loading && tier.next !== null && (
+        <div className="mt-3">
+          <div className="mb-1 flex justify-between text-[10px] text-slate-500">
+            <span>{tier.label}</span>
+            <span className={nextTier?.color}>
+              {nextTier?.label} at {tier.next.toLocaleString()} XP
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${tier.bg} border-0`}
+              style={{
+                width: `${levelPct}%`,
+                background: `linear-gradient(90deg, ${tier.glow.replace('0.15', '0.8')}, ${tier.glow.replace('0.15', '0.5')})`,
+              }}
+            />
+          </div>
+          <div className="mt-1 text-right text-[10px] text-slate-600">{levelPct}% to {nextTier?.label}</div>
+        </div>
+      )}
+
+      {!loading && tier.next === null && (
+        <div className="mt-2 text-xs text-slate-400">Maximum tier reached</div>
+      )}
     </div>
   )
 }
@@ -78,6 +153,8 @@ function ProgressSection({
   loading: boolean
 }) {
   const pct = total > 0 ? Math.round((claimed / total) * 100) : 0
+  const remaining = total - claimed
+
   return (
     <div className="rounded-2xl border border-cyan-300/20 bg-slate-950/50 px-4 py-4">
       <div className="flex items-center justify-between">
@@ -106,9 +183,41 @@ function ProgressSection({
         )}
       </div>
       {!loading && total > 0 && (
-        <div className="mt-1.5 text-right text-[11px] text-slate-500">{pct}% complete</div>
+        <div className="mt-1.5 flex items-center justify-between text-[11px]">
+          <span className="text-slate-500">{pct}% complete</span>
+          {remaining > 0 && (
+            <span className="text-cyan-400/70">{remaining} left to claim</span>
+          )}
+        </div>
       )}
     </div>
+  )
+}
+
+function UnclaimedBanner({ count }: { count: number }) {
+  if (count === 0) return null
+  return (
+    <Link
+      href="/tasks"
+      className="flex items-center justify-between rounded-2xl border border-amber-300/25 bg-amber-300/5 px-4 py-3 transition hover:bg-amber-300/10"
+    >
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full border border-amber-300/40 bg-amber-300/10 text-amber-300">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
+            <path d="M10 1a6 6 0 00-3.815 10.631C7.237 12.5 8 13.443 8 14.456v.644a.75.75 0 00.572.729 6.016 6.016 0 002.856 0A.75.75 0 0012 15.1v-.644c0-1.013.762-1.957 3.815-2.825A6 6 0 0010 1zM8.863 17.414a.75.75 0 00-.226 1.483 9.066 9.066 0 002.726 0 .75.75 0 00-.226-1.483 7.553 7.553 0 01-2.274 0z" />
+          </svg>
+        </div>
+        <div>
+          <div className="text-xs font-bold text-amber-200">
+            {count} task{count !== 1 ? 's' : ''} ready to claim
+          </div>
+          <div className="text-[10px] text-slate-500">Earn more XP and cUSD rewards</div>
+        </div>
+      </div>
+      <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0 text-amber-300/60">
+        <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 01-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 010-1.06z" clipRule="evenodd" />
+      </svg>
+    </Link>
   )
 }
 
@@ -166,6 +275,7 @@ export default function RewardsPage() {
   const [showAll, setShowAll] = useState(false)
 
   const claimedTasks = useMemo(() => tasks.filter((task) => task.hasClaimedPoint), [tasks])
+  const unclaimedTasks = useMemo(() => tasks.filter((task) => !task.hasClaimedPoint), [tasks])
 
   const sortedClaims = useMemo(
     () => [...claimedTasks].sort((a, b) => (a.id > b.id ? -1 : 1)),
@@ -227,6 +337,10 @@ export default function RewardsPage() {
         total={tasks.length}
         loading={isFetchingTasks}
       />
+
+      {!isFetchingTasks && isConnected && (
+        <UnclaimedBanner count={unclaimedTasks.length} />
+      )}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">

@@ -44,6 +44,8 @@ const WALLET_LETTER: Record<string, string> = {
   injected: 'W',
 }
 
+const MILESTONES = [250, 500, 750]
+
 function formatAmount(value: string) {
   const num = parseFloat(value)
   if (isNaN(num)) return '0'
@@ -58,9 +60,12 @@ function StatCard(props: {
   value: string
   sub: string
   loading: boolean
+  highlight?: boolean
 }) {
   return (
-    <div className={`rounded-xl border ${props.borderColor} bg-slate-900/72 px-4 py-3 backdrop-blur`}>
+    <div
+      className={`rounded-xl border ${props.borderColor} bg-slate-900/72 px-4 py-3 backdrop-blur ${props.highlight ? 'ring-1 ring-lime-300/20' : ''}`}
+    >
       <div className={`text-[11px] font-black uppercase tracking-[0.2em] ${props.labelColor}`}>
         {props.label}
       </div>
@@ -70,6 +75,88 @@ function StatCard(props: {
         <div className="mt-1 text-xl font-black text-slate-50">{props.value}</div>
       )}
       <div className="text-xs text-slate-400">{props.sub}</div>
+    </div>
+  )
+}
+
+function MilestoneBar({
+  tapsToday,
+  dailyTapLimit,
+  isLimitReached,
+  isLoadingTapData,
+  remainingTaps,
+}: {
+  tapsToday: number
+  dailyTapLimit: number
+  isLimitReached: boolean
+  isLoadingTapData: boolean
+  remainingTaps: number
+}) {
+  const tapProgress = dailyTapLimit === 0 ? 0 : (tapsToday / dailyTapLimit) * 100
+
+  return (
+    <div className="mt-4 w-full">
+      {isLoadingTapData ? (
+        <div className="skeleton-shimmer h-2.5 w-full rounded-full" />
+      ) : (
+        <>
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="font-black uppercase tracking-[0.12em] text-slate-500">
+              Daily Progress
+            </span>
+            <span className="text-slate-400">
+              {isLimitReached ? (
+                <span className="text-slate-500">Resets midnight UTC</span>
+              ) : (
+                <>
+                  <span className="font-black text-slate-200">{remainingTaps}</span> remaining
+                </>
+              )}
+            </span>
+          </div>
+
+          <div className="relative h-3 w-full overflow-visible">
+            {/* Track */}
+            <div className="absolute inset-0 overflow-hidden rounded-full border border-cyan-300/20 bg-slate-900">
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ${
+                  isLimitReached
+                    ? 'w-full bg-slate-600'
+                    : 'bg-linear-to-r from-lime-300 via-cyan-300 to-amber-300'
+                }`}
+                style={isLimitReached ? undefined : { width: `${tapProgress}%` }}
+              />
+            </div>
+
+            {/* Milestone ticks */}
+            {!isLimitReached &&
+              MILESTONES.map((m) => {
+                const pct = (m / dailyTapLimit) * 100
+                const passed = tapsToday >= m
+                return (
+                  <span
+                    key={m}
+                    className={`absolute top-1/2 h-3 w-0.5 -translate-y-1/2 rounded-full transition-colors duration-300 ${
+                      passed ? 'bg-slate-900/60' : 'bg-slate-600/60'
+                    }`}
+                    style={{ left: `${pct}%` }}
+                    title={`${m} taps`}
+                  />
+                )
+              })}
+          </div>
+
+          <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+            <span>0</span>
+            {!isLimitReached && (
+              <span className="text-slate-600">
+                {tapsToday} / {dailyTapLimit}
+              </span>
+            )}
+            <span>{dailyTapLimit.toLocaleString()}</span>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -102,6 +189,8 @@ export default function TapPage() {
   const [connectingId, setConnectingId] = useState<string | null>(null)
   const [bubbles, setBubbles] = useState<{ id: number; x: number; y: number }[]>([])
   const [mintedFlash, setMintedFlash] = useState(false)
+  const [sessionTaps, setSessionTaps] = useState(0)
+  const [sessionXp, setSessionXp] = useState(0)
   const bubbleIdRef = useRef(0)
 
   const loadTapData = useCallback(async () => {
@@ -169,10 +258,12 @@ export default function TapPage() {
     if (isConfirmed) {
       void loadTapData()
       setMintedFlash(true)
+      setSessionTaps((prev) => prev + 1)
+      setSessionXp((prev) => prev + parseFloat(tapXpReward))
       const t = setTimeout(() => setMintedFlash(false), 2400)
       return () => clearTimeout(t)
     }
-  }, [isConfirmed, loadTapData])
+  }, [isConfirmed, loadTapData, tapXpReward])
 
   useEffect(() => {
     if (writeError || isReceiptError) {
@@ -245,8 +336,6 @@ export default function TapPage() {
     await handleTap()
   }
 
-  const tapProgress = dailyTapLimit === 0 ? 0 : (tapsToday / dailyTapLimit) * 100
-
   return (
     <main className="mx-auto flex min-h-[calc(100dvh-12rem)] w-full max-w-md flex-col gap-4 px-5 pb-28 pt-4">
       {tapError && (
@@ -263,7 +352,7 @@ export default function TapPage() {
 
           {!isConnected ? (
             <div className="flex w-full flex-col items-center gap-5">
-              {/* Placeholder orb — pulsing aura */}
+              {/* Placeholder orb */}
               <div className="relative flex h-40 w-40 items-center justify-center">
                 <div className="animate-tap-pulse absolute inset-0 rounded-full bg-lime-300/6" />
                 <div className="relative flex h-40 w-40 items-center justify-center rounded-full border-2 border-lime-300/15 bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.08)_0%,rgba(20,184,166,0.12)_36%,rgba(8,16,42,0.9)_100%)] opacity-40 blur-[1.5px]">
@@ -343,10 +432,10 @@ export default function TapPage() {
                   <span
                     key={b.id}
                     aria-hidden
-                    className="animate-float-up pointer-events-none absolute z-10 select-none text-xl font-black text-lime-200 drop-shadow-[0_0_8px_rgba(163,230,53,0.9)]"
+                    className="animate-float-up pointer-events-none absolute z-10 select-none text-base font-black text-lime-200 drop-shadow-[0_0_8px_rgba(163,230,53,0.9)]"
                     style={{ left: b.x, top: b.y, transform: 'translate(-50%, -50%)' }}
                   >
-                    +1
+                    +1 XP
                   </span>
                 ))}
                 {isBusy && (
@@ -359,7 +448,7 @@ export default function TapPage() {
                   </span>
                 )}
                 <span className={isBusy ? 'opacity-90' : undefined}>
-                  {isLimitReached ? 'Limit Reached' : '+1 XP'}
+                  {isLimitReached ? 'Limit Reached' : isBusy ? 'Mining…' : '+1 XP'}
                 </span>
               </button>
 
@@ -368,6 +457,11 @@ export default function TapPage() {
                 {mintedFlash ? (
                   <span className="font-black text-lime-300">
                     +{formatAmount(tapXpReward)} XP minted!
+                    {sessionTaps > 1 && (
+                      <span className="ml-2 text-xs font-semibold text-lime-400/70">
+                        {sessionTaps} taps this session
+                      </span>
+                    )}
                   </span>
                 ) : isLimitReached ? (
                   <span className="text-xs text-slate-500">
@@ -379,41 +473,22 @@ export default function TapPage() {
                     <span className="font-black text-lime-100">
                       {formatAmount(tapXpReward)} XP
                     </span>
+                    {sessionTaps > 0 && (
+                      <span className="ml-2 text-xs text-lime-400/60">
+                        +{sessionXp.toLocaleString()} this session
+                      </span>
+                    )}
                   </span>
                 )}
               </div>
 
-              {/* Daily progress bar */}
-              <div className="mt-4 w-full">
-                {isLoadingTapData ? (
-                  <div className="skeleton-shimmer h-2.5 w-full rounded-full" />
-                ) : (
-                  <>
-                    <div className="mb-1.5 flex items-center justify-between text-xs">
-                      <span className="font-black uppercase tracking-[0.12em] text-slate-500">
-                        Daily Progress
-                      </span>
-                      <span className="text-slate-400">
-                        <span className="font-black text-slate-200">{remainingTaps}</span>{' '}
-                        remaining
-                      </span>
-                    </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full border border-cyan-300/20 bg-slate-900">
-                      <div
-                        className={`h-full rounded-full transition-[width] duration-500 ${
-                          isLimitReached
-                            ? 'w-full bg-slate-600'
-                            : 'bg-linear-to-r from-lime-300 via-cyan-300 to-amber-300'
-                        }`}
-                        style={isLimitReached ? undefined : { width: `${tapProgress}%` }}
-                      />
-                    </div>
-                    <div className="mt-1 text-right text-[11px] text-slate-500">
-                      {tapsToday} / {dailyTapLimit}
-                    </div>
-                  </>
-                )}
-              </div>
+              <MilestoneBar
+                tapsToday={tapsToday}
+                dailyTapLimit={dailyTapLimit}
+                isLimitReached={isLimitReached}
+                isLoadingTapData={isLoadingTapData}
+                remainingTaps={remainingTaps}
+              />
             </>
           )}
         </div>
@@ -443,6 +518,19 @@ export default function TapPage() {
             loading={isLoadingTapData}
           />
         </div>
+        {sessionTaps > 0 && (
+          <div className="mt-3">
+            <StatCard
+              label="Session XP"
+              labelColor="text-cyan-200"
+              borderColor="border-cyan-300/20"
+              value={`+${sessionXp.toLocaleString()} XP`}
+              sub={`from ${sessionTaps} tap${sessionTaps !== 1 ? 's' : ''} this session`}
+              loading={false}
+              highlight
+            />
+          </div>
+        )}
       </section>
     </main>
   )

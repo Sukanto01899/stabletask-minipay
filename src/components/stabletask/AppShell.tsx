@@ -47,6 +47,10 @@ function buildAddChainParams(chain: typeof stableTaskConfig.chain) {
 }
 
 const HEADER_COPY: Record<string, { title: string; subtitle: string }> = {
+  "/": {
+    title: "Home",
+    subtitle: "Your XP, daily progress, and quick actions.",
+  },
   "/tasks": {
     title: "Quest Board",
     subtitle: "Complete quests, claim XP, and pull cUSD from the vault.",

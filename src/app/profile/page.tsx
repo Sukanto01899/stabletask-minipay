@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useConnection } from 'wagmi'
 
+import { stableTaskConfig } from '@/lib/app-config'
 import { ReferralCard } from '@/components/stabletask/ReferralCard'
 import { copyText } from '@/lib/clipboard'
 import {
@@ -388,6 +389,14 @@ export default function ProfilePage() {
               >
                 {addressCopied ? 'Copied!' : 'Copy'}
               </button>
+              <a
+                href={`${stableTaskConfig.chain.blockExplorers?.default.url}/address/${address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-lg border border-cyan-300/20 bg-slate-950/60 px-2 py-0.5 text-[11px] font-semibold text-slate-400 transition hover:bg-cyan-300/10 hover:text-slate-200"
+              >
+                Explorer ↗
+              </a>
             </div>
 
             <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-400">

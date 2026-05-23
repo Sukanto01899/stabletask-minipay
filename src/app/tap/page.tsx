@@ -134,14 +134,20 @@ function MilestoneBar({
                 const pct = (m / dailyTapLimit) * 100
                 const passed = tapsToday >= m
                 return (
-                  <span
-                    key={m}
-                    className={`absolute top-1/2 h-3 w-0.5 -translate-y-1/2 rounded-full transition-colors duration-300 ${
-                      passed ? 'bg-slate-900/60' : 'bg-slate-600/60'
-                    }`}
-                    style={{ left: `${pct}%` }}
-                    title={`${m} taps`}
-                  />
+                  <span key={m}>
+                    <span
+                      className={`absolute top-1/2 h-3 w-0.5 -translate-y-1/2 rounded-full transition-colors duration-300 ${
+                        passed ? 'bg-slate-900/60' : 'bg-slate-600/60'
+                      }`}
+                      style={{ left: `${pct}%` }}
+                    />
+                    <span
+                      className="absolute top-full mt-0.5 -translate-x-1/2 text-[9px] text-slate-600"
+                      style={{ left: `${pct}%` }}
+                    >
+                      {m}
+                    </span>
+                  </span>
                 )
               })}
           </div>

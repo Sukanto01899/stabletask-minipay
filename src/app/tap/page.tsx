@@ -435,7 +435,7 @@ export default function TapPage() {
                     className="animate-float-up pointer-events-none absolute z-10 select-none text-base font-black text-lime-200 drop-shadow-[0_0_8px_rgba(163,230,53,0.9)]"
                     style={{ left: b.x, top: b.y, transform: 'translate(-50%, -50%)' }}
                   >
-                    +1 XP
+                    +{formatAmount(tapXpReward)} XP
                   </span>
                 ))}
                 {isBusy && (
@@ -448,7 +448,7 @@ export default function TapPage() {
                   </span>
                 )}
                 <span className={isBusy ? 'opacity-90' : undefined}>
-                  {isLimitReached ? 'Limit Reached' : isBusy ? 'Mining…' : '+1 XP'}
+                  {isLimitReached ? 'Limit Reached' : isBusy ? 'Mining…' : `+${formatAmount(tapXpReward)} XP`}
                 </span>
               </button>
 

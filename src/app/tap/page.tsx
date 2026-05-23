@@ -326,6 +326,7 @@ export default function TapPage() {
 
   const handleTapClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!isBusy && !isLoadingTapData && !isLimitReached) {
+      navigator.vibrate?.(30)
       const rect = e.currentTarget.getBoundingClientRect()
       const x = e.clientX - rect.left + (Math.random() - 0.5) * 40
       const y = e.clientY - rect.top

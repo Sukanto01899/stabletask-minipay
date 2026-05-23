@@ -132,7 +132,7 @@ function XpHero({ xpBalance, loading }: { xpBalance: string; loading: boolean })
               }}
             />
           </div>
-          <div className="mt-1 text-right text-[10px] text-slate-600">{levelPct}% to {nextTier?.label}</div>
+          <div className="mt-1 text-right text-[10px] text-slate-600">{levelPct}% · {(tier.next - xp).toLocaleString()} XP to go</div>
         </div>
       )}
 

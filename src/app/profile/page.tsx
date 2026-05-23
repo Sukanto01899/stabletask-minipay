@@ -480,6 +480,21 @@ export default function ProfilePage() {
             </svg>
           }
         />
+        <div className="col-span-2">
+          <StatCard
+            label="Referral Earnings"
+            value={profile ? `${totalReferralEarned.toFixed(2)} cUSD` : '—'}
+            description={`from ${completedReferrals} completed referral${completedReferrals !== 1 ? 's' : ''}`}
+            labelColor="text-violet-200"
+            borderColor="border-violet-300/20"
+            loading={isLoading}
+            icon={
+              <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M8 1a7 7 0 100 14A7 7 0 008 1zM6.75 5.5a1.25 1.25 0 112.5 0 1.25 1.25 0 01-2.5 0zM5.5 10.5a2.5 2.5 0 115 0H5.5z" clipRule="evenodd" />
+              </svg>
+            }
+          />
+        </div>
       </section>
 
       {/* Pending claims callout */}

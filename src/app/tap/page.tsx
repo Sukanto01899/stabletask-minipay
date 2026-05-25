@@ -13,6 +13,7 @@ import {
 import { erc20Abi, formatUnits } from 'viem'
 
 import { stableTaskConfig } from '@/lib/app-config'
+import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -85,12 +86,14 @@ function MilestoneBar({
   isLimitReached,
   isLoadingTapData,
   remainingTaps,
+  countdown,
 }: {
   tapsToday: number
   dailyTapLimit: number
   isLimitReached: boolean
   isLoadingTapData: boolean
   remainingTaps: number
+  countdown: string
 }) {
   const tapProgress = dailyTapLimit === 0 ? 0 : (tapsToday / dailyTapLimit) * 100
 
@@ -106,7 +109,7 @@ function MilestoneBar({
             </span>
             <span className="text-slate-400">
               {isLimitReached ? (
-                <span className="text-slate-500">Resets midnight UTC</span>
+                <span className="font-black tabular-nums text-amber-300/80">⏳ {countdown}</span>
               ) : (
                 <>
                   <span className="font-black text-slate-200">{remainingTaps}</span> remaining
@@ -279,6 +282,7 @@ export default function TapPage() {
 
   const isBusy = isWritePending || isConfirming
   const isLimitReached = remainingTaps <= 0
+  const countdown = useCountdownToMidnightUTC()
 
   const handleConnectWith = (connector: Connector) => {
     setConnectingId(connector.id)
@@ -471,8 +475,8 @@ export default function TapPage() {
                     )}
                   </span>
                 ) : isLimitReached ? (
-                  <span className="text-xs text-slate-500">
-                    Daily limit reached — resets at midnight UTC.
+                  <span className="font-black tabular-nums text-amber-300/80">
+                    ⏳ Resets in {countdown}
                   </span>
                 ) : (
                   <span className="text-slate-300">
@@ -495,6 +499,7 @@ export default function TapPage() {
                 isLimitReached={isLimitReached}
                 isLoadingTapData={isLoadingTapData}
                 remainingTaps={remainingTaps}
+                countdown={countdown}
               />
             </>
           )}
@@ -521,7 +526,7 @@ export default function TapPage() {
             labelColor="text-amber-200"
             borderColor="border-amber-300/20"
             value={String(tapsToday)}
-            sub={`${remainingTaps} remaining today`}
+            sub={isLimitReached ? `⏳ resets in ${countdown}` : `${remainingTaps} remaining today`}
             loading={isLoadingTapData}
           />
         </div>

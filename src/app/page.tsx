@@ -7,6 +7,7 @@ import { erc20Abi, formatUnits } from 'viem'
 
 import { useVaultTasks } from '@/hooks/useVaultTasks'
 import { useStreak } from '@/hooks/useStreak'
+import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
 import { copyText } from '@/lib/clipboard'
 import { stableTaskConfig } from '@/lib/app-config'
 
@@ -90,6 +91,7 @@ export default function HomePage() {
   const [tapsToday, setTapsToday] = useState<number | null>(null)
   const [dailyTapLimit, setDailyTapLimit] = useState(1000)
   const [shareState, setShareState] = useState<'idle' | 'copied' | 'shared'>('idle')
+  const countdown = useCountdownToMidnightUTC()
 
   const loadTapStats = useCallback(async () => {
     if (!publicClient || stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) return
@@ -389,12 +391,18 @@ export default function HomePage() {
           <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800">
             {tapsToday !== null && (
               <div
-                className="h-full rounded-full bg-gradient-to-r from-amber-400/80 to-lime-400/70 transition-all duration-700"
+                className={`h-full rounded-full transition-all duration-700 ${tapPct >= 100 ? 'bg-slate-600' : 'bg-linear-to-r from-amber-400/80 to-lime-400/70'}`}
                 style={{ width: `${tapPct}%` }}
               />
             )}
           </div>
-          <div className="mt-1 text-[10px] text-slate-500">today</div>
+          {tapsToday !== null && tapPct >= 100 ? (
+            <div className="mt-1 text-[10px] font-black tabular-nums text-amber-300/80">
+              ⏳ {countdown}
+            </div>
+          ) : (
+            <div className="mt-1 text-[10px] text-slate-500">today</div>
+          )}
         </div>
       </div>
 

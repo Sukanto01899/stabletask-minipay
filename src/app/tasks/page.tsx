@@ -16,7 +16,7 @@ import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
 import { TaskCard } from '@/components/stabletask/TaskCard'
 import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useToast } from '@/components/ui/toast'
-import { encodeMetadataURI, type OnchainTask, useVaultTasks } from '@/hooks/useVaultTasks'
+import { encodeMetadataURI, type OnchainTask, useVaultTasks, type Difficulty } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
 import { readTaskViewPreferences, taskViewPreferencesStorageKey, type TaskViewPreferences } from '@/lib/task-view-preferences'
 
@@ -198,6 +198,7 @@ export default function Page() {
     rewardTokenAmount: '0.01',
     maxClaims: '1',
     taskType: 'visit' as TaskTypeOption,
+    difficulty: 'Easy' as Difficulty,
   })
   const activeOnchainTasks = useMemo(
     () => tasks.filter((task) => task.active && (task.maxClaims === BigInt(0) || task.claimCount < task.maxClaims)),
@@ -546,6 +547,7 @@ export default function Page() {
             description: trimmedDescription,
             visitUrl: trimmedVisitUrl,
             deadline: newTask.deadline.trim() || undefined,
+            difficulty: newTask.difficulty,
           }),
         ],
         value: publicTaskCreationFee,
@@ -852,6 +854,7 @@ export default function Page() {
               description: trimmedDescription,
               visitUrl: trimmedVisitUrl,
               deadline: trimmedDeadline || undefined,
+              difficulty: newTask.difficulty,
             }),
           ],
           value: publicTaskCreationFee,
@@ -901,6 +904,7 @@ export default function Page() {
               description: trimmedDescription,
               visitUrl: trimmedVisitUrl,
               deadline: trimmedDeadline || undefined,
+              difficulty: newTask.difficulty,
             }),
           ],
           value: publicTaskCreationFee,
@@ -916,6 +920,7 @@ export default function Page() {
         rewardTokenAmount: '0.01',
         maxClaims: '1',
         taskType: 'visit',
+        difficulty: 'Easy',
       })
       setIsCreateOpen(false)
       } catch (creationError) {
@@ -1177,6 +1182,7 @@ export default function Page() {
                   description={task.description}
                   reward={rewardLabel}
                   tag={task.tag}
+                  difficulty={task.difficulty}
                   isPinned={isTaskPinned(task.id)}
                   onTogglePin={(taskId, nextPinned) => {
                     if (typeof taskId !== 'bigint') return
@@ -1314,6 +1320,32 @@ export default function Page() {
                   placeholder="5"
                   className="h-11 rounded-xl border border-cyan-300/20 bg-slate-900/80 px-3 text-sm text-slate-100 outline-none ring-0 placeholder:text-slate-500 focus:border-lime-300/50"
                 />
+              </div>
+              {/* Difficulty selector */}
+              <div>
+                <div className="mb-1.5 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                  Difficulty
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['Easy', 'Medium', 'Hard'] as const).map((d) => {
+                    const colors = {
+                      Easy:   'border-lime-400/40 bg-lime-400/10 text-lime-200 data-[active=true]:ring-lime-400/50 data-[active=true]:bg-lime-400/20',
+                      Medium: 'border-amber-400/40 bg-amber-400/10 text-amber-200 data-[active=true]:ring-amber-400/50 data-[active=true]:bg-amber-400/20',
+                      Hard:   'border-rose-400/40 bg-rose-400/10 text-rose-200 data-[active=true]:ring-rose-400/50 data-[active=true]:bg-rose-400/20',
+                    }[d]
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        data-active={newTask.difficulty === d}
+                        onClick={() => setNewTask((prev) => ({ ...prev, difficulty: d }))}
+                        className={`h-9 rounded-xl border text-xs font-black ring-1 ring-transparent transition ${colors}`}
+                      >
+                        {d}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
               <input
                 value={newTask.rewardTokenAmount}

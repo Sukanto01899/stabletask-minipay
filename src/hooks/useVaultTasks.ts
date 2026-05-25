@@ -9,11 +9,14 @@ import { stableTaskConfig } from '@/lib/app-config'
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
+export type Difficulty = 'Easy' | 'Medium' | 'Hard'
+
 export type TaskMetadata = {
   title: string
   description: string
   visitUrl?: string
   deadline?: string
+  difficulty?: Difficulty
 }
 
 type VaultTaskTuple = readonly [
@@ -35,6 +38,7 @@ export type OnchainTask = {
   description: string
   visitUrl?: string
   deadline?: string
+  difficulty: Difficulty
   rewardXp: string
   rewardTokenAmount: string
   maxClaims: bigint
@@ -44,6 +48,19 @@ export type OnchainTask = {
   active: boolean
   isCompleted: boolean
   hasClaimedPoint: boolean
+}
+
+const VALID_DIFFICULTIES: Difficulty[] = ['Easy', 'Medium', 'Hard']
+
+/**
+ * Derive difficulty from XP reward when no difficulty is stored in metadata.
+ * Thresholds: Easy < 5 XP, Medium 5–19 XP, Hard ≥ 20 XP.
+ */
+export function inferDifficulty(rewardXp: string): Difficulty {
+  const xp = parseFloat(rewardXp)
+  if (!Number.isFinite(xp) || xp < 5) return 'Easy'
+  if (xp < 20) return 'Medium'
+  return 'Hard'
 }
 
 function parseMetadataURI(metadataURI: string, fallbackId: bigint | number | undefined): TaskMetadata {
@@ -61,12 +78,16 @@ function parseMetadataURI(metadataURI: string, fallbackId: bigint | number | und
       ? decodeURIComponent(metadataURI.replace('data:application/json,', ''))
       : metadataURI
     const parsed = JSON.parse(payload) as Partial<TaskMetadata>
+    const difficulty = VALID_DIFFICULTIES.includes(parsed.difficulty as Difficulty)
+      ? (parsed.difficulty as Difficulty)
+      : undefined
 
     return {
       title: parsed.title?.trim() || fallback.title,
       description: parsed.description?.trim() || fallback.description,
       visitUrl: parsed.visitUrl?.trim() || undefined,
       deadline: parsed.deadline?.trim() || undefined,
+      difficulty,
     }
   } catch {
     return fallback
@@ -167,13 +188,15 @@ export function useVaultTasks() {
           const isCompleted = isCompletedResult as boolean
           const hasClaimedPoint = hasClaimedPointResult as boolean
 
+          const rewardXp = formatUnits(pointReward, 18)
           return {
             id,
             title: metadata.title,
             description: metadata.description,
             visitUrl: metadata.visitUrl,
             deadline: metadata.deadline,
-            rewardXp: formatUnits(pointReward, 18),
+            difficulty: metadata.difficulty ?? inferDifficulty(rewardXp),
+            rewardXp,
             rewardTokenAmount: formatUnits(rewardAmount, stableTaskConfig.rewardToken.decimals),
             maxClaims,
             claimCount,

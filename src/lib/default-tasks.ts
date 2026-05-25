@@ -4,6 +4,7 @@ export const DEFAULT_TASKS = [
     description: 'Confirm your savings goal for today and earn instant cUSD.',
     rewardCusd: 1.25,
     tag: 'Daily',
+    difficulty: 'Easy',
     isActive: true,
   },
   {
@@ -11,6 +12,7 @@ export const DEFAULT_TASKS = [
     description: 'Send your referral link and help a friend start earning.',
     rewardCusd: 3,
     tag: 'Boost',
+    difficulty: 'Medium',
     isActive: true,
   },
   {
@@ -18,6 +20,7 @@ export const DEFAULT_TASKS = [
     description: 'Complete the 3-minute lesson to unlock your reward.',
     rewardCusd: 2.4,
     tag: 'Learn',
+    difficulty: 'Medium',
     isActive: true,
   },
 ]

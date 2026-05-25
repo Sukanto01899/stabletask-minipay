@@ -8,8 +8,24 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
 import { copyText } from '@/lib/clipboard'
 import { cn } from '@/lib/utils'
+import type { Difficulty } from '@/hooks/useVaultTasks'
 
 type TaskCardId = bigint | number | string
+
+const DIFFICULTY_STYLES: Record<Difficulty, { badge: string; label: string }> = {
+  Easy:   { badge: 'border-lime-400/40 bg-lime-400/10 text-lime-200',   label: '● Easy'   },
+  Medium: { badge: 'border-amber-400/40 bg-amber-400/10 text-amber-200', label: '● Medium' },
+  Hard:   { badge: 'border-rose-400/40 bg-rose-400/10 text-rose-200',   label: '● Hard'   },
+}
+
+function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
+  const s = DIFFICULTY_STYLES[difficulty]
+  return (
+    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${s.badge}`}>
+      {s.label}
+    </span>
+  )
+}
 
 export type TaskCardProps = {
   taskId?: TaskCardId
@@ -17,6 +33,7 @@ export type TaskCardProps = {
   description: string
   reward: string
   tag?: string
+  difficulty?: Difficulty
   isPinned?: boolean
   onTogglePin?: (taskId: TaskCardId, nextPinned: boolean) => void
   deadlineLabel?: string
@@ -123,6 +140,7 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
                 {props.tag}
               </Badge>
             )}
+            {props.difficulty && <DifficultyBadge difficulty={props.difficulty} />}
           </div>
         </div>
         {props.deadlineLabel && (

@@ -6,6 +6,11 @@ const taskSchema = new Schema(
     description: { type: String, required: true, trim: true },
     rewardCusd: { type: Number, required: true, min: 0 },
     tag: { type: String, trim: true, default: null },
+    difficulty: {
+      type: String,
+      enum: ['Easy', 'Medium', 'Hard'],
+      default: 'Easy',
+    },
     isActive: { type: Boolean, default: true },
   },
   {

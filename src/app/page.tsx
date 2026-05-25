@@ -7,6 +7,7 @@ import { erc20Abi, formatUnits } from 'viem'
 
 import { useVaultTasks } from '@/hooks/useVaultTasks'
 import { useStreak } from '@/hooks/useStreak'
+import { copyText } from '@/lib/clipboard'
 import { stableTaskConfig } from '@/lib/app-config'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
@@ -39,6 +40,12 @@ function formatAmount(value: string) {
   if (isNaN(num)) return '0'
   if (num === Math.floor(num)) return num.toLocaleString()
   return num.toLocaleString(undefined, { maximumFractionDigits: 2 })
+}
+
+function buildShareText(xp: number, tierLabel: string, streakCount: number, appUrl: string) {
+  const xpFormatted = xp.toLocaleString(undefined, { maximumFractionDigits: 0 })
+  const streakPart = streakCount > 1 ? ` on a 🔥 ${streakCount}-day streak` : ''
+  return `I just hit ${xpFormatted} XP on StableTask and reached ${tierLabel} tier${streakPart}! 🎯 Join me on Celo 👉 ${appUrl}`
 }
 
 function QuickAction({
@@ -82,6 +89,7 @@ export default function HomePage() {
 
   const [tapsToday, setTapsToday] = useState<number | null>(null)
   const [dailyTapLimit, setDailyTapLimit] = useState(1000)
+  const [shareState, setShareState] = useState<'idle' | 'copied' | 'shared'>('idle')
 
   const loadTapStats = useCallback(async () => {
     if (!publicClient || stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) return
@@ -111,6 +119,35 @@ export default function HomePage() {
   useEffect(() => {
     void loadTapStats()
   }, [loadTapStats])
+
+  const handleShare = useCallback(async () => {
+    if (shareState !== 'idle') return
+    const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://stabletask.app'
+    const xp = parseFloat(xpBalance) || 0
+    const tier = getTier(xp)
+    const text = buildShareText(xp, tier.label, streakCount, appUrl)
+
+    // Try native share sheet (works great in MiniPay / mobile)
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ text })
+        setShareState('shared')
+        setTimeout(() => setShareState('idle'), 2000)
+        return
+      } catch {
+        // User cancelled or share failed — fall through to clipboard
+      }
+    }
+
+    // Fallback: clipboard copy
+    try {
+      await copyText(text)
+      setShareState('copied')
+      setTimeout(() => setShareState('idle'), 2000)
+    } catch {
+      // silently ignore clipboard failures
+    }
+  }, [shareState, xpBalance, streakCount])
 
   const xp = parseFloat(xpBalance) || 0
   const tier = getTier(xp)
@@ -207,6 +244,7 @@ export default function HomePage() {
             {monogram}
           </div>
           <div className="min-w-0 flex-1">
+
             <div className="flex items-center gap-2 flex-wrap">
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">
                 Your XP
@@ -237,6 +275,43 @@ export default function HomePage() {
               </div>
             )}
           </div>
+
+          {/* Share score button */}
+          {!isFetchingTasks && xp > 0 && (
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={shareState !== 'idle'}
+              title="Share your score"
+              className="flex shrink-0 flex-col items-center gap-1 rounded-2xl border border-lime-300/20 bg-lime-300/8 px-3 py-2.5 text-lime-200 transition hover:bg-lime-300/15 active:scale-95 disabled:opacity-70"
+            >
+              {shareState === 'idle' && (
+                <>
+                  {/* Share / upload icon */}
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                    <path d="M13 4.5a2.5 2.5 0 11.702 1.737L6.97 9.604a2.518 2.518 0 010 .792l6.733 3.367a2.5 2.5 0 11-.671 1.341l-6.733-3.367a2.5 2.5 0 110-3.474l6.733-3.366A2.52 2.52 0 0113 4.5z" />
+                  </svg>
+                  <span className="text-[10px] font-black leading-none">Share</span>
+                </>
+              )}
+              {shareState === 'copied' && (
+                <>
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-lime-300">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-[10px] font-black leading-none text-lime-300">Copied!</span>
+                </>
+              )}
+              {shareState === 'shared' && (
+                <>
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-lime-300">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-[10px] font-black leading-none text-lime-300">Shared!</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Tier progress bar */}

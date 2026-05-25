@@ -15,6 +15,8 @@ const userSchema = new Schema(
     totalClaimedCusd: { type: Number, default: 0, min: 0 },
     suspiciousClaimCount: { type: Number, default: 0, min: 0 },
     lastClaimAt: { type: Date, default: null },
+    streakCount: { type: Number, default: 0, min: 0 },
+    lastActivityDate: { type: String, default: null }, // 'YYYY-MM-DD' UTC
   },
   {
     timestamps: true,

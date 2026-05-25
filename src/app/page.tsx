@@ -6,6 +6,7 @@ import { useConnection, usePublicClient } from 'wagmi'
 import { erc20Abi, formatUnits } from 'viem'
 
 import { useVaultTasks } from '@/hooks/useVaultTasks'
+import { useStreak } from '@/hooks/useStreak'
 import { stableTaskConfig } from '@/lib/app-config'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
@@ -77,6 +78,7 @@ export default function HomePage() {
   const { address, isConnected } = useConnection()
   const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
   const { tasks, xpBalance, isFetchingTasks } = useVaultTasks()
+  const { streakCount, isLoading: isStreakLoading } = useStreak(address)
 
   const [tapsToday, setTapsToday] = useState<number | null>(null)
   const [dailyTapLimit, setDailyTapLimit] = useState(1000)
@@ -205,13 +207,22 @@ export default function HomePage() {
             {monogram}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">
                 Your XP
               </div>
               {!isFetchingTasks && (
                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${tier.color} ${tier.border} ${tier.bg}`}>
                   {tier.label}
+                </span>
+              )}
+              {/* Daily streak badge */}
+              {!isStreakLoading && streakCount > 0 && (
+                <span
+                  title={`${streakCount}-day streak! Keep it up.`}
+                  className="flex items-center gap-1 rounded-full border border-orange-400/35 bg-orange-400/10 px-2 py-0.5 text-[10px] font-black text-orange-300"
+                >
+                  🔥 {streakCount}d
                 </span>
               )}
             </div>
@@ -252,7 +263,7 @@ export default function HomePage() {
       </section>
 
       {/* Daily stats strip */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         {/* Tasks progress */}
         <div className="rounded-xl border border-cyan-300/20 bg-slate-950/60 px-4 py-3">
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Tasks</div>
@@ -273,6 +284,20 @@ export default function HomePage() {
             )}
           </div>
           <div className="mt-1 text-[10px] text-slate-500">claimed today</div>
+        </div>
+
+        {/* Streak card */}
+        <div className="rounded-xl border border-orange-400/20 bg-slate-950/60 px-4 py-3">
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-200">Streak</div>
+          {isStreakLoading ? (
+            <SkeletonBlock className="mt-1 h-7 w-10" />
+          ) : (
+            <div className="mt-1 text-xl font-black text-slate-50">
+              {streakCount > 0 ? `🔥 ${streakCount}` : '—'}
+            </div>
+          )}
+          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800" />
+          <div className="mt-1 text-[10px] text-slate-500">day streak</div>
         </div>
 
         {/* Tap progress */}

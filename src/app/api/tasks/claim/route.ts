@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 import { connectToDatabase } from '@/lib/mongodb'
+import { calculateNewStreak, getUtcDateString, isNewActivityDay } from '@/lib/streak'
 import { Claim } from '@/models/Claim'
 import { Task } from '@/models/Task'
 import { User } from '@/models/User'
@@ -81,6 +82,14 @@ export async function POST(request: NextRequest) {
     user.userAgent = userAgent
     user.lastClaimAt = new Date()
     user.totalClaimedCusd += task.rewardCusd
+
+    // Update daily streak on claim
+    const today = getUtcDateString()
+    if (isNewActivityDay(user.lastActivityDate ?? null, today)) {
+      user.streakCount = calculateNewStreak(user.streakCount ?? 0, user.lastActivityDate ?? null, today)
+      user.lastActivityDate = today
+    }
+
     await user.save()
 
     return NextResponse.json({

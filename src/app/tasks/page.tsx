@@ -186,6 +186,7 @@ export default function Page() {
   })
   const [createGasFeeEstimate, setCreateGasFeeEstimate] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | null>(null)
   const [pullDistance, setPullDistance] = useState(0)
   const [pullReady, setPullReady] = useState(false)
   const pullStartYRef = useRef<number | null>(null)
@@ -742,6 +743,10 @@ export default function Page() {
       )
     }
 
+    if (difficultyFilter) {
+      filtered = filtered.filter((task) => task.difficulty === difficultyFilter)
+    }
+
     if (taskViewPrefs.hideCompleted) {
       filtered = filtered.filter((task) => !task.isCompleted)
     }
@@ -783,6 +788,7 @@ export default function Page() {
     return [...pinned, ...unpinned]
   }, [
     baseVisibleTasks,
+    difficultyFilter,
     isTaskAccepted,
     isTaskPinned,
     searchQuery,
@@ -1127,7 +1133,7 @@ export default function Page() {
                 ? 'Quests'
                 : `Quests${visibleTasks.length > 0 ? ` (${visibleTasks.length})` : ''}`}
             </h2>
-            {!isFetchingTasks && (searchQuery.trim() || taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted) && (
+            {!isFetchingTasks && (searchQuery.trim() || difficultyFilter || taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted) && (
               <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
                 Filtered
               </span>
@@ -1167,6 +1173,34 @@ export default function Page() {
               </button>
             )}
           </div>
+
+          {/* Difficulty filter chips */}
+          <div className="flex items-center gap-2">
+            {(
+              [
+                { label: 'Easy',   active: 'border-lime-400/60  bg-lime-400/20  text-lime-200  ring-lime-400/40',  idle: 'border-lime-400/25  bg-lime-400/8   text-lime-400/70' },
+                { label: 'Medium', active: 'border-amber-400/60 bg-amber-400/20 text-amber-200 ring-amber-400/40', idle: 'border-amber-400/25 bg-amber-400/8  text-amber-400/70' },
+                { label: 'Hard',   active: 'border-rose-400/60  bg-rose-400/20  text-rose-200  ring-rose-400/40',  idle: 'border-rose-400/25  bg-rose-400/8   text-rose-400/70' },
+              ] as const
+            ).map(({ label, active, idle }) => {
+              const isActive = difficultyFilter === label
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setDifficultyFilter(isActive ? null : label)}
+                  className={`rounded-full border px-3 py-1 text-xs font-black transition ${
+                    isActive
+                      ? `${active} ring-1`
+                      : `${idle} hover:border-opacity-50 hover:bg-opacity-15`
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+
           <div className="grid gap-4">
             {isFetchingTasks && (
               <>
@@ -1194,18 +1228,33 @@ export default function Page() {
                 <div className="mt-1 text-xs text-slate-500">
                   {searchQuery.trim()
                     ? `No quests match "${searchQuery.trim()}". Try a different keyword.`
-                    : taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted
-                      ? 'Some quests may be hidden by your active filters.'
-                      : 'Claimed rewards appear in the Rewards tab.'}
+                    : difficultyFilter
+                      ? `No ${difficultyFilter} quests available right now.`
+                      : taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted
+                        ? 'Some quests may be hidden by your active filters.'
+                        : 'Claimed rewards appear in the Rewards tab.'}
                 </div>
-                {searchQuery.trim() && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="mt-3 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
-                  >
-                    Clear search
-                  </button>
+                {(searchQuery.trim() || difficultyFilter) && (
+                  <div className="mt-3 flex items-center gap-2">
+                    {searchQuery.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+                      >
+                        Clear search
+                      </button>
+                    )}
+                    {difficultyFilter && (
+                      <button
+                        type="button"
+                        onClick={() => setDifficultyFilter(null)}
+                        className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+                      >
+                        Clear difficulty
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}

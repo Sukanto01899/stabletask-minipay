@@ -185,6 +185,7 @@ export default function Page() {
     sortByDeadline: false,
   })
   const [createGasFeeEstimate, setCreateGasFeeEstimate] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const [pullDistance, setPullDistance] = useState(0)
   const [pullReady, setPullReady] = useState(false)
   const pullStartYRef = useRef<number | null>(null)
@@ -730,6 +731,17 @@ export default function Page() {
 
   const visibleTasks = useMemo(() => {
     let filtered = baseVisibleTasks
+
+    const q = searchQuery.trim().toLowerCase()
+    if (q) {
+      filtered = filtered.filter(
+        (task) =>
+          task.title.toLowerCase().includes(q) ||
+          task.description.toLowerCase().includes(q) ||
+          (task.tag?.toLowerCase().includes(q) ?? false),
+      )
+    }
+
     if (taskViewPrefs.hideCompleted) {
       filtered = filtered.filter((task) => !task.isCompleted)
     }
@@ -773,6 +785,7 @@ export default function Page() {
     baseVisibleTasks,
     isTaskAccepted,
     isTaskPinned,
+    searchQuery,
     taskViewPrefs.hideCompleted,
     taskViewPrefs.showOnlyAccepted,
     taskViewPrefs.sortByDeadline,
@@ -1114,10 +1127,44 @@ export default function Page() {
                 ? 'Quests'
                 : `Quests${visibleTasks.length > 0 ? ` (${visibleTasks.length})` : ''}`}
             </h2>
-            {!isFetchingTasks && (taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted) && (
+            {!isFetchingTasks && (searchQuery.trim() || taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted) && (
               <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200">
                 Filtered
               </span>
+            )}
+          </div>
+
+          {/* Search bar */}
+          <div className="relative">
+            <svg
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+            >
+              <path
+                fillRule="evenodd"
+                d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search quests…"
+              className="h-10 w-full rounded-xl border border-cyan-300/20 bg-slate-900/80 pl-9 pr-9 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-lime-300/50"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-slate-300"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                </svg>
+              </button>
             )}
           </div>
           <div className="grid gap-4">
@@ -1145,10 +1192,21 @@ export default function Page() {
                 </svg>
                 <div className="mt-3 text-sm font-bold text-slate-300">No active quests right now</div>
                 <div className="mt-1 text-xs text-slate-500">
-                  {taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted
-                    ? 'Some quests may be hidden by your active filters.'
-                    : 'Claimed rewards appear in the Rewards tab.'}
+                  {searchQuery.trim()
+                    ? `No quests match "${searchQuery.trim()}". Try a different keyword.`
+                    : taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted
+                      ? 'Some quests may be hidden by your active filters.'
+                      : 'Claimed rewards appear in the Rewards tab.'}
                 </div>
+                {searchQuery.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="mt-3 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+                  >
+                    Clear search
+                  </button>
+                )}
               </div>
             )}
             {visibleTasks.map((task) => {

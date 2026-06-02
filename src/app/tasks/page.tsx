@@ -229,7 +229,23 @@ export default function Page() {
   )
   const baseVisibleTasks = activeOnchainTasks.filter((task) => !task.hasClaimedPoint)
   const activeTasksCount = activeOnchainTasks.filter((task) => !task.isCompleted && !task.hasClaimedPoint).length
-  const pendingPayoutsCount = activeOnchainTasks.filter((task) => task.isCompleted && !task.hasClaimedPoint).length
+  const pendingPayoutTasks = activeOnchainTasks.filter((task) => task.isCompleted && !task.hasClaimedPoint)
+  const pendingPayoutsCount = pendingPayoutTasks.length
+  const pendingPayoutTotals = useMemo(
+    () =>
+      pendingPayoutTasks.reduce(
+        (acc, task) => {
+          const cusd = Number(task.rewardTokenAmount)
+          const xp = Number(task.rewardXp)
+          return {
+            cusd: acc.cusd + (Number.isFinite(cusd) ? cusd : 0),
+            xp: acc.xp + (Number.isFinite(xp) ? xp : 0),
+          }
+        },
+        { cusd: 0, xp: 0 },
+      ),
+    [pendingPayoutTasks],
+  )
 
   useEffect(() => {
     setPendingPayoutsCount(pendingPayoutsCount)
@@ -1068,7 +1084,21 @@ export default function Page() {
                   {pendingPayoutsCount} task{pendingPayoutsCount !== 1 ? 's' : ''} ready to claim
                 </div>
                 <div className="mt-0.5 text-xs text-slate-400">
-                  Complete your claims to earn XP and cUSD rewards.
+                  {pendingPayoutTotals.cusd > 0 || pendingPayoutTotals.xp > 0 ? (
+                    <>
+                      <span className="font-bold text-amber-200">
+                        {formatCompactAmount(String(pendingPayoutTotals.xp), 0)} XP
+                      </span>
+                      {' + '}
+                      <span className="font-bold text-lime-200">
+                        {formatCompactAmount(String(pendingPayoutTotals.cusd), 4)}{' '}
+                        {stableTaskConfig.rewardToken.symbol}
+                      </span>
+                      {' waiting to be claimed.'}
+                    </>
+                  ) : (
+                    'Complete your claims to earn XP and cUSD rewards.'
+                  )}
                 </div>
               </div>
               <Link

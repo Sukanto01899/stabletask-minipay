@@ -55,6 +55,24 @@ function parseLocalDateOnly(value: string) {
   return new Date(year, month - 1, day)
 }
 
+type DeadlineCountdown = { label: string; urgency: 'today' | 'soon' | 'later' }
+
+function getDeadlineCountdown(deadline: string | undefined): DeadlineCountdown | null {
+  if (!deadline) return null
+  const deadlineDate = parseLocalDateOnly(deadline) ?? new Date(deadline)
+  if (Number.isNaN(deadlineDate.getTime())) return null
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  deadlineDate.setHours(0, 0, 0, 0)
+
+  const diffDays = Math.round((deadlineDate.getTime() - today.getTime()) / 86_400_000)
+  if (diffDays < 0) return null // overdue is surfaced by its own badge
+  if (diffDays === 0) return { label: 'Due today', urgency: 'today' }
+  if (diffDays === 1) return { label: 'Due tomorrow', urgency: 'soon' }
+  return { label: `${diffDays} days left`, urgency: diffDays <= 3 ? 'soon' : 'later' }
+}
+
 function isDeadlineOverdue(deadline: string | undefined) {
   if (!deadline) return false
   const deadlineDate = parseLocalDateOnly(deadline) ?? new Date(deadline)
@@ -1330,6 +1348,9 @@ export default function Page() {
                   }}
                   deadlineLabel={task.deadline ? formatDeadlineLabel(task.deadline) : undefined}
                   isOverdue={!task.isCompleted && isDeadlineOverdue(task.deadline)}
+                  deadlineCountdown={
+                    task.isCompleted ? undefined : getDeadlineCountdown(task.deadline) ?? undefined
+                  }
                   note={taskNotes[task.id.toString()] ?? ''}
                   onNoteChange={(taskId, note) => {
                     if (typeof taskId !== 'bigint') return

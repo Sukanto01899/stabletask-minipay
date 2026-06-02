@@ -18,6 +18,12 @@ const DIFFICULTY_STYLES: Record<Difficulty, { badge: string; label: string }> = 
   Hard:   { badge: 'border-rose-400/40 bg-rose-400/10 text-rose-200',   label: '● Hard'   },
 }
 
+const COUNTDOWN_STYLES: Record<'today' | 'soon' | 'later', string> = {
+  today: 'border-rose-300/40 bg-rose-500/15 text-rose-100',
+  soon:  'border-amber-300/40 bg-amber-400/15 text-amber-100',
+  later: 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100',
+}
+
 function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
   const s = DIFFICULTY_STYLES[difficulty]
   return (
@@ -38,6 +44,7 @@ export type TaskCardProps = {
   onTogglePin?: (taskId: TaskCardId, nextPinned: boolean) => void
   deadlineLabel?: string
   isOverdue?: boolean
+  deadlineCountdown?: { label: string; urgency: 'today' | 'soon' | 'later' }
   note?: string
   onNoteChange?: (taskId: TaskCardId, note: string) => void
   visitHref?: string
@@ -113,7 +120,7 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
       <CardHeader className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="text-lg font-black text-slate-50">{props.title}</div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {props.onTogglePin && (
               <button
                 type="button"
@@ -133,6 +140,11 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
             {isOverdue && (
               <Badge className="border border-rose-300/40 bg-rose-500/15 text-rose-100 shadow-sm">
                 Overdue
+              </Badge>
+            )}
+            {!isOverdue && props.deadlineCountdown && (
+              <Badge className={cn('border shadow-sm', COUNTDOWN_STYLES[props.deadlineCountdown.urgency])}>
+                {props.deadlineCountdown.label}
               </Badge>
             )}
             {props.tag && (

@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/toast'
 import { encodeMetadataURI, type OnchainTask, useVaultTasks, type Difficulty } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
 import { readTaskViewPreferences, taskViewPreferencesStorageKey, type TaskViewPreferences } from '@/lib/task-view-preferences'
+import { usePendingCount } from '@/lib/pending-count-context'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -157,6 +158,7 @@ function useAutoConnect(isConnected: boolean) {
 }
 
 export default function Page() {
+  const { setPendingPayoutsCount } = usePendingCount()
   const { address, isConnected, isConnecting, chainId } = useConnection()
   const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
   const { toast } = useToast()
@@ -183,6 +185,7 @@ export default function Page() {
     hideCompleted: false,
     showOnlyAccepted: false,
     sortByDeadline: false,
+    sortByReward: false,
   })
   const [createGasFeeEstimate, setCreateGasFeeEstimate] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -209,6 +212,10 @@ export default function Page() {
   const baseVisibleTasks = activeOnchainTasks.filter((task) => !task.hasClaimedPoint)
   const activeTasksCount = activeOnchainTasks.filter((task) => !task.isCompleted && !task.hasClaimedPoint).length
   const pendingPayoutsCount = activeOnchainTasks.filter((task) => task.isCompleted && !task.hasClaimedPoint).length
+
+  useEffect(() => {
+    setPendingPayoutsCount(pendingPayoutsCount)
+  }, [pendingPayoutsCount, setPendingPayoutsCount])
 
   const acceptedStorageKey = useMemo(() => {
     const normalizedAddress = address ? address.toLowerCase() : 'guest'
@@ -762,6 +769,31 @@ export default function Page() {
       return d.getTime()
     }
 
+    if (taskViewPrefs.sortByReward) {
+      const getRewardValue = (task: OnchainTask) => {
+        const cusd = Number(task.rewardTokenAmount)
+        const xp = Number(task.rewardXp)
+        return {
+          cusd: Number.isFinite(cusd) ? cusd : 0,
+          xp: Number.isFinite(xp) ? xp : 0,
+        }
+      }
+
+      return [...filtered].sort((a, b) => {
+        const ap = isTaskPinned(a.id) ? 1 : 0
+        const bp = isTaskPinned(b.id) ? 1 : 0
+        if (ap !== bp) return bp - ap
+
+        const ar = getRewardValue(a)
+        const br = getRewardValue(b)
+        if (ar.cusd !== br.cusd) return br.cusd - ar.cusd
+        if (ar.xp !== br.xp) return br.xp - ar.xp
+
+        if (a.id === b.id) return 0
+        return a.id > b.id ? 1 : -1
+      })
+    }
+
     if (taskViewPrefs.sortByDeadline) {
       return [...filtered].sort((a, b) => {
         const ap = isTaskPinned(a.id) ? 1 : 0
@@ -795,6 +827,7 @@ export default function Page() {
     taskViewPrefs.hideCompleted,
     taskViewPrefs.showOnlyAccepted,
     taskViewPrefs.sortByDeadline,
+    taskViewPrefs.sortByReward,
   ])
 
   const handleNoteChange = useCallback((taskId: bigint, note: string) => {

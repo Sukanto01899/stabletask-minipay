@@ -205,6 +205,7 @@ export default function ProfilePage() {
     hideCompleted: false,
     showOnlyAccepted: false,
     sortByDeadline: false,
+    sortByReward: false,
   })
   const [toastPrefs, setToastPrefs] = useState<ToastPreferences>({
     toastOnSuccess: true,
@@ -632,6 +633,14 @@ export default function ProfilePage() {
             value={taskViewPrefs.sortByDeadline}
             onToggle={() =>
               setTaskViewPrefs((prev) => ({ ...prev, sortByDeadline: !prev.sortByDeadline }))
+            }
+          />
+          <ToggleRow
+            label="Sort by reward"
+            description="Pinned first, then highest cUSD (then XP). Takes priority over deadline sort."
+            value={taskViewPrefs.sortByReward}
+            onToggle={() =>
+              setTaskViewPrefs((prev) => ({ ...prev, sortByReward: !prev.sortByReward }))
             }
           />
         </div>

@@ -6,6 +6,7 @@ import { type State, WagmiProvider } from 'wagmi'
 
 import { getConfig } from '@/wagmi'
 import { ToastProvider } from '@/components/ui/toast'
+import { PendingCountProvider } from '@/lib/pending-count-context'
 
 export function Providers(props: {
   children: ReactNode
@@ -17,7 +18,9 @@ export function Providers(props: {
   return (
     <WagmiProvider config={config} initialState={props.initialState}>
       <QueryClientProvider client={queryClient}>
-        <ToastProvider>{props.children}</ToastProvider>
+        <ToastProvider>
+            <PendingCountProvider>{props.children}</PendingCountProvider>
+          </ToastProvider>
       </QueryClientProvider>
     </WagmiProvider>
   )

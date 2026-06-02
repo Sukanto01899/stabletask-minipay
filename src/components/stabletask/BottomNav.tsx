@@ -10,6 +10,7 @@ export type BottomNavItem = {
   label: string
   href: string
   icon: IconSvgElement
+  badge?: number
 }
 
 export function BottomNav(props: { items: BottomNavItem[] }) {
@@ -31,13 +32,20 @@ export function BottomNav(props: { items: BottomNavItem[] }) {
               )}
               href={item.href}
             >
-              <HugeiconsIcon
-                aria-hidden="true"
-                icon={item.icon}
-                size={22}
-                strokeWidth={2}
-                className={cn('transition', isActive ? 'text-lime-100' : 'text-slate-400 group-hover:text-cyan-100')}
-              />
+              <span className="relative">
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={item.icon}
+                  size={22}
+                  strokeWidth={2}
+                  className={cn('transition', isActive ? 'text-lime-100' : 'text-slate-400 group-hover:text-cyan-100')}
+                />
+                {item.badge != null && item.badge > 0 && (
+                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-slate-950 bg-amber-400 px-0.5 text-[9px] font-black leading-none text-slate-950">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </span>
               {item.label}
             </Link>
           )

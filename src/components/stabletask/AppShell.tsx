@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { stableTaskConfig } from "@/lib/app-config";
 import { copyText } from "@/lib/clipboard";
+import { usePendingCount } from "@/lib/pending-count-context";
 
 type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -76,6 +77,7 @@ const HEADER_COPY: Record<string, { title: string; subtitle: string }> = {
 export function AppShell(props: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { address, chainId, isConnected } = useConnection();
+  const { pendingPayoutsCount } = usePendingCount();
   const connectors = useConnectors();
   const { connect, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
@@ -273,7 +275,7 @@ export function AppShell(props: { children: React.ReactNode }) {
           items={[
             { label: "Tasks", href: "/tasks", icon: Task01Icon },
             { label: "Tap", href: "/tap", icon: Tap01Icon },
-            { label: "Rewards", href: "/rewards", icon: GiftIcon },
+            { label: "Rewards", href: "/rewards", icon: GiftIcon, badge: pendingPayoutsCount },
             { label: "Profile", href: "/profile", icon: UserCircleIcon },
           ]}
         />

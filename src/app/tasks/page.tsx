@@ -18,6 +18,7 @@ import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useToast } from '@/components/ui/toast'
 import { encodeMetadataURI, type OnchainTask, useVaultTasks, type Difficulty } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
+import { detectMiniPay } from '@/lib/minipay'
 import { readTaskViewPreferences, taskViewPreferencesStorageKey, type TaskViewPreferences } from '@/lib/task-view-preferences'
 import { usePendingCount } from '@/lib/pending-count-context'
 
@@ -153,7 +154,11 @@ function useAutoConnect(isConnected: boolean) {
       return
     }
 
-    const [primaryConnector] = connectors
+    // Inside MiniPay use its dedicated connector; elsewhere skip it (its
+    // provider is undefined off-MiniPay) and use the next available injected one.
+    const primaryConnector = detectMiniPay()
+      ? connectors.find((connector) => connector.id === 'minipay') ?? connectors[0]
+      : connectors.find((connector) => connector.id !== 'minipay') ?? connectors[0]
     if (!primaryConnector) return
 
     const attemptConnect = async () => {

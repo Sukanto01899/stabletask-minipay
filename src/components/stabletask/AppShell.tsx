@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { stableTaskConfig } from "@/lib/app-config";
 import { copyText } from "@/lib/clipboard";
+import { detectMiniPay, useIsMiniPay } from "@/lib/minipay";
 import { usePendingCount } from "@/lib/pending-count-context";
 
 type Eip1193Provider = {
@@ -82,6 +83,7 @@ export function AppShell(props: { children: React.ReactNode }) {
   const { connect, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
   const { toast } = useToast();
+  const isMiniPay = useIsMiniPay();
 
   const switchAttemptedRef = useRef(false);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
@@ -182,6 +184,20 @@ export function AppShell(props: { children: React.ReactNode }) {
     if (!isConnected) setWalletSheetOpen(false);
   }, [isConnected]);
 
+  // MiniPay connection is implicit: auto-connect the injected wallet on load.
+  // Guarded by detectMiniPay() so desktop browsers are not force-prompted.
+  const miniPayConnectAttempted = useRef(false);
+  useEffect(() => {
+    if (isConnected || miniPayConnectAttempted.current) return;
+    if (!detectMiniPay()) return;
+
+    const [miniPayConnector] = connectors;
+    if (!miniPayConnector) return;
+
+    miniPayConnectAttempted.current = true;
+    void connect({ connector: miniPayConnector });
+  }, [connect, connectors, isConnected]);
+
   const handleConnect = async () => {
     const [primaryConnector] = connectors;
     if (!primaryConnector) return;
@@ -248,6 +264,11 @@ export function AppShell(props: { children: React.ReactNode }) {
                 >
                   <span>{shortAddress ?? "No wallet"}</span>
                 </button>
+              ) : isMiniPay ? (
+                // MiniPay: connection is implicit/auto — show a status chip, no manual button.
+                <span className="inline-flex items-center gap-2 rounded-full border border-lime-300/25 bg-lime-300/10 px-3 py-1 text-xs font-semibold text-lime-100 backdrop-blur">
+                  {isConnectPending ? "Connecting..." : "MiniPay"}
+                </span>
               ) : (
                 <Button
                   type="button"

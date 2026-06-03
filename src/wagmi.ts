@@ -5,6 +5,18 @@ export function getConfig() {
   return createConfig({
     chains: [celo],
     connectors: [
+      // MiniPay injects window.ethereum.isMiniPay — keep this first so
+      // auto-connect (connectors[0]) targets MiniPay when running inside it.
+      injected({
+        target() {
+          const eth = typeof window !== 'undefined' ? (window as any).ethereum : undefined
+          return {
+            id: 'minipay',
+            name: 'MiniPay',
+            provider: eth?.isMiniPay ? eth : undefined,
+          }
+        },
+      }),
       injected({
         target() {
           const eth = typeof window !== 'undefined' ? (window as any).ethereum : undefined

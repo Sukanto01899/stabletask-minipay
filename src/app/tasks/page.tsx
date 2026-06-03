@@ -906,6 +906,12 @@ export default function Page() {
       setCreateError('Claim slots must be a whole number greater than 0.')
       return
     }
+    if (walletCusdAmount !== null && rewardTokenAmount * maxClaims > walletCusdAmount) {
+      setCreateError(
+        `Insufficient ${stableTaskConfig.rewardToken.symbol} balance to escrow this task.`,
+      )
+      return
+    }
     if (!address || !isConnected) {
       setCreateError('Connect your wallet to create a task.')
       return
@@ -1015,6 +1021,15 @@ export default function Page() {
         setPendingAction(null)
       }
     }
+
+  const createEscrowTotal = Number(newTask.rewardTokenAmount) * Number(newTask.maxClaims)
+  const walletCusdAmount = cusdBalance !== null ? Number(cusdBalance) : null
+  const hasInsufficientCusd =
+    Number.isFinite(createEscrowTotal) &&
+    createEscrowTotal > 0 &&
+    walletCusdAmount !== null &&
+    Number.isFinite(walletCusdAmount) &&
+    createEscrowTotal > walletCusdAmount
 
   if ((isConnecting || isPending) && !isConnected) {
     return (
@@ -1573,6 +1588,20 @@ export default function Page() {
                 </span>
                 .
               </div>
+              {hasInsufficientCusd && (
+                <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+                  Insufficient {stableTaskConfig.rewardToken.symbol} balance. You need{' '}
+                  <span className="font-black">
+                    {createEscrowTotal.toLocaleString(undefined, { maximumFractionDigits: 6 })}{' '}
+                    {stableTaskConfig.rewardToken.symbol}
+                  </span>{' '}
+                  but your wallet holds{' '}
+                  <span className="font-black">
+                    {formatCompactAmount(cusdBalance, 4)} {stableTaskConfig.rewardToken.symbol}
+                  </span>
+                  .
+                </div>
+              )}
               <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">
                 Est. gas fee:{' '}
                 <span className="font-black text-cyan-100">
@@ -1592,7 +1621,7 @@ export default function Page() {
                 <button
                   type="button"
                   onClick={handleCreateTask}
-                  disabled={Boolean(pendingAction)}
+                  disabled={Boolean(pendingAction) || hasInsufficientCusd}
                   className="h-11 rounded-xl bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200 disabled:opacity-60"
                 >
                   {pendingAction?.kind === 'create' ? 'Creating...' : 'Save task'}

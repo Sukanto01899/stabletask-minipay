@@ -281,3 +281,28 @@
 .border-white\/70 {
   border-color: rgb(34 211 238 / 0.22) !important;
 }
+
+/* =====================================================================
+   TEMP — Force landscape orientation (testing only).
+   While the device is in PORTRAIT, rotate the whole app 90° so the
+   landscape layout can be previewed without physically rotating.
+   The transform lives on the app root, so position:fixed descendants
+   (bottom nav, modals) are contained by it and rotate along with it.
+   In real landscape this rule does nothing (the app shows normally).
+   TO REVERT: delete this block AND remove `force-landscape` from the
+   AppShell root <div> in src/components/stabletask/AppShell.tsx.
+   ===================================================================== */
+@media screen and (orientation: portrait) {
+  .force-landscape {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    width: 100dvh;
+    height: 100dvw;
+    min-height: 0;
+    transform: rotate(90deg);
+    transform-origin: left top;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+}

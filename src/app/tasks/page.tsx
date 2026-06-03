@@ -771,6 +771,33 @@ export default function Page() {
     [handleClaim],
   )
 
+  const difficultyCounts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    const counts: Record<Difficulty, number> = { Easy: 0, Medium: 0, Hard: 0 }
+    for (const task of baseVisibleTasks) {
+      if (
+        q &&
+        !(
+          task.title.toLowerCase().includes(q) ||
+          task.description.toLowerCase().includes(q) ||
+          (task.tag?.toLowerCase().includes(q) ?? false)
+        )
+      ) {
+        continue
+      }
+      if (taskViewPrefs.hideCompleted && task.isCompleted) continue
+      if (taskViewPrefs.showOnlyAccepted && !isTaskAccepted(task.id)) continue
+      counts[task.difficulty] += 1
+    }
+    return counts
+  }, [
+    baseVisibleTasks,
+    isTaskAccepted,
+    searchQuery,
+    taskViewPrefs.hideCompleted,
+    taskViewPrefs.showOnlyAccepted,
+  ])
+
   const visibleTasks = useMemo(() => {
     let filtered = baseVisibleTasks
 
@@ -1293,18 +1320,22 @@ export default function Page() {
               ] as const
             ).map(({ label, active, idle }) => {
               const isActive = difficultyFilter === label
+              const count = difficultyCounts[label]
               return (
                 <button
                   key={label}
                   type="button"
                   onClick={() => setDifficultyFilter(isActive ? null : label)}
-                  className={`rounded-full border px-3 py-1 text-xs font-black transition ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black transition ${
                     isActive
                       ? `${active} ring-1`
                       : `${idle} hover:border-opacity-50 hover:bg-opacity-15`
                   }`}
                 >
                   {label}
+                  <span className="rounded-full bg-slate-950/40 px-1.5 text-[10px] tabular-nums">
+                    {count}
+                  </span>
                 </button>
               )
             })}

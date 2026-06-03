@@ -188,7 +188,7 @@ export default function Page() {
       query: { enabled: Boolean(txHash) },
     })
   const isDev = process.env.NODE_ENV === 'development'
-  const { tasks, publicTaskCreationFee, isFetchingTasks, pageError, loadTasks } = useVaultTasks()
+  const { tasks, publicTaskCreationFee, xpBalance, isFetchingTasks, pageError, loadTasks } = useVaultTasks()
   const [localPageError, setLocalPageError] = useState<string | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -1170,7 +1170,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="relative mt-4 grid grid-cols-3 gap-3">
+          <div className="relative mt-4 grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-cyan-300/20 bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur">
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">
                 cUSD
@@ -1183,6 +1183,19 @@ export default function Page() {
                 )}
               </div>
               <div className="text-xs text-slate-500">wallet balance</div>
+            </div>
+            <div className="rounded-xl border border-fuchsia-300/20 bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-fuchsia-200">
+                XP
+              </div>
+              <div className="mt-1 text-xl font-black text-slate-50">
+                {isFetchingTasks ? (
+                  <div className="skeleton-shimmer h-7 w-14 rounded-lg" />
+                ) : (
+                  formatCompactAmount(xpBalance, 0)
+                )}
+              </div>
+              <div className="text-xs text-slate-500">earned so far</div>
             </div>
             <div className="rounded-xl border border-lime-300/20 bg-slate-900/72 px-4 py-3 shadow-sm backdrop-blur">
               <div className="text-[11px] font-black uppercase tracking-[0.2em] text-lime-200">

@@ -18,7 +18,7 @@ import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useToast } from '@/components/ui/toast'
 import { encodeMetadataURI, type OnchainTask, useVaultTasks, type Difficulty } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
-import { detectMiniPay } from '@/lib/minipay'
+import { detectMiniPay, miniPayGasOverrides, useIsMiniPay } from '@/lib/minipay'
 import { readTaskViewPreferences, taskViewPreferencesStorageKey, type TaskViewPreferences } from '@/lib/task-view-preferences'
 import { usePendingCount } from '@/lib/pending-count-context'
 
@@ -193,6 +193,7 @@ export default function Page() {
       query: { enabled: Boolean(txHash) },
     })
   const isDev = process.env.NODE_ENV === 'development'
+  const isMiniPay = useIsMiniPay()
   const { tasks, publicTaskCreationFee, xpBalance, isFetchingTasks, pageError, loadTasks } = useVaultTasks()
   const [localPageError, setLocalPageError] = useState<string | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -548,6 +549,11 @@ export default function Page() {
       setCreateGasFeeEstimate(null)
       return
     }
+    // MiniPay pays gas in cUSD (handled by the wallet), so the CELO estimate is not shown.
+    if (detectMiniPay()) {
+      setCreateGasFeeEstimate(null)
+      return
+    }
     if (!address || !isConnected) {
       setCreateGasFeeEstimate(null)
       return
@@ -662,7 +668,7 @@ export default function Page() {
         description: 'Confirm the transaction in your wallet.',
         variant: 'default',
       })
-      if (publicClient) {
+      if (publicClient && !detectMiniPay()) {
         const fee = await estimateCeloGasFee({
           publicClient,
           account: address,
@@ -687,6 +693,7 @@ export default function Page() {
           functionName: 'selfCompleteTask',
           args: [taskId],
           chainId: ACTIVE_CHAIN_ID,
+          ...miniPayGasOverrides(),
         })
       } catch (visitError) {
         console.error('Visit completion failed:', visitError)
@@ -724,7 +731,7 @@ export default function Page() {
         description: 'Confirm the transaction in your wallet.',
         variant: 'default',
       })
-      if (publicClient) {
+      if (publicClient && !detectMiniPay()) {
         const fee = await estimateCeloGasFee({
           publicClient,
           account: address,
@@ -749,6 +756,7 @@ export default function Page() {
           functionName: 'claimTaskPoint',
           args: [taskId],
           chainId: ACTIVE_CHAIN_ID,
+          ...miniPayGasOverrides(),
         })
       } catch (claimError) {
         console.error('Claim failed:', claimError)
@@ -961,7 +969,7 @@ export default function Page() {
       setLocalPageError(null)
       setPendingAction({ kind: 'create' })
 
-      if (publicClient) {
+      if (publicClient && !detectMiniPay()) {
         const fee = await estimateCeloGasFee({
           publicClient,
           account: address,
@@ -1007,6 +1015,7 @@ export default function Page() {
             functionName: 'approve',
             args: [stableTaskConfig.contracts.rewardVaultAddress, totalEscrow],
             chainId: ACTIVE_CHAIN_ID,
+            ...miniPayGasOverrides(),
           })
           if (publicClient) {
             await publicClient.waitForTransactionReceipt({ hash: approvalHash })
@@ -1033,6 +1042,7 @@ export default function Page() {
           ],
           value: publicTaskCreationFee,
           chainId: ACTIVE_CHAIN_ID,
+          ...miniPayGasOverrides(),
         } as never,
       )
       setNewTask({
@@ -1670,7 +1680,11 @@ export default function Page() {
               <div className="rounded-xl border border-cyan-300/20 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">
                 Est. gas fee:{' '}
                 <span className="font-black text-cyan-100">
-                  {createGasFeeEstimate ? `${createGasFeeEstimate} CELO` : '—'}
+                  {isMiniPay
+                    ? `Paid in ${stableTaskConfig.rewardToken.symbol}`
+                    : createGasFeeEstimate
+                      ? `${createGasFeeEstimate} CELO`
+                      : '—'}
                 </span>
               </div>
               {createError && <p className="text-xs text-destructive">{createError}</p>}

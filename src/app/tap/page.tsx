@@ -13,6 +13,7 @@ import {
 import { erc20Abi, formatUnits } from 'viem'
 
 import { stableTaskConfig } from '@/lib/app-config'
+import { miniPayGasOverrides } from '@/lib/minipay'
 import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
@@ -327,6 +328,7 @@ export default function TapPage() {
         abi: stableTaskConfig.contracts.rewardVaultAbi,
         functionName: 'tap',
         chainId: ACTIVE_CHAIN_ID,
+        ...miniPayGasOverrides(),
       })
     } catch (error) {
       console.error('Tap transaction failed:', error)

@@ -270,6 +270,8 @@ export default function TapPage() {
       setMintedFlash(true)
       setSessionTaps((prev) => prev + 1)
       setSessionXp((prev) => prev + parseFloat(tapXpReward))
+      // Celebratory buzz: XP is now minted on-chain (distinct from the tap-gesture buzz).
+      navigator.vibrate?.([25, 40, 70])
       const t = setTimeout(() => setMintedFlash(false), 2400)
       return () => clearTimeout(t)
     }
@@ -278,6 +280,8 @@ export default function TapPage() {
   useEffect(() => {
     if (writeError || isReceiptError) {
       setTapError('Tap transaction failed. Please try again.')
+      // Longer single buzz signals failure.
+      navigator.vibrate?.(200)
     }
   }, [writeError, isReceiptError])
 

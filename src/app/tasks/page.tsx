@@ -272,6 +272,11 @@ export default function Page() {
     return `stabletask:notes:${normalizedAddress}`
   }, [address])
 
+  const difficultyStorageKey = useMemo(() => {
+    const normalizedAddress = address ? address.toLowerCase() : 'guest'
+    return `stabletask:difficulty:${normalizedAddress}`
+  }, [address])
+
   const taskViewPrefsKey = useMemo(() => taskViewPreferencesStorageKey(address), [address])
 
   useEffect(() => {
@@ -349,6 +354,27 @@ export default function Page() {
       // ignore persistence failures
     }
   }, [notesStorageKey, taskNotes])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(difficultyStorageKey)
+    setDifficultyFilter(
+      stored === 'Easy' || stored === 'Medium' || stored === 'Hard' ? stored : null,
+    )
+  }, [difficultyStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      if (difficultyFilter) {
+        window.localStorage.setItem(difficultyStorageKey, difficultyFilter)
+      } else {
+        window.localStorage.removeItem(difficultyStorageKey)
+      }
+    } catch {
+      // ignore persistence failures
+    }
+  }, [difficultyStorageKey, difficultyFilter])
 
   useEffect(() => {
     if (typeof window === 'undefined') return

@@ -88,6 +88,7 @@ export function AppShell(props: { children: React.ReactNode }) {
   const switchAttemptedRef = useRef(false);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   const header = useMemo(() => {
     return (
@@ -183,6 +184,11 @@ export function AppShell(props: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isConnected) setWalletSheetOpen(false);
   }, [isConnected]);
+
+  // Reset the disconnect confirmation whenever the wallet sheet is closed.
+  useEffect(() => {
+    if (!walletSheetOpen) setConfirmDisconnect(false);
+  }, [walletSheetOpen]);
 
   // MiniPay connection is implicit: auto-connect the injected wallet on load.
   // Guarded by detectMiniPay() so desktop browsers are not force-prompted.
@@ -349,14 +355,40 @@ export function AppShell(props: { children: React.ReactNode }) {
                 >
                   {hasCopied ? "Copied" : "Copy address"}
                 </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="lg"
-                  onClick={handleDisconnect}
-                >
-                  Disconnect
-                </Button>
+                {confirmDisconnect ? (
+                  <div className="grid gap-2">
+                    <div className="text-center text-xs text-muted-foreground">
+                      Disconnect this wallet?
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="lg"
+                        onClick={() => setConfirmDisconnect(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="lg"
+                        onClick={handleDisconnect}
+                      >
+                        Confirm
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="lg"
+                    onClick={() => setConfirmDisconnect(true)}
+                  >
+                    Disconnect
+                  </Button>
+                )}
               </div>
             </div>
           </div>

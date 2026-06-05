@@ -279,6 +279,11 @@ export default function Page() {
     return `stabletask:difficulty:${normalizedAddress}`
   }, [address])
 
+  const searchStorageKey = useMemo(() => {
+    const normalizedAddress = address ? address.toLowerCase() : 'guest'
+    return `stabletask:search:${normalizedAddress}`
+  }, [address])
+
   const taskViewPrefsKey = useMemo(() => taskViewPreferencesStorageKey(address), [address])
 
   useEffect(() => {
@@ -377,6 +382,24 @@ export default function Page() {
       // ignore persistence failures
     }
   }, [difficultyStorageKey, difficultyFilter])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setSearchQuery(window.localStorage.getItem(searchStorageKey) ?? '')
+  }, [searchStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      if (searchQuery) {
+        window.localStorage.setItem(searchStorageKey, searchQuery)
+      } else {
+        window.localStorage.removeItem(searchStorageKey)
+      }
+    } catch {
+      // ignore persistence failures
+    }
+  }, [searchStorageKey, searchQuery])
 
   useEffect(() => {
     if (typeof window === 'undefined') return

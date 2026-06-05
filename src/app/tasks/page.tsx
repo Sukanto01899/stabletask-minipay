@@ -24,6 +24,8 @@ import { usePendingCount } from '@/lib/pending-count-context'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+// cUSD funds both task reward escrow and (in MiniPay) gas — warn below this balance.
+const LOW_CUSD_THRESHOLD = 0.1
 
 type TaskTypeOption = 'visit' | 'reading'
 
@@ -1098,6 +1100,12 @@ export default function Page() {
     walletCusdAmount !== null &&
     Number.isFinite(walletCusdAmount) &&
     createEscrowTotal > walletCusdAmount
+  const isLowCusd =
+    isConnected &&
+    !isFetchingBalance &&
+    walletCusdAmount !== null &&
+    Number.isFinite(walletCusdAmount) &&
+    walletCusdAmount < LOW_CUSD_THRESHOLD
 
   if ((isConnecting || isPending) && !isConnected) {
     return (
@@ -1153,6 +1161,25 @@ export default function Page() {
           <p className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
             {resolvedPageError}
           </p>
+        )}
+
+        {isLowCusd && (
+          <div className="relative overflow-hidden rounded-[1.25rem] border border-rose-300/30 bg-rose-400/8 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-lg" aria-hidden>
+                ⚠️
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-black text-rose-100">
+                  Low {stableTaskConfig.rewardToken.symbol} balance
+                </div>
+                <div className="mt-0.5 text-xs text-slate-400">
+                  {stableTaskConfig.rewardToken.symbol} covers both task rewards and gas
+                  {isMiniPay ? ' in MiniPay' : ''}. Top up to keep creating and claiming.
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {isConnected && !isFetchingTasks && pendingPayoutsCount > 0 && (

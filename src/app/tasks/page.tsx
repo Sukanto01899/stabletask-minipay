@@ -552,6 +552,8 @@ export default function Page() {
       } else if (pendingAction.kind === 'claim') {
         toast({ title: 'Claimed', description: 'Rewards claimed successfully.', variant: 'success' })
       }
+      // Celebratory buzz: the action is confirmed on-chain.
+      navigator.vibrate?.([25, 40, 70])
       setPendingAction(null)
       void loadTasks()
     }
@@ -572,6 +574,8 @@ export default function Page() {
             ? 'Visit completion failed. Please try again.'
             : 'Reward claim failed. Please try again.',
       )
+      // Longer single buzz signals failure.
+      navigator.vibrate?.(200)
       setPendingAction(null)
     }
   }, [isReceiptError, pendingAction, toast, writeError])

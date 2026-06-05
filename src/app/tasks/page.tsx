@@ -183,7 +183,7 @@ function useAutoConnect(isConnected: boolean) {
 }
 
 export default function Page() {
-  const { setPendingPayoutsCount } = usePendingCount()
+  const { setPendingPayoutsCount, setActiveTasksCount } = usePendingCount()
   const { address, isConnected, isConnecting, chainId } = useConnection()
   const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
   const { toast } = useToast()
@@ -258,6 +258,10 @@ export default function Page() {
   useEffect(() => {
     setPendingPayoutsCount(pendingPayoutsCount)
   }, [pendingPayoutsCount, setPendingPayoutsCount])
+
+  useEffect(() => {
+    setActiveTasksCount(activeTasksCount)
+  }, [activeTasksCount, setActiveTasksCount])
 
   const acceptedStorageKey = useMemo(() => {
     const normalizedAddress = address ? address.toLowerCase() : 'guest'

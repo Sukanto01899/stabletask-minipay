@@ -78,7 +78,7 @@ const HEADER_COPY: Record<string, { title: string; subtitle: string }> = {
 export function AppShell(props: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { address, chainId, isConnected } = useConnection();
-  const { pendingPayoutsCount } = usePendingCount();
+  const { pendingPayoutsCount, activeTasksCount } = usePendingCount();
   const connectors = useConnectors();
   const { connect, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
@@ -300,7 +300,7 @@ export function AppShell(props: { children: React.ReactNode }) {
       {isConnected && (
         <BottomNav
           items={[
-            { label: "Tasks", href: "/tasks", icon: Task01Icon },
+            { label: "Tasks", href: "/tasks", icon: Task01Icon, badge: activeTasksCount },
             { label: "Tap", href: "/tap", icon: Tap01Icon },
             { label: "Rewards", href: "/rewards", icon: GiftIcon, badge: pendingPayoutsCount },
             { label: "Profile", href: "/profile", icon: UserCircleIcon },

@@ -105,6 +105,29 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
     }
   }
 
+  const handleShare = async () => {
+    const shareText = `${props.title} — earn ${props.reward} on StableTask`
+    const shareUrl = props.visitHref
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({
+          title: props.title,
+          text: shareText,
+          ...(shareUrl ? { url: shareUrl } : {}),
+        })
+        return
+      }
+      // Web Share unsupported (e.g. desktop): copy the share text + link instead.
+      await copyText(shareUrl ? `${shareText}\n${shareUrl}` : shareText)
+      toast({ title: 'Copied', description: 'Share text copied to clipboard.', variant: 'success' })
+    } catch (error) {
+      // Dismissing the native share sheet throws AbortError — not a real failure.
+      if (error instanceof Error && error.name === 'AbortError') return
+      console.error('Failed to share task:', error)
+      toast({ title: 'Share failed', description: 'Could not share this task.', variant: 'error' })
+    }
+  }
+
   const handleNoteChange = (value: string) => {
     if (!props.onNoteChange || props.taskId === undefined) return
     props.onNoteChange(props.taskId, value)
@@ -228,6 +251,14 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
                 aria-label="Copy task link"
               >
                 Copy
+              </button>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="rounded-full border border-lime-300/25 bg-lime-300/10 px-3 py-1 text-xs font-semibold text-lime-100 transition hover:bg-lime-300/20"
+                aria-label="Share task"
+              >
+                Share
               </button>
             </div>
           </div>

@@ -165,6 +165,18 @@ function MilestoneBar({
             )}
             <span>{dailyTapLimit.toLocaleString()}</span>
           </div>
+
+          {!isLimitReached &&
+            (() => {
+              const nextMilestone = MILESTONES.find((m) => m > tapsToday)
+              if (!nextMilestone) return null
+              const tapsLeft = nextMilestone - tapsToday
+              return (
+                <div className="mt-2.5 text-center text-[11px] font-black text-cyan-200/85">
+                  🎯 {tapsLeft} more {tapsLeft === 1 ? 'tap' : 'taps'} to {nextMilestone}
+                </div>
+              )
+            })()}
         </>
       )}
     </div>

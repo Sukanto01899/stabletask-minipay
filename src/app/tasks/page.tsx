@@ -1368,27 +1368,48 @@ export default function Page() {
                 ? 'Quests'
                 : `Quests${visibleTasks.length > 0 ? ` (${visibleTasks.length})` : ''}`}
             </h2>
-            {!isFetchingTasks && (searchQuery.trim() || difficultyFilter || taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('')
-                  setDifficultyFilter(null)
-                  setTaskViewPrefs((prev) => ({
-                    ...prev,
-                    hideCompleted: false,
-                    showOnlyAccepted: false,
-                  }))
-                }}
-                className="inline-flex items-center gap-1 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200 transition hover:bg-cyan-300/20"
-                aria-label="Clear all filters"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
-                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                </svg>
-                Clear filters
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {!isFetchingTasks && (taskViewPrefs.sortByReward || taskViewPrefs.sortByDeadline) && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTaskViewPrefs((prev) => ({
+                      ...prev,
+                      sortByReward: false,
+                      sortByDeadline: false,
+                    }))
+                  }
+                  className="inline-flex items-center gap-1 rounded-full border border-lime-300/25 bg-lime-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-200 transition hover:bg-lime-300/20"
+                  aria-label="Clear sort"
+                >
+                  Sorted: {taskViewPrefs.sortByReward ? 'Reward' : 'Deadline'}
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                  </svg>
+                </button>
+              )}
+              {!isFetchingTasks && (searchQuery.trim() || difficultyFilter || taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setDifficultyFilter(null)
+                    setTaskViewPrefs((prev) => ({
+                      ...prev,
+                      hideCompleted: false,
+                      showOnlyAccepted: false,
+                    }))
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-cyan-200 transition hover:bg-cyan-300/20"
+                  aria-label="Clear all filters"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                  </svg>
+                  Clear filters
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Search bar */}

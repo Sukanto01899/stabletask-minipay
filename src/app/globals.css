@@ -219,11 +219,30 @@
   }
 
   .game-panel {
-    @apply border border-cyan-400/25 bg-slate-950/72 shadow-[0_18px_70px_rgba(0,0,0,0.38)] backdrop-blur-md;
+    @apply relative border border-cyan-400/25 bg-slate-950/72 shadow-[0_18px_70px_rgba(0,0,0,0.38)] backdrop-blur-md;
   }
 
   .game-panel-strong {
-    @apply border border-lime-300/35 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.96))] shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_22px_80px_rgba(0,0,0,0.48)];
+    @apply relative border border-lime-300/35 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.96))] shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_22px_80px_rgba(0,0,0,0.48)];
+  }
+
+  /* Lit top edge — a 1px gradient sheen that follows the card's rounded corners. */
+  .game-panel::before,
+  .game-panel-strong::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(34, 211, 238, 0.55) 28%,
+      rgba(163, 230, 53, 0.55) 72%,
+      transparent 100%
+    );
+    pointer-events: none;
   }
 
   .game-chip {

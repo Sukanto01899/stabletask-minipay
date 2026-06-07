@@ -15,6 +15,7 @@ import { erc20Abi, formatUnits } from 'viem'
 import { stableTaskConfig } from '@/lib/app-config'
 import { miniPayGasOverrides } from '@/lib/minipay'
 import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
+import { AnimatedNumber } from '@/components/stabletask/AnimatedNumber'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -59,7 +60,11 @@ function StatCard(props: {
   label: string
   labelColor: string
   borderColor: string
-  value: string
+  value: number
+  format?: (n: number) => string
+  prefix?: string
+  suffix?: string
+  gradient?: boolean
   sub: string
   loading: boolean
   highlight?: boolean
@@ -74,7 +79,15 @@ function StatCard(props: {
       {props.loading ? (
         <div className="skeleton-shimmer mt-1 h-7 w-20 rounded-lg" />
       ) : (
-        <div className="mt-1 text-xl font-black text-slate-50">{props.value}</div>
+        <div className="mt-1 text-xl font-black text-slate-50">
+          {props.prefix}
+          <AnimatedNumber
+            value={props.value}
+            format={props.format}
+            gradient={props.gradient}
+          />
+          {props.suffix}
+        </div>
       )}
       <div className="text-xs text-slate-400">{props.sub}</div>
     </div>
@@ -535,7 +548,9 @@ export default function TapPage() {
             label="XP Balance"
             labelColor="text-lime-200"
             borderColor="border-lime-300/20"
-            value={formatAmount(xpBalance)}
+            value={parseFloat(xpBalance) || 0}
+            format={(n) => formatAmount(String(n))}
+            gradient
             sub="vault token balance"
             loading={isLoadingTapData}
           />
@@ -543,7 +558,7 @@ export default function TapPage() {
             label="Today's Taps"
             labelColor="text-amber-200"
             borderColor="border-amber-300/20"
-            value={String(tapsToday)}
+            value={tapsToday}
             sub={isLimitReached ? `⏳ resets in ${countdown}` : `${remainingTaps} remaining today`}
             loading={isLoadingTapData}
           />
@@ -554,7 +569,10 @@ export default function TapPage() {
               label="Session XP"
               labelColor="text-cyan-200"
               borderColor="border-cyan-300/20"
-              value={`+${sessionXp.toLocaleString()} XP`}
+              value={sessionXp}
+              prefix="+"
+              suffix=" XP"
+              gradient
               sub={`from ${sessionTaps} tap${sessionTaps !== 1 ? 's' : ''} this session`}
               loading={false}
               highlight

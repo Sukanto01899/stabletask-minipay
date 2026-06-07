@@ -8,6 +8,7 @@ import { formatUnits, parseUnits } from 'viem'
 import { useVaultTasks, type OnchainTask } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
 import { Badge } from '@/components/ui/badge'
+import { AnimatedNumber } from '@/components/stabletask/AnimatedNumber'
 
 function safeParseUnits(value: string | undefined, decimals: number) {
   if (!value) return BigInt(0)
@@ -108,9 +109,12 @@ function XpHero({ xpBalance, loading }: { xpBalance: string; loading: boolean })
         <div className="skeleton-shimmer mt-2 h-10 w-36 rounded-lg" />
       ) : (
         <div className="mt-1 flex items-end gap-2">
-          <span className="text-4xl font-black tabular-nums leading-none text-slate-50">
-            {formatAmount(xpBalance)}
-          </span>
+          <AnimatedNumber
+            value={xp}
+            format={(n) => formatAmount(String(n))}
+            gradient
+            className="text-4xl font-black leading-none"
+          />
           <span className="mb-0.5 text-xl font-black text-lime-300">XP</span>
         </div>
       )}

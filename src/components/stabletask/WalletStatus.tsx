@@ -1,4 +1,5 @@
 ﻿import { Badge } from '@/components/ui/badge'
+import { StatusDot } from '@/components/stabletask/StatusDot'
 import { cn } from '@/lib/utils'
 
 export type WalletStatusProps = {
@@ -20,7 +21,13 @@ export function WalletStatus(props: WalletStatusProps) {
           <div className="text-sm text-muted-foreground">Wallet</div>
           <div className="text-lg font-semibold">{props.isConnected ? 'Connected' : 'Not connected'}</div>
         </div>
-        <Badge className={cn(props.isConnected ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-900')}>
+        <Badge
+          className={cn(
+            'gap-1.5',
+            props.isConnected ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-900',
+          )}
+        >
+          <StatusDot status={props.isConnected ? 'online' : 'offline'} />
           {props.isConnected ? 'Online' : 'Offline'}
         </Badge>
       </div>

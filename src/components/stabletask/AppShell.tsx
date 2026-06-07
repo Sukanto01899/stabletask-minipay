@@ -16,6 +16,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { BottomNav } from "@/components/stabletask/BottomNav";
+import { StatusDot } from "@/components/stabletask/StatusDot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -268,11 +269,13 @@ export function AppShell(props: { children: React.ReactNode }) {
                   className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-50 backdrop-blur transition hover:bg-cyan-300/16"
                   aria-label="Wallet menu"
                 >
+                  <StatusDot status="online" />
                   <span>{shortAddress ?? "No wallet"}</span>
                 </button>
               ) : isMiniPay ? (
                 // MiniPay: connection is implicit/auto — show a status chip, no manual button.
                 <span className="inline-flex items-center gap-2 rounded-full border border-lime-300/25 bg-lime-300/10 px-3 py-1 text-xs font-semibold text-lime-100 backdrop-blur">
+                  <StatusDot status={isConnectPending ? "connecting" : "online"} />
                   {isConnectPending ? "Connecting..." : "MiniPay"}
                 </span>
               ) : (
@@ -284,6 +287,7 @@ export function AppShell(props: { children: React.ReactNode }) {
                   disabled={isConnectPending}
                   className="border border-lime-300/30 bg-lime-300/15 text-lime-50 hover:bg-lime-300/22"
                 >
+                  <StatusDot status={isConnectPending ? "connecting" : "offline"} />
                   {isConnectPending ? "Connecting..." : "Connect"}
                 </Button>
               )}

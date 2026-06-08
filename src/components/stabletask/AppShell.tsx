@@ -16,6 +16,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { BottomNav } from "@/components/stabletask/BottomNav";
+import { ScrollToTop } from "@/components/stabletask/ScrollToTop";
 import { StatusDot } from "@/components/stabletask/StatusDot";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -302,14 +303,17 @@ export function AppShell(props: { children: React.ReactNode }) {
       {props.children}
 
       {isConnected && (
-        <BottomNav
-          items={[
-            { label: "Tasks", href: "/tasks", icon: Task01Icon, badge: activeTasksCount },
-            { label: "Tap", href: "/tap", icon: Tap01Icon },
-            { label: "Rewards", href: "/rewards", icon: GiftIcon, badge: pendingPayoutsCount },
-            { label: "Profile", href: "/profile", icon: UserCircleIcon },
-          ]}
-        />
+        <>
+          <ScrollToTop />
+          <BottomNav
+            items={[
+              { label: "Tasks", href: "/tasks", icon: Task01Icon, badge: activeTasksCount },
+              { label: "Tap", href: "/tap", icon: Tap01Icon },
+              { label: "Rewards", href: "/rewards", icon: GiftIcon, badge: pendingPayoutsCount },
+              { label: "Profile", href: "/profile", icon: UserCircleIcon },
+            ]}
+          />
+        </>
       )}
 
       {walletSheetOpen && isConnected && (

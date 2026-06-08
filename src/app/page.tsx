@@ -403,6 +403,12 @@ export default function HomePage() {
                 }}
               />
             </div>
+            <div className="mt-1.5 text-right text-[10px] font-bold text-slate-500">
+              <span className="tabular-nums text-slate-300">
+                {Math.max(0, Math.ceil(tier.next - xp)).toLocaleString()}
+              </span>{' '}
+              XP to {nextTier?.label}
+            </div>
           </div>
         )}
         {!isFetchingTasks && tier.next === null && (

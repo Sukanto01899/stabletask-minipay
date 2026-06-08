@@ -10,6 +10,7 @@ import { useStreak } from '@/hooks/useStreak'
 import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
 import { copyText } from '@/lib/clipboard'
 import { stableTaskConfig } from '@/lib/app-config'
+import { useToast } from '@/components/ui/toast'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -87,6 +88,7 @@ export default function HomePage() {
   const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
   const { tasks, xpBalance, isFetchingTasks } = useVaultTasks()
   const { streakCount, isLoading: isStreakLoading } = useStreak(address)
+  const { toast } = useToast()
 
   const [tapsToday, setTapsToday] = useState<number | null>(null)
   const [dailyTapLimit, setDailyTapLimit] = useState(1000)
@@ -167,6 +169,35 @@ export default function HomePage() {
   const tier = getTier(xp)
   const tierIndex = XP_TIERS.indexOf(tier)
   const nextTier = XP_TIERS[tierIndex + 1]
+
+  // Celebrate when the user crosses into a higher tier. The last-seen tier is
+  // stored per wallet so the first observation just seeds the baseline (no
+  // false celebration) and switching wallets doesn't fire a stale toast.
+  useEffect(() => {
+    if (isFetchingTasks || !address || typeof window === 'undefined') return
+    const key = `stabletask:lastTier:${address.toLowerCase()}`
+    const stored = window.localStorage.getItem(key)
+    const storedIndex = stored !== null ? Number.parseInt(stored, 10) : null
+
+    if (storedIndex === null || Number.isNaN(storedIndex)) {
+      window.localStorage.setItem(key, String(tierIndex))
+      return
+    }
+    if (tierIndex > storedIndex) {
+      toast({
+        title: `🎉 Tier up! You reached ${tier.label}`,
+        description: nextTier
+          ? `Next: ${nextTier.label} at ${tier.next?.toLocaleString()} XP`
+          : 'You hit the max tier — Legend!',
+        variant: 'success',
+        durationMs: 4000,
+      })
+    }
+    if (tierIndex !== storedIndex) {
+      window.localStorage.setItem(key, String(tierIndex))
+    }
+  }, [isFetchingTasks, address, tierIndex, tier.label, tier.next, nextTier, toast])
+
   const levelPct =
     tier.next !== null
       ? Math.min(100, Math.round(((xp - tier.min) / (tier.next - tier.min)) * 100))

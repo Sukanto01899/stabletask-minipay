@@ -91,7 +91,19 @@ export default function HomePage() {
   const [tapsToday, setTapsToday] = useState<number | null>(null)
   const [dailyTapLimit, setDailyTapLimit] = useState(1000)
   const [shareState, setShareState] = useState<'idle' | 'copied' | 'shared'>('idle')
+  const [addressCopied, setAddressCopied] = useState(false)
   const countdown = useCountdownToMidnightUTC()
+
+  const handleCopyAddress = useCallback(async () => {
+    if (!address || addressCopied) return
+    try {
+      await copyText(address)
+      setAddressCopied(true)
+      setTimeout(() => setAddressCopied(false), 1500)
+    } catch {
+      // silently ignore clipboard failures
+    }
+  }, [address, addressCopied])
 
   const loadTapStats = useCallback(async () => {
     if (!publicClient || stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) return
@@ -167,6 +179,7 @@ export default function HomePage() {
   const tapPct = dailyTapLimit > 0 && tapsToday !== null ? Math.min(100, (tapsToday / dailyTapLimit) * 100) : 0
 
   const monogram = address ? address.slice(2, 4).toUpperCase() : '??'
+  const shortAddress = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : ''
 
   if (!isConnected) {
     return (
@@ -275,6 +288,33 @@ export default function HomePage() {
                 </span>
                 <span className="mb-0.5 text-lg font-black text-lime-300">XP</span>
               </div>
+            )}
+
+            {/* Copy-address chip */}
+            {address && (
+              <button
+                type="button"
+                onClick={handleCopyAddress}
+                title={addressCopied ? 'Copied!' : 'Copy your address'}
+                className="mt-2 flex items-center gap-1.5 rounded-full border border-slate-700/60 bg-slate-900/60 px-2.5 py-1 font-mono text-[10px] font-bold text-slate-400 transition hover:border-cyan-300/30 hover:text-cyan-200 active:scale-95"
+              >
+                {addressCopied ? (
+                  <>
+                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3 text-lime-300">
+                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-lime-300">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{shortAddress}</span>
+                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3 opacity-60">
+                      <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
+                      <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
+                    </svg>
+                  </>
+                )}
+              </button>
             )}
           </div>
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
 import { copyText } from '@/lib/clipboard'
+import { haptics } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 import type { Difficulty } from '@/hooks/useVaultTasks'
 
@@ -81,11 +82,13 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
 
   const handleVisit = () => {
     if (!props.onVisit || props.taskId === undefined) return
+    haptics.tap()
     props.onVisit(props.taskId, props.visitHref, props.isVisited)
   }
 
   const handleClaim = () => {
     if (!props.onClaim || props.taskId === undefined) return
+    haptics.tap()
     props.onClaim(props.taskId, props.isVisited, isClaimed)
   }
 

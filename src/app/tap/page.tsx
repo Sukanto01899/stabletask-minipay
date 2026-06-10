@@ -13,6 +13,7 @@ import {
 import { erc20Abi, formatUnits } from 'viem'
 
 import { stableTaskConfig } from '@/lib/app-config'
+import { haptics } from '@/lib/haptics'
 import { miniPayGasOverrides } from '@/lib/minipay'
 import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
 import { AnimatedNumber } from '@/components/stabletask/AnimatedNumber'
@@ -296,7 +297,7 @@ export default function TapPage() {
       setSessionTaps((prev) => prev + 1)
       setSessionXp((prev) => prev + parseFloat(tapXpReward))
       // Celebratory buzz: XP is now minted on-chain (distinct from the tap-gesture buzz).
-      navigator.vibrate?.([25, 40, 70])
+      haptics.success()
       const t = setTimeout(() => setMintedFlash(false), 2400)
       return () => clearTimeout(t)
     }
@@ -306,7 +307,7 @@ export default function TapPage() {
     if (writeError || isReceiptError) {
       setTapError('Tap transaction failed. Please try again.')
       // Longer single buzz signals failure.
-      navigator.vibrate?.(200)
+      haptics.error()
     }
   }, [writeError, isReceiptError])
 
@@ -367,7 +368,7 @@ export default function TapPage() {
 
   const handleTapClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!isBusy && !isLoadingTapData && !isLimitReached) {
-      navigator.vibrate?.(30)
+      haptics.tap()
       const rect = e.currentTarget.getBoundingClientRect()
       const x = e.clientX - rect.left + (Math.random() - 0.5) * 40
       const y = e.clientY - rect.top

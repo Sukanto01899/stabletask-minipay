@@ -18,6 +18,7 @@ import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useToast } from '@/components/ui/toast'
 import { encodeMetadataURI, type OnchainTask, useVaultTasks, type Difficulty } from '@/hooks/useVaultTasks'
 import { stableTaskConfig } from '@/lib/app-config'
+import { haptics } from '@/lib/haptics'
 import { detectMiniPay, miniPayGasOverrides, useIsMiniPay } from '@/lib/minipay'
 import { readTaskViewPreferences, taskViewPreferencesStorageKey, type TaskViewPreferences } from '@/lib/task-view-preferences'
 import { usePendingCount } from '@/lib/pending-count-context'
@@ -557,7 +558,7 @@ export default function Page() {
         toast({ title: 'Claimed', description: 'Rewards claimed successfully.', variant: 'success' })
       }
       // Celebratory buzz: the action is confirmed on-chain.
-      navigator.vibrate?.([25, 40, 70])
+      haptics.success()
       setPendingAction(null)
       void loadTasks()
     }
@@ -579,7 +580,7 @@ export default function Page() {
             : 'Reward claim failed. Please try again.',
       )
       // Longer single buzz signals failure.
-      navigator.vibrate?.(200)
+      haptics.error()
       setPendingAction(null)
     }
   }, [isReceiptError, pendingAction, toast, writeError])

@@ -11,6 +11,7 @@ import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
 import { copyText } from '@/lib/clipboard'
 import { stableTaskConfig } from '@/lib/app-config'
 import { useToast } from '@/components/ui/toast'
+import { EmptyState } from '@/components/stabletask/EmptyState'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -612,20 +613,25 @@ export default function HomePage() {
 
       {/* Empty state */}
       {!isFetchingTasks && claimedTasks.length === 0 && (
-        <section className="game-panel rounded-[1.25rem] px-5 py-8 text-center">
-          <div className="text-sm font-bold text-slate-300">No activity yet</div>
-          <div className="mt-1 text-xs text-slate-500">
-            Tap to earn XP or complete a quest to get started.
-          </div>
-          <div className="mt-4 flex justify-center gap-3">
-            <Link href="/tap" className="rounded-full border border-lime-300/25 bg-lime-300/10 px-5 py-2 text-xs font-bold text-lime-100 transition hover:bg-lime-300/18">
-              Go Tap
-            </Link>
-            <Link href="/tasks" className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/18">
-              Browse Quests
-            </Link>
-          </div>
-        </section>
+        <EmptyState
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-10 w-10">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+            </svg>
+          }
+          title="No activity yet"
+          description="Tap to earn XP or complete a quest to get started."
+          action={
+            <>
+              <Link href="/tap" className="rounded-full border border-lime-300/25 bg-lime-300/10 px-5 py-2 text-xs font-bold text-lime-100 transition hover:bg-lime-300/18">
+                Go Tap
+              </Link>
+              <Link href="/tasks" className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/18">
+                Browse Quests
+              </Link>
+            </>
+          }
+        />
       )}
     </main>
   )

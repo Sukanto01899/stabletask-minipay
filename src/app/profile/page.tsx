@@ -6,6 +6,7 @@ import { useConnection } from 'wagmi'
 
 import { stableTaskConfig } from '@/lib/app-config'
 import { ReferralCard } from '@/components/stabletask/ReferralCard'
+import { EmptyState } from '@/components/stabletask/EmptyState'
 import { copyText } from '@/lib/clipboard'
 import {
   readTaskViewPreferences,
@@ -573,19 +574,21 @@ export default function ProfilePage() {
 
       {/* Empty claims state */}
       {!isLoading && profile && profile.claims.length === 0 && (
-        <section className="game-panel rounded-[1.25rem] px-5 py-8 text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/20 bg-slate-900/60 text-cyan-400/40">
-            <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="mt-3 text-sm font-bold text-slate-300">No claims yet</div>
-          <div className="mt-1 text-xs text-slate-500">Complete tasks to record your first reward claim.</div>
-        </section>
+        <EmptyState
+          icon={
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/20 bg-slate-900/60 text-cyan-400/40">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+          }
+          title="No claims yet"
+          description="Complete tasks to record your first reward claim."
+        />
       )}
 
       {/* Settings */}
@@ -741,7 +744,16 @@ export default function ProfilePage() {
         )}
 
         {!isLoading && referrals.length === 0 && (
-          <p className="mt-4 text-xs text-slate-500">No referral activity recorded yet.</p>
+          <EmptyState
+            className="mt-4"
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-10 w-10">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+              </svg>
+            }
+            title="No referrals yet"
+            description="Share your code to start earning cUSD per friend."
+          />
         )}
       </section>
     </main>

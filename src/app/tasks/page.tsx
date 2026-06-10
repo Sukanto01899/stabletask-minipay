@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   useConnect,
@@ -17,6 +17,7 @@ import { TaskCard } from '@/components/stabletask/TaskCard'
 import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useToast } from '@/components/ui/toast'
 import { encodeMetadataURI, type OnchainTask, useVaultTasks, type Difficulty } from '@/hooks/useVaultTasks'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { stableTaskConfig } from '@/lib/app-config'
 import { haptics } from '@/lib/haptics'
 import { detectMiniPay, miniPayGasOverrides, useIsMiniPay } from '@/lib/minipay'
@@ -217,10 +218,6 @@ export default function Page() {
   const [createGasFeeEstimate, setCreateGasFeeEstimate] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | null>(null)
-  const [pullDistance, setPullDistance] = useState(0)
-  const [pullReady, setPullReady] = useState(false)
-  const pullStartYRef = useRef<number | null>(null)
-  const isPullingRef = useRef(false)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -499,55 +496,12 @@ export default function Page() {
 
   const isRefreshing = isFetchingTasks || isFetchingBalance
 
-  const resetPull = useCallback(() => {
-    pullStartYRef.current = null
-    isPullingRef.current = false
-    setPullDistance(0)
-    setPullReady(false)
-  }, [])
-
-  const handleTouchStart = useCallback(
-    (event: TouchEvent<HTMLDivElement>) => {
-      if (isRefreshing) return
-      if (event.touches.length !== 1) return
-      if (typeof window !== 'undefined' && window.scrollY > 0) return
-      pullStartYRef.current = event.touches[0]?.clientY ?? null
-      isPullingRef.current = false
-    },
-    [isRefreshing],
-  )
-
-  const handleTouchMove = useCallback(
-    (event: TouchEvent<HTMLDivElement>) => {
-      if (isRefreshing) return
-      const startY = pullStartYRef.current
-      if (startY === null) return
-      if (event.touches.length !== 1) return
-      if (typeof window !== 'undefined' && window.scrollY > 0) return
-
-      const currentY = event.touches[0]?.clientY ?? startY
-      const deltaY = currentY - startY
-      if (deltaY <= 0) return
-
-      isPullingRef.current = true
-      const eased = Math.min(120, Math.round(deltaY * 0.6))
-      setPullDistance(eased)
-      setPullReady(eased >= 70)
-    },
-    [isRefreshing],
-  )
-
-  const handleTouchEnd = useCallback(async () => {
-    if (!isPullingRef.current) {
-      resetPull()
-      return
-    }
-    const shouldRefresh = pullReady && !isRefreshing
-    resetPull()
-    if (shouldRefresh) {
-      await handleRefresh()
-    }
-  }, [handleRefresh, isRefreshing, pullReady, resetPull])
+  const {
+    pullDistance,
+    pullReady,
+    isPulling,
+    handlers: pullHandlers,
+  } = usePullToRefresh(handleRefresh, { disabled: isRefreshing })
 
   useEffect(() => {
     if (!pendingAction) return
@@ -1157,18 +1111,13 @@ export default function Page() {
   }
 
   return (
-    <div
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
-    >
+    <div {...pullHandlers}>
       <div className="mx-auto w-full max-w-md px-5 pt-2">
         <div
           className="overflow-hidden rounded-2xl"
           style={{
             height: pullDistance,
-            transition: isPullingRef.current ? 'none' : 'height 180ms ease',
+            transition: isPulling ? 'none' : 'height 180ms ease',
           }}
         >
           <div className="flex h-full items-end justify-center pb-2 text-xs font-semibold text-lime-200">
@@ -1181,7 +1130,7 @@ export default function Page() {
         className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-2"
         style={{
           transform: pullDistance ? `translateY(${pullDistance}px)` : undefined,
-          transition: isPullingRef.current ? 'none' : 'transform 180ms ease',
+          transition: isPulling ? 'none' : 'transform 180ms ease',
         }}
       >
         {errorMessage && (

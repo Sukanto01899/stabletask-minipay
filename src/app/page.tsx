@@ -9,6 +9,7 @@ import { useVaultTasks } from '@/hooks/useVaultTasks'
 import { useStreak } from '@/hooks/useStreak'
 import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
 import { copyText } from '@/lib/clipboard'
+import { fireConfetti } from '@/lib/confetti'
 import { stableTaskConfig } from '@/lib/app-config'
 import { useToast } from '@/components/ui/toast'
 import { EmptyState } from '@/components/stabletask/EmptyState'
@@ -185,6 +186,7 @@ export default function HomePage() {
       return
     }
     if (tierIndex > storedIndex) {
+      fireConfetti()
       toast({
         title: `🎉 Tier up! You reached ${tier.label}`,
         description: nextTier

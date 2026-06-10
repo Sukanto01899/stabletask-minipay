@@ -216,6 +216,9 @@ export default function HomePage() {
   // the streak is locked until the next UTC midnight.
   const todayUtc = new Date().toISOString().slice(0, 10)
   const streakSecuredToday = streakCount > 0 && lastActivityDate === todayUtc
+  // Within the last 2h before midnight UTC the secured window is about to roll
+  // over — nudge the user to return tomorrow. `countdown` is "HH:MM:SS".
+  const streakRollingOver = streakSecuredToday && Number(countdown.slice(0, 2)) < 2
 
   if (!isConnected) {
     return (
@@ -457,16 +460,29 @@ export default function HomePage() {
           )}
           <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800">
             {streakSecuredToday && (
-              <div className="h-full w-full rounded-full bg-gradient-to-r from-orange-400/80 to-amber-300/70" />
+              <div
+                className={`h-full w-full rounded-full ${
+                  streakRollingOver
+                    ? 'animate-pulse bg-linear-to-r from-amber-400 to-amber-300'
+                    : 'bg-linear-to-r from-orange-400/80 to-amber-300/70'
+                }`}
+              />
             )}
           </div>
           {!isStreakLoading && streakSecuredToday ? (
-            <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-orange-300/80">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-2.5 w-2.5 shrink-0">
-                <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
-              </svg>
-              <span className="tabular-nums">Safe · {countdown}</span>
-            </div>
+            streakRollingOver ? (
+              <div className="mt-1 animate-pulse text-[10px] font-bold text-amber-300">
+                <span className="tabular-nums">⏰ Window closing · {countdown}</span>
+                <div className="font-semibold text-amber-300/60">come back tomorrow to keep it</div>
+              </div>
+            ) : (
+              <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-orange-300/80">
+                <svg viewBox="0 0 20 20" fill="currentColor" className="h-2.5 w-2.5 shrink-0">
+                  <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
+                </svg>
+                <span className="tabular-nums">Safe · {countdown}</span>
+              </div>
+            )
           ) : (
             <div className="mt-1 text-[10px] text-slate-500">day streak</div>
           )}

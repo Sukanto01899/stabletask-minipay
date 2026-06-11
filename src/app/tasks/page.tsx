@@ -668,6 +668,8 @@ export default function Page() {
         return
       }
       if (pendingActionRef.current || isVisited) return
+      // Immediate press feedback, before the async wallet round-trip.
+      haptics.tap()
       setAcceptedTasks((prev) =>
         prev[taskId.toString()] ? prev : { ...prev, [taskId.toString()]: true },
       )
@@ -735,6 +737,8 @@ export default function Page() {
         return
       }
       if (pendingActionRef.current || isClaimed || !isVisited) return
+      // Immediate press feedback, before the async wallet round-trip.
+      haptics.tap()
       setAcceptedTasks((prev) =>
         prev[taskId.toString()] ? prev : { ...prev, [taskId.toString()]: true },
       )

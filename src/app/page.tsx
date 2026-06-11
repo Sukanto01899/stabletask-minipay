@@ -13,6 +13,7 @@ import { fireConfetti } from '@/lib/confetti'
 import { stableTaskConfig } from '@/lib/app-config'
 import { useToast } from '@/components/ui/toast'
 import { EmptyState } from '@/components/stabletask/EmptyState'
+import { StreakWeek } from '@/components/stabletask/StreakWeek'
 
 const ACTIVE_CHAIN_ID = stableTaskConfig.chain.id as 42220
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -519,6 +520,21 @@ export default function HomePage() {
             <div className="mt-1 text-[10px] text-slate-500">today</div>
           )}
         </div>
+      </div>
+
+      {/* Weekly streak dots */}
+      <div className="rounded-2xl border border-orange-400/20 bg-slate-950/60 px-4 py-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-200">This week</span>
+          {streakCount > 0 && (
+            <span className="text-[10px] font-bold text-orange-300/70">🔥 {streakCount}-day streak</span>
+          )}
+        </div>
+        {isStreakLoading ? (
+          <SkeletonBlock className="h-6 w-full" />
+        ) : (
+          <StreakWeek streakCount={streakCount} lastActivityDate={lastActivityDate} />
+        )}
       </div>
 
       {/* Unclaimed callout */}

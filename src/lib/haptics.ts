@@ -2,10 +2,16 @@
 // patterns live in one place and degrade silently where vibration is
 // unsupported (desktop browsers, iOS Safari) or disabled by the user.
 
+import { HAPTICS_PREFERENCES_STORAGE_KEY, readHapticsPreferences } from './haptics-preferences'
+
 type VibratePattern = number | number[]
 
 function buzz(pattern: VibratePattern) {
   if (typeof navigator === 'undefined') return
+  if (typeof window !== 'undefined') {
+    const prefs = readHapticsPreferences(window.localStorage.getItem(HAPTICS_PREFERENCES_STORAGE_KEY))
+    if (!prefs.hapticsEnabled) return
+  }
   navigator.vibrate?.(pattern)
 }
 

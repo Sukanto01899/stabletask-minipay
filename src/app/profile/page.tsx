@@ -18,6 +18,11 @@ import {
   TOAST_PREFERENCES_STORAGE_KEY,
   type ToastPreferences,
 } from '@/lib/toast-preferences'
+import {
+  readHapticsPreferences,
+  HAPTICS_PREFERENCES_STORAGE_KEY,
+  type HapticsPreferences,
+} from '@/lib/haptics-preferences'
 
 type ProfileClaim = {
   _id: string
@@ -212,6 +217,9 @@ export default function ProfilePage() {
     toastOnSuccess: true,
     toastOnFailure: true,
   })
+  const [hapticsPrefs, setHapticsPrefs] = useState<HapticsPreferences>({
+    hapticsEnabled: true,
+  })
 
   const taskViewPrefsKey = useMemo(() => taskViewPreferencesStorageKey(address), [address])
 
@@ -271,6 +279,18 @@ export default function ProfilePage() {
       // ignore persistence failures
     }
   }, [toastPrefs])
+
+  useEffect(() => {
+    setHapticsPrefs(readHapticsPreferences(window.localStorage.getItem(HAPTICS_PREFERENCES_STORAGE_KEY)))
+  }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(HAPTICS_PREFERENCES_STORAGE_KEY, JSON.stringify(hapticsPrefs))
+    } catch {
+      // ignore persistence failures
+    }
+  }, [hapticsPrefs])
 
   const referrals = profile?.referrals ?? []
   const completedReferrals = useMemo(
@@ -668,6 +688,14 @@ export default function ProfilePage() {
             value={toastPrefs.toastOnFailure}
             onToggle={() =>
               setToastPrefs((prev) => ({ ...prev, toastOnFailure: !prev.toastOnFailure }))
+            }
+          />
+          <ToggleRow
+            label="Haptic feedback"
+            description="Vibrate on taps, claims, and results (supported devices only)."
+            value={hapticsPrefs.hapticsEnabled}
+            onToggle={() =>
+              setHapticsPrefs((prev) => ({ ...prev, hapticsEnabled: !prev.hapticsEnabled }))
             }
           />
         </div>

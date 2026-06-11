@@ -315,6 +315,41 @@ export default function RewardsPage() {
       ? 'Claimed Tasks'
       : `Claimed (${claimedTasks.length})`
 
+  if (!isConnected) {
+    return (
+      <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-5 pb-28 pt-6">
+        <EmptyState
+          className="py-12"
+          icon={
+            <svg
+              className="h-10 w-10"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"
+              />
+            </svg>
+          }
+          title="No wallet connected"
+          description="Connect a wallet on the Tap page to track your XP, claimed rewards, and tier progress."
+          action={
+            <Link
+              href="/tap"
+              className="inline-block rounded-full border border-cyan-300/30 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+            >
+              Go to Tap
+            </Link>
+          }
+        />
+      </main>
+    )
+  }
+
   return (
     <div {...pullHandlers}>
       <div className="mx-auto w-full max-w-md px-5 pt-2">
@@ -415,20 +450,14 @@ export default function RewardsPage() {
                 </svg>
               }
               title="No claimed tasks yet"
-              description={
-                isConnected
-                  ? 'Complete tasks to earn XP and cUSD rewards.'
-                  : 'Connect a wallet to track your rewards.'
-              }
+              description="Complete tasks to earn XP and cUSD rewards."
               action={
-                isConnected && (
-                  <Link
-                    href="/tasks"
-                    className="inline-block rounded-full border border-cyan-300/30 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
-                  >
-                    Browse Tasks
-                  </Link>
-                )
+                <Link
+                  href="/tasks"
+                  className="inline-block rounded-full border border-cyan-300/30 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+                >
+                  Browse Tasks
+                </Link>
               }
             />
           )}

@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Copy01Icon, Share08Icon, Tick02Icon } from '@hugeicons/core-free-icons'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -78,8 +80,9 @@ export function ReferralCard(props: { code: string; reward: string }) {
             variant="secondary"
             disabled={!codeAvailable}
             onClick={handleShare}
-            className="h-11 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 text-sm font-bold text-cyan-100 hover:bg-cyan-300/16"
+            className="h-11 gap-1.5 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 text-sm font-bold text-cyan-100 hover:bg-cyan-300/16"
           >
+            <HugeiconsIcon aria-hidden="true" icon={Share08Icon} size={16} strokeWidth={2} />
             Share
           </Button>
           <Button
@@ -87,8 +90,18 @@ export function ReferralCard(props: { code: string; reward: string }) {
             variant="secondary"
             disabled={!codeAvailable}
             onClick={handleCopy}
-            className="h-11 rounded-xl border border-lime-300/25 bg-lime-300/12 px-4 text-sm font-bold text-lime-100 hover:bg-lime-300/18"
+            className={`h-11 gap-1.5 rounded-xl border px-4 text-sm font-bold transition-colors ${
+              copyState === 'copied'
+                ? 'border-emerald-300/40 bg-emerald-300/12 text-emerald-100'
+                : 'border-lime-300/25 bg-lime-300/12 text-lime-100 hover:bg-lime-300/18'
+            }`}
           >
+            <HugeiconsIcon
+              aria-hidden="true"
+              icon={copyState === 'copied' ? Tick02Icon : Copy01Icon}
+              size={16}
+              strokeWidth={2}
+            />
             {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
           </Button>
         </div>

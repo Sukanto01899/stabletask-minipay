@@ -105,9 +105,9 @@ export default function HomePage() {
       setAddressCopied(true)
       setTimeout(() => setAddressCopied(false), 1500)
     } catch {
-      // silently ignore clipboard failures
+      toast({ title: 'Copy failed', description: 'Could not copy your address.', variant: 'error' })
     }
-  }, [address, addressCopied])
+  }, [address, addressCopied, toast])
 
   const loadTapStats = useCallback(async () => {
     if (!publicClient || stableTaskConfig.contracts.rewardVaultAddress === ZERO_ADDRESS) return
@@ -162,10 +162,11 @@ export default function HomePage() {
       await copyText(text)
       setShareState('copied')
       setTimeout(() => setShareState('idle'), 2000)
+      toast({ title: 'Copied to clipboard', description: 'Share your progress anywhere!', variant: 'success' })
     } catch {
-      // silently ignore clipboard failures
+      toast({ title: 'Share failed', description: 'Could not copy your progress.', variant: 'error' })
     }
-  }, [shareState, xpBalance, streakCount])
+  }, [shareState, xpBalance, streakCount, toast])
 
   const xp = parseFloat(xpBalance) || 0
   const tier = getTier(xp)

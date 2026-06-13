@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
 import { copyText } from '@/lib/clipboard'
 import { haptics } from '@/lib/haptics'
+import { sounds } from '@/lib/sounds'
 import { cn } from '@/lib/utils'
 import type { Difficulty } from '@/hooks/useVaultTasks'
 
@@ -79,6 +80,14 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   const isPinned = Boolean(props.isPinned)
   const isOverdue = Boolean(props.isOverdue)
   const [detailsOpen, setDetailsOpen] = useState(false)
+
+  const prevClaimState = useRef(props.claimState)
+  useEffect(() => {
+    if (prevClaimState.current !== 'success' && props.claimState === 'success') {
+      sounds.claimSuccess()
+    }
+    prevClaimState.current = props.claimState
+  }, [props.claimState])
 
   const handleVisit = () => {
     if (!props.onVisit || props.taskId === undefined) return

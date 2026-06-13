@@ -23,6 +23,11 @@ import {
   HAPTICS_PREFERENCES_STORAGE_KEY,
   type HapticsPreferences,
 } from '@/lib/haptics-preferences'
+import {
+  readSoundPreferences,
+  SOUND_PREFERENCES_STORAGE_KEY,
+  type SoundPreferences,
+} from '@/lib/sound-preferences'
 
 type ProfileClaim = {
   _id: string
@@ -240,6 +245,9 @@ export default function ProfilePage() {
   const [hapticsPrefs, setHapticsPrefs] = useState<HapticsPreferences>({
     hapticsEnabled: true,
   })
+  const [soundPrefs, setSoundPrefs] = useState<SoundPreferences>({
+    soundEnabled: true,
+  })
 
   const taskViewPrefsKey = useMemo(() => taskViewPreferencesStorageKey(address), [address])
 
@@ -311,6 +319,18 @@ export default function ProfilePage() {
       // ignore persistence failures
     }
   }, [hapticsPrefs])
+
+  useEffect(() => {
+    setSoundPrefs(readSoundPreferences(window.localStorage.getItem(SOUND_PREFERENCES_STORAGE_KEY)))
+  }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SOUND_PREFERENCES_STORAGE_KEY, JSON.stringify(soundPrefs))
+    } catch {
+      // ignore persistence failures
+    }
+  }, [soundPrefs])
 
   const referrals = profile?.referrals ?? []
   const completedReferrals = useMemo(
@@ -724,6 +744,14 @@ export default function ProfilePage() {
             value={hapticsPrefs.hapticsEnabled}
             onToggle={() =>
               setHapticsPrefs((prev) => ({ ...prev, hapticsEnabled: !prev.hapticsEnabled }))
+            }
+          />
+          <ToggleRow
+            label="Sound effects"
+            description="Play a chime when a task claim succeeds."
+            value={soundPrefs.soundEnabled}
+            onToggle={() =>
+              setSoundPrefs((prev) => ({ ...prev, soundEnabled: !prev.soundEnabled }))
             }
           />
         </div>

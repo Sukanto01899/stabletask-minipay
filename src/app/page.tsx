@@ -97,6 +97,7 @@ export default function HomePage() {
   const [dailyTapLimit, setDailyTapLimit] = useState(1000)
   const [shareState, setShareState] = useState<'idle' | 'copied' | 'shared'>('idle')
   const [addressCopied, setAddressCopied] = useState(false)
+  const [xpTooltipVisible, setXpTooltipVisible] = useState(false)
   const countdown = useCountdownToMidnightUTC()
 
   const handleCopyAddress = useCallback(async () => {
@@ -407,14 +408,35 @@ export default function HomePage() {
               <span className={tier.color}>{tier.label}</span>
               <span className={nextTier?.color}>{nextTier?.label} at {tier.next.toLocaleString()} XP</span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${levelPct}%`,
-                  background: `linear-gradient(90deg, ${tier.glow.replace('0.2', '0.9')}, ${tier.glow.replace('0.2', '0.5')})`,
+            <div className="relative">
+              {/* Tooltip */}
+              {xpTooltipVisible && (
+                <div className="absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-slate-100 shadow-lg">
+                  <span className={`tabular-nums ${tier.color}`}>{xp.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  <span className="text-slate-500"> / </span>
+                  <span className="tabular-nums text-slate-300">{tier.next.toLocaleString()}</span>
+                  <span className="ml-1 text-slate-500">XP to {nextTier?.label}</span>
+                  {/* Arrow */}
+                  <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-slate-700" />
+                </div>
+              )}
+              <button
+                type="button"
+                aria-label="Show XP progress"
+                onClick={() => {
+                  setXpTooltipVisible((v) => !v)
+                  if (!xpTooltipVisible) setTimeout(() => setXpTooltipVisible(false), 2500)
                 }}
-              />
+                className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80 active:scale-[1.01]"
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${levelPct}%`,
+                    background: `linear-gradient(90deg, ${tier.glow.replace('0.2', '0.9')}, ${tier.glow.replace('0.2', '0.5')})`,
+                  }}
+                />
+              </button>
             </div>
             <div className="mt-1.5 text-right text-[10px] font-bold text-slate-500">
               <span className="tabular-nums text-slate-300">

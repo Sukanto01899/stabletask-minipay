@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { connectToDatabase } from '@/lib/mongodb'
 import { calculateNewStreak, getUtcDateString, isNewActivityDay } from '@/lib/streak'
+import { Claim } from '@/models/Claim'
 import { User } from '@/models/User'
 
 /**
@@ -28,6 +29,8 @@ export async function POST(request: NextRequest) {
     const normalizedWallet = walletAddress.toLowerCase()
     const today = getUtcDateString()
 
+    const todayStart = new Date(`${today}T00:00:00.000Z`)
+
     let user = await User.findOne({ walletAddress: normalizedWallet })
 
     // First-ever visit — create user record
@@ -41,8 +44,14 @@ export async function POST(request: NextRequest) {
         streakCount: 1,
         lastActivityDate: today,
         isNewDay: true,
+        claimedTodayCount: 0,
       })
     }
+
+    const claimedTodayCount = await Claim.countDocuments({
+      walletAddress: normalizedWallet,
+      claimedAt: { $gte: todayStart },
+    })
 
     const alreadyCheckedIn = !isNewActivityDay(user.lastActivityDate ?? null, today)
 
@@ -51,6 +60,7 @@ export async function POST(request: NextRequest) {
         streakCount: user.streakCount ?? 0,
         lastActivityDate: user.lastActivityDate,
         isNewDay: false,
+        claimedTodayCount,
       })
     }
 
@@ -63,6 +73,7 @@ export async function POST(request: NextRequest) {
       streakCount: newStreak,
       lastActivityDate: today,
       isNewDay: true,
+      claimedTodayCount,
     })
   } catch (error) {
     console.error('POST /api/streak/checkin failed:', error)

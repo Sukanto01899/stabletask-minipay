@@ -90,7 +90,7 @@ export default function HomePage() {
   const { address, isConnected } = useConnection()
   const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
   const { tasks, xpBalance, isFetchingTasks } = useVaultTasks()
-  const { streakCount, lastActivityDate, isLoading: isStreakLoading } = useStreak(address)
+  const { streakCount, lastActivityDate, claimedTodayCount, isLoading: isStreakLoading } = useStreak(address)
   const { toast } = useToast()
 
   const [tapsToday, setTapsToday] = useState<number | null>(null)
@@ -434,23 +434,25 @@ export default function HomePage() {
         {/* Tasks progress */}
         <div className="rounded-xl border border-cyan-300/20 bg-slate-950/60 px-4 py-3">
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-200">Tasks</div>
-          {isFetchingTasks ? (
+          {isStreakLoading ? (
             <SkeletonBlock className="mt-1 h-7 w-16" />
           ) : (
             <div className="mt-1 text-xl font-black text-slate-50">
-              {claimedTasks.length}
-              <span className="ml-1 text-xs font-semibold text-slate-500">/ {tasks.length}</span>
+              {claimedTodayCount}
+              <span className="ml-1 text-xs font-semibold text-slate-500">today</span>
             </div>
           )}
           <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-slate-800">
             {!isFetchingTasks && tasks.length > 0 && (
               <div
                 className="h-full rounded-full bg-gradient-to-r from-cyan-400/80 to-lime-400/70 transition-all duration-700"
-                style={{ width: `${(claimedTasks.length / tasks.length) * 100}%` }}
+                style={{ width: `${Math.min(100, (claimedTodayCount / Math.max(1, tasks.length)) * 100)}%` }}
               />
             )}
           </div>
-          <div className="mt-1 text-[10px] text-slate-500">claimed today</div>
+          <div className="mt-1 text-[10px] text-slate-500">
+            {isFetchingTasks ? '' : `${claimedTasks.length} / ${tasks.length} total`}
+          </div>
         </div>
 
         {/* Streak card */}

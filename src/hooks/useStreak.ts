@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 interface StreakState {
   streakCount: number
   lastActivityDate: string | null
+  claimedTodayCount: number
   isLoading: boolean
 }
 
@@ -18,6 +19,7 @@ interface StreakState {
 export function useStreak(walletAddress: string | undefined): StreakState {
   const [streakCount, setStreakCount] = useState(0)
   const [lastActivityDate, setLastActivityDate] = useState<string | null>(null)
+  const [claimedTodayCount, setClaimedTodayCount] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
 
   const checkin = useCallback(async (address: string) => {
@@ -33,9 +35,11 @@ export function useStreak(walletAddress: string | undefined): StreakState {
         streakCount: number
         lastActivityDate: string
         isNewDay: boolean
+        claimedTodayCount: number
       }
       setStreakCount(data.streakCount)
       setLastActivityDate(data.lastActivityDate)
+      setClaimedTodayCount(data.claimedTodayCount ?? 0)
     } catch {
       // non-fatal — streak display just stays at 0
     } finally {
@@ -49,5 +53,5 @@ export function useStreak(walletAddress: string | undefined): StreakState {
     }
   }, [walletAddress, checkin])
 
-  return { streakCount, lastActivityDate, isLoading }
+  return { streakCount, lastActivityDate, claimedTodayCount, isLoading }
 }

@@ -51,7 +51,7 @@ type ProfilePayload = {
   referrals: ProfileReferral[]
 }
 
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
+const absoluteDateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
   day: 'numeric',
   year: 'numeric',
@@ -62,11 +62,31 @@ function formatWallet(address?: string) {
   return `${address.slice(0, 6)}…${address.slice(-4)}`
 }
 
+function formatRelativeTime(value?: string | Date | null): { label: string; title: string } {
+  if (!value) return { label: '—', title: '' }
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return { label: '—', title: '' }
+
+  const title = absoluteDateFormatter.format(date)
+  const diffMs = Date.now() - date.getTime()
+  const diffSec = Math.floor(diffMs / 1000)
+  const diffMin = Math.floor(diffSec / 60)
+  const diffHr = Math.floor(diffMin / 60)
+  const diffDay = Math.floor(diffHr / 24)
+
+  if (diffSec < 60) return { label: 'just now', title }
+  if (diffMin < 60) return { label: `${diffMin}m ago`, title }
+  if (diffHr < 24) return { label: `${diffHr}h ago`, title }
+  if (diffDay === 1) return { label: 'yesterday', title }
+  if (diffDay < 7) return { label: `${diffDay} days ago`, title }
+  return { label: title, title }
+}
+
 function formatDate(value?: string | Date | null) {
   if (!value) return '—'
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
-  return dateFormatter.format(date)
+  return absoluteDateFormatter.format(date)
 }
 
 const CLAIM_BADGE: Record<ProfileClaim['status'], string> = {
@@ -437,9 +457,12 @@ export default function ProfilePage() {
                   {profile?.lastClaimAt && (
                     <span className="text-slate-600">·</span>
                   )}
-                  {profile?.lastClaimAt && (
-                    <span>Last active {formatDate(profile.lastClaimAt)}</span>
-                  )}
+                  {profile?.lastClaimAt && (() => {
+                    const rel = formatRelativeTime(profile.lastClaimAt)
+                    return (
+                      <span title={rel.title}>Last active {rel.label}</span>
+                    )
+                  })()}
                 </>
               )}
             </div>
@@ -579,7 +602,12 @@ export default function ProfilePage() {
                     <div className="truncate text-sm font-bold text-slate-50">
                       {claim.task?.title ?? 'Task reward'}
                     </div>
-                    <div className="text-xs text-slate-400">{formatDate(claim.claimedAt)}</div>
+                    {(() => {
+                      const rel = formatRelativeTime(claim.claimedAt)
+                      return (
+                        <div className="text-xs text-slate-400" title={rel.title}>{rel.label}</div>
+                      )
+                    })()}
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="text-sm font-black text-lime-100">
@@ -758,7 +786,12 @@ export default function ProfilePage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-bold text-slate-50">{referral.code}</div>
-                      <div className="text-xs text-slate-400">{formatDate(referral.createdAt)}</div>
+                      {(() => {
+                        const rel = formatRelativeTime(referral.createdAt)
+                        return (
+                          <div className="text-xs text-slate-400" title={rel.title}>{rel.label}</div>
+                        )
+                      })()}
                     </div>
                     <div className="shrink-0 text-right">
                       <div className="text-xs font-black text-lime-100">

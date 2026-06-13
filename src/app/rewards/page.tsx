@@ -381,90 +381,111 @@ export default function RewardsPage() {
 
         <XpHero xpBalance={xpBalance} loading={isFetchingTasks} />
 
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            label="Earned XP"
-            labelColor="text-lime-200"
-            borderColor="border-lime-300/20"
-            value={formatAmount(totalClaimedXp)}
-            sub={`from ${claimedTasks.length} task${claimedTasks.length !== 1 ? 's' : ''}`}
-            loading={isFetchingTasks}
+        {/* First-timer hero — shown instead of zero-stat cards when the user has nothing yet */}
+        {!isFetchingTasks && claimedTasks.length === 0 ? (
+          <EmptyState
+            className="py-10"
+            icon={
+              <svg viewBox="0 0 64 64" fill="none" className="mx-auto h-16 w-16" aria-hidden="true">
+                {/* Coin stack */}
+                <ellipse cx="32" cy="50" rx="18" ry="6" fill="rgba(251,191,36,0.18)" stroke="rgba(251,191,36,0.5)" strokeWidth="1.5" />
+                <ellipse cx="32" cy="44" rx="18" ry="6" fill="rgba(251,191,36,0.22)" stroke="rgba(251,191,36,0.55)" strokeWidth="1.5" />
+                <ellipse cx="32" cy="38" rx="18" ry="6" fill="rgba(251,191,36,0.28)" stroke="rgba(251,191,36,0.65)" strokeWidth="1.5" />
+                <path d="M14 38v12" stroke="rgba(251,191,36,0.4)" strokeWidth="1.5" />
+                <path d="M50 38v12" stroke="rgba(251,191,36,0.4)" strokeWidth="1.5" />
+                {/* Star / sparkle */}
+                <path d="M32 10l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6z" fill="rgba(163,230,53,0.7)" stroke="rgba(163,230,53,0.9)" strokeWidth="0.5" strokeLinejoin="round" />
+                <circle cx="48" cy="18" r="2" fill="rgba(34,211,238,0.6)" />
+                <circle cx="16" cy="22" r="1.5" fill="rgba(251,191,36,0.5)" />
+              </svg>
+            }
+            title="Complete your first task to earn cUSD"
+            description={
+              <span>
+                Finish a quest on the{' '}
+                <Link href="/tasks" className="font-bold text-cyan-300 underline underline-offset-2">
+                  Quest Board
+                </Link>{' '}
+                and your XP + cUSD rewards will appear here.
+              </span>
+            }
+            action={
+              <>
+                <Link
+                  href="/tasks"
+                  className="inline-block rounded-full border border-lime-300/30 bg-lime-300/15 px-5 py-2 text-xs font-bold text-lime-100 transition hover:bg-lime-300/22"
+                >
+                  Browse Quests
+                </Link>
+                <Link
+                  href="/tap"
+                  className="inline-block rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/18"
+                >
+                  Tap for XP
+                </Link>
+              </>
+            }
           />
-          <StatCard
-            label={`Earned ${stableTaskConfig.rewardToken.symbol}`}
-            labelColor="text-amber-200"
-            borderColor="border-amber-300/20"
-            value={formatAmount(totalClaimedCusd)}
-            sub="from task rewards"
-            loading={isFetchingTasks}
-          />
-        </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard
+                label="Earned XP"
+                labelColor="text-lime-200"
+                borderColor="border-lime-300/20"
+                value={formatAmount(totalClaimedXp)}
+                sub={`from ${claimedTasks.length} task${claimedTasks.length !== 1 ? 's' : ''}`}
+                loading={isFetchingTasks}
+              />
+              <StatCard
+                label={`Earned ${stableTaskConfig.rewardToken.symbol}`}
+                labelColor="text-amber-200"
+                borderColor="border-amber-300/20"
+                value={formatAmount(totalClaimedCusd)}
+                sub="from task rewards"
+                loading={isFetchingTasks}
+              />
+            </div>
 
-        <ProgressSection
-          claimed={claimedTasks.length}
-          total={tasks.length}
-          loading={isFetchingTasks}
-        />
+            <ProgressSection
+              claimed={claimedTasks.length}
+              total={tasks.length}
+              loading={isFetchingTasks}
+            />
+          </>
+        )}
 
-        {!isFetchingTasks && isConnected && (
+        {!isFetchingTasks && isConnected && claimedTasks.length > 0 && (
           <UnclaimedBanner count={unclaimedTasks.length} />
         )}
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="text-base font-black text-slate-50">{claimsListTitle}</div>
-            {!isFetchingTasks && sortedClaims.length > 5 && (
-              <button
-                type="button"
-                onClick={() => setShowAll((prev) => !prev)}
-                className="rounded-full border border-cyan-300/20 bg-slate-900/70 px-3 py-1 text-xs font-semibold text-slate-300 transition hover:bg-cyan-300/10"
-              >
-                {showAll ? 'Show less' : `Show all ${sortedClaims.length}`}
-              </button>
+        {(isFetchingTasks || claimedTasks.length > 0) && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-base font-black text-slate-50">{claimsListTitle}</div>
+              {!isFetchingTasks && sortedClaims.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAll((prev) => !prev)}
+                  className="rounded-full border border-cyan-300/20 bg-slate-900/70 px-3 py-1 text-xs font-semibold text-slate-300 transition hover:bg-cyan-300/10"
+                >
+                  {showAll ? 'Show less' : `Show all ${sortedClaims.length}`}
+                </button>
+              )}
+            </div>
+
+            {isFetchingTasks && (
+              <>
+                <ClaimRowSkeleton />
+                <ClaimRowSkeleton />
+                <ClaimRowSkeleton />
+              </>
             )}
+
+            {!isFetchingTasks &&
+              visibleClaims.map((task) => <ClaimRow key={task.id.toString()} task={task} />)}
           </div>
-
-          {isFetchingTasks && (
-            <>
-              <ClaimRowSkeleton />
-              <ClaimRowSkeleton />
-              <ClaimRowSkeleton />
-            </>
-          )}
-
-          {!isFetchingTasks && claimedTasks.length === 0 && (
-            <EmptyState
-              icon={
-                <svg
-                  className="h-10 w-10"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"
-                  />
-                </svg>
-              }
-              title="No claimed tasks yet"
-              description="Complete tasks to earn XP and cUSD rewards."
-              action={
-                <Link
-                  href="/tasks"
-                  className="inline-block rounded-full border border-cyan-300/30 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
-                >
-                  Browse Tasks
-                </Link>
-              }
-            />
-          )}
-
-          {!isFetchingTasks &&
-            visibleClaims.map((task) => <ClaimRow key={task.id.toString()} task={task} />)}
-        </div>
+        )}
       </main>
     </div>
   )

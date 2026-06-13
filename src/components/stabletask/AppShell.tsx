@@ -13,6 +13,7 @@ import {
   Tap01Icon,
   Task01Icon,
   UserCircleIcon,
+  CoinsIcon,
 } from "@hugeicons/core-free-icons";
 
 import { BottomNav } from "@/components/stabletask/BottomNav";
@@ -66,6 +67,10 @@ const HEADER_COPY: Record<string, { title: string; subtitle: string }> = {
   "/rewards": {
     title: "Rewards",
     subtitle: "Track claimed rewards and player progress.",
+  },
+  "/earn": {
+    title: "Earn",
+    subtitle: "Deposit cUSD and earn 1 XP per cUSD per day.",
   },
   "/profile": {
     title: "Profile",
@@ -309,6 +314,7 @@ export function AppShell(props: { children: React.ReactNode }) {
             items={[
               { label: "Tasks", href: "/tasks", icon: Task01Icon, badge: activeTasksCount },
               { label: "Tap", href: "/tap", icon: Tap01Icon },
+              { label: "Earn", href: "/earn", icon: CoinsIcon },
               { label: "Rewards", href: "/rewards", icon: GiftIcon, badge: pendingPayoutsCount },
               { label: "Profile", href: "/profile", icon: UserCircleIcon },
             ]}

@@ -234,3 +234,93 @@ export const stableTaskRewardVaultAbi = [
 ] as const;
 
 // reward token: 0x06Eb8f4D221F2c287A96ac2E23C2566aCe772EEB
+
+// ── Yield Vault ────────────────────────────────────────────────────────────
+// Set NEXT_PUBLIC_YIELD_VAULT_ADDRESS after deploying StableTaskYieldVault.sol
+export const stableTaskYieldVaultAddress = (process.env
+  .NEXT_PUBLIC_YIELD_VAULT_ADDRESS ?? "0x0000000000000000000000000000000000000000") as `0x${string}`;
+
+export const stableTaskYieldVaultAbi = [
+  {
+    type: "function",
+    stateMutability: "view",
+    name: "cusd",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    stateMutability: "view",
+    name: "pendingXP",
+    inputs: [{ name: "user", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    stateMutability: "view",
+    name: "depositOf",
+    inputs: [{ name: "user", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    stateMutability: "view",
+    name: "positions",
+    inputs: [{ name: "user", type: "address" }],
+    outputs: [
+      { name: "amount", type: "uint256" },
+      { name: "checkpoint", type: "uint256" },
+      { name: "pendingXp", type: "uint256" },
+    ],
+  },
+  {
+    type: "function",
+    stateMutability: "nonpayable",
+    name: "deposit",
+    inputs: [{ name: "amount", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    stateMutability: "nonpayable",
+    name: "withdraw",
+    inputs: [{ name: "amount", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    stateMutability: "nonpayable",
+    name: "claimXP",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: "event",
+    anonymous: false,
+    name: "Deposited",
+    inputs: [
+      { indexed: true, name: "user", type: "address" },
+      { indexed: false, name: "amount", type: "uint256" },
+      { indexed: false, name: "newTotal", type: "uint256" },
+    ],
+  },
+  {
+    type: "event",
+    anonymous: false,
+    name: "Withdrawn",
+    inputs: [
+      { indexed: true, name: "user", type: "address" },
+      { indexed: false, name: "amount", type: "uint256" },
+      { indexed: false, name: "remaining", type: "uint256" },
+    ],
+  },
+  {
+    type: "event",
+    anonymous: false,
+    name: "XPClaimed",
+    inputs: [
+      { indexed: true, name: "user", type: "address" },
+      { indexed: false, name: "xpAmount", type: "uint256" },
+    ],
+  },
+] as const;

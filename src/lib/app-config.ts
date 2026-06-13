@@ -2,6 +2,8 @@ import { celo, type Chain } from 'wagmi/chains'
 import {
   stableTaskRewardVaultAbi,
   stableTaskRewardVaultAddress,
+  stableTaskYieldVaultAbi,
+  stableTaskYieldVaultAddress,
 } from '@/lib/contracts'
 
 type TokenConfig = {
@@ -13,6 +15,8 @@ type TokenConfig = {
 type ContractConfig = {
   rewardVaultAddress: `0x${string}`
   rewardVaultAbi: readonly unknown[]
+  yieldVaultAddress: `0x${string}`
+  yieldVaultAbi: readonly unknown[]
 }
 
 export type StableTaskConfig = {
@@ -34,5 +38,7 @@ export const stableTaskConfig: StableTaskConfig = {
   contracts: {
     rewardVaultAddress: stableTaskRewardVaultAddress,
     rewardVaultAbi: stableTaskRewardVaultAbi,
+    yieldVaultAddress: stableTaskYieldVaultAddress,
+    yieldVaultAbi: stableTaskYieldVaultAbi,
   },
 }

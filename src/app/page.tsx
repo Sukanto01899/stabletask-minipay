@@ -12,6 +12,7 @@ import { copyText } from '@/lib/clipboard'
 import { fireConfetti } from '@/lib/confetti'
 import { stableTaskConfig } from '@/lib/app-config'
 import { useToast } from '@/components/ui/toast'
+import { AnimatedNumber } from '@/components/stabletask/AnimatedNumber'
 import { EmptyState } from '@/components/stabletask/EmptyState'
 import { StreakWeek } from '@/components/stabletask/StreakWeek'
 
@@ -328,9 +329,12 @@ export default function HomePage() {
               <SkeletonBlock className="mt-1 h-9 w-32" />
             ) : (
               <div className="mt-1 flex items-end gap-1.5">
-                <span className="text-3xl font-black tabular-nums leading-none text-slate-50">
-                  {formatAmount(xpBalance)}
-                </span>
+                <AnimatedNumber
+                  value={xp}
+                  format={(n) => Math.round(n).toLocaleString()}
+                  duration={800}
+                  className="text-3xl font-black leading-none text-slate-50"
+                />
                 <span className="mb-0.5 text-lg font-black text-lime-300">XP</span>
               </div>
             )}

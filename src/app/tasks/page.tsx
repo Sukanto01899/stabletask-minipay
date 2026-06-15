@@ -12,6 +12,7 @@ import {
 } from 'wagmi'
 import { erc20Abi, formatEther, formatUnits, parseEther, parseUnits } from 'viem'
 
+import { AnimatedNumber } from '@/components/stabletask/AnimatedNumber'
 import { EmptyState } from '@/components/stabletask/EmptyState'
 import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
 import { TaskCard } from '@/components/stabletask/TaskCard'
@@ -1296,7 +1297,11 @@ export default function Page() {
                 {isFetchingTasks ? (
                   <div className="skeleton-shimmer h-7 w-14 rounded-lg" />
                 ) : (
-                  formatCompactAmount(xpBalance, 0)
+                  <AnimatedNumber
+                    value={parseFloat(xpBalance) || 0}
+                    format={(n) => Math.round(n).toLocaleString()}
+                    duration={800}
+                  />
                 )}
               </div>
               <div className="text-xs text-slate-500">earned so far</div>

@@ -84,10 +84,20 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   const prevClaimState = useRef(props.claimState)
   useEffect(() => {
     if (prevClaimState.current !== 'success' && props.claimState === 'success') {
-      sounds.claimSuccess()
+      const val = parseFloat(props.reward)
+      if (!isNaN(val) && val >= 1.5) {
+        sounds.claimSuccessBig()
+        haptics.successBig()
+      } else if (!isNaN(val) && val >= 0.5) {
+        sounds.claimSuccessMedium()
+        haptics.successMedium()
+      } else {
+        sounds.claimSuccess()
+        haptics.success()
+      }
     }
     prevClaimState.current = props.claimState
-  }, [props.claimState])
+  }, [props.claimState, props.reward])
 
   const handleVisit = () => {
     if (!props.onVisit || props.taskId === undefined) return

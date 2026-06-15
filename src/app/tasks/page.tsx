@@ -186,7 +186,7 @@ function useAutoConnect(isConnected: boolean) {
 }
 
 export default function Page() {
-  const { setPendingPayoutsCount, setActiveTasksCount } = usePendingCount()
+  const { setPendingPayoutsCount, setActiveTasksCount, setClaimedTodayCount } = usePendingCount()
   const { address, isConnected, isConnecting, chainId } = useConnection()
   const publicClient = usePublicClient({ chainId: ACTIVE_CHAIN_ID })
   const { toast } = useToast()
@@ -207,6 +207,7 @@ export default function Page() {
   const pendingActionRef = useRef<PendingAction | null>(null)
   const [cusdBalance, setCusdBalance] = useState<string | null>(null)
   const [isFetchingBalance, setIsFetchingBalance] = useState(false)
+  const [claimedTodayCount, setClaimedTodayCountLocal] = useState(0)
   const [acceptedTasks, setAcceptedTasks] = useState<Record<string, true>>({})
   const [pinnedTasks, setPinnedTasks] = useState<Record<string, true>>({})
   const [taskNotes, setTaskNotes] = useState<Record<string, string>>({})
@@ -262,6 +263,12 @@ export default function Page() {
     setActiveTasksCount(activeTasksCount)
   }, [activeTasksCount, setActiveTasksCount])
 
+  const claimedTodayStorageKey = useMemo(() => {
+    const utcDate = new Date().toISOString().slice(0, 10)
+    const normalizedAddress = address ? address.toLowerCase() : 'guest'
+    return `stabletask:claimedtoday:${normalizedAddress}:${utcDate}`
+  }, [address])
+
   const acceptedStorageKey = useMemo(() => {
     const normalizedAddress = address ? address.toLowerCase() : 'guest'
     return `stabletask:accepted:${normalizedAddress}`
@@ -292,6 +299,17 @@ export default function Page() {
   useEffect(() => {
     pendingActionRef.current = pendingAction
   }, [pendingAction])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(claimedTodayStorageKey)
+    const count = stored ? Number(stored) : 0
+    setClaimedTodayCountLocal(Number.isFinite(count) ? count : 0)
+  }, [claimedTodayStorageKey])
+
+  useEffect(() => {
+    setClaimedTodayCount(claimedTodayCount)
+  }, [claimedTodayCount, setClaimedTodayCount])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -511,13 +529,18 @@ export default function Page() {
         toast({ title: 'Done', description: 'Task marked as done.', variant: 'success' })
       } else if (pendingAction.kind === 'claim') {
         toast({ title: 'Claimed', description: 'Rewards claimed successfully.', variant: 'success' })
+        setClaimedTodayCountLocal((prev) => {
+          const next = prev + 1
+          try { window.localStorage.setItem(claimedTodayStorageKey, String(next)) } catch {}
+          return next
+        })
       }
       // Celebratory buzz: the action is confirmed on-chain.
       haptics.success()
       setPendingAction(null)
       void loadTasks()
     }
-  }, [isConfirmed, loadTasks, pendingAction, toast])
+  }, [claimedTodayStorageKey, isConfirmed, loadTasks, pendingAction, toast])
 
   useEffect(() => {
     if (!pendingAction) return

@@ -7,6 +7,8 @@ type PendingCountContextValue = {
   setPendingPayoutsCount: (count: number) => void
   activeTasksCount: number
   setActiveTasksCount: (count: number) => void
+  claimedTodayCount: number
+  setClaimedTodayCount: (count: number) => void
 }
 
 const PendingCountContext = createContext<PendingCountContextValue>({
@@ -14,11 +16,14 @@ const PendingCountContext = createContext<PendingCountContextValue>({
   setPendingPayoutsCount: () => {},
   activeTasksCount: 0,
   setActiveTasksCount: () => {},
+  claimedTodayCount: 0,
+  setClaimedTodayCount: () => {},
 })
 
 export function PendingCountProvider({ children }: { children: ReactNode }) {
   const [pendingPayoutsCount, setPendingPayoutsCount] = useState(0)
   const [activeTasksCount, setActiveTasksCount] = useState(0)
+  const [claimedTodayCount, setClaimedTodayCount] = useState(0)
   return (
     <PendingCountContext.Provider
       value={{
@@ -26,6 +31,8 @@ export function PendingCountProvider({ children }: { children: ReactNode }) {
         setPendingPayoutsCount,
         activeTasksCount,
         setActiveTasksCount,
+        claimedTodayCount,
+        setClaimedTodayCount,
       }}
     >
       {children}

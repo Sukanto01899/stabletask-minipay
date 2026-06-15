@@ -71,9 +71,34 @@ export function ReferralCard(props: { code: string; reward: string }) {
         </div>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-3">
-        <div className="min-w-0 rounded-xl border border-dashed border-lime-300/35 bg-slate-900/75 px-4 py-3 text-sm font-black text-lime-100">
-          <div className="truncate">{codeAvailable ? props.code : 'No referral code yet'}</div>
-        </div>
+        <button
+          type="button"
+          disabled={!codeAvailable}
+          onClick={handleCopy}
+          aria-label="Copy referral code"
+          className={`group min-w-0 flex-1 rounded-xl border border-dashed px-4 py-3 text-left text-sm font-black transition-colors disabled:cursor-default ${
+            copyState === 'copied'
+              ? 'border-emerald-300/50 bg-emerald-300/10 text-emerald-100'
+              : codeAvailable
+                ? 'border-lime-300/35 bg-slate-900/75 text-lime-100 hover:border-lime-300/55 hover:bg-slate-900/90 active:scale-[0.98]'
+                : 'border-slate-700/40 bg-slate-900/50 text-slate-500'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate">{codeAvailable ? props.code : 'No referral code yet'}</span>
+            {codeAvailable && (
+              <HugeiconsIcon
+                aria-hidden="true"
+                icon={copyState === 'copied' ? Tick02Icon : Copy01Icon}
+                size={14}
+                strokeWidth={2}
+                className={`shrink-0 transition-colors ${
+                  copyState === 'copied' ? 'text-emerald-300' : 'text-lime-400/50 group-hover:text-lime-300'
+                }`}
+              />
+            )}
+          </div>
+        </button>
         <div className="flex shrink-0 items-center gap-2">
           <Button
             type="button"
@@ -84,25 +109,6 @@ export function ReferralCard(props: { code: string; reward: string }) {
           >
             <HugeiconsIcon aria-hidden="true" icon={Share08Icon} size={16} strokeWidth={2} />
             Share
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={!codeAvailable}
-            onClick={handleCopy}
-            className={`h-11 gap-1.5 rounded-xl border px-4 text-sm font-bold transition-colors ${
-              copyState === 'copied'
-                ? 'border-emerald-300/40 bg-emerald-300/12 text-emerald-100'
-                : 'border-lime-300/25 bg-lime-300/12 text-lime-100 hover:bg-lime-300/18'
-            }`}
-          >
-            <HugeiconsIcon
-              aria-hidden="true"
-              icon={copyState === 'copied' ? Tick02Icon : Copy01Icon}
-              size={16}
-              strokeWidth={2}
-            />
-            {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
           </Button>
         </div>
       </CardContent>

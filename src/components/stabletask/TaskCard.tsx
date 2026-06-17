@@ -81,23 +81,28 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   const isOverdue = Boolean(props.isOverdue)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [claimFlash, setClaimFlash] = useState(false)
 
   const prevClaimState = useRef(props.claimState)
   useEffect(() => {
-    if (prevClaimState.current !== 'success' && props.claimState === 'success') {
-      const val = parseFloat(props.reward)
-      if (!isNaN(val) && val >= 1.5) {
-        sounds.claimSuccessBig()
-        haptics.successBig()
-      } else if (!isNaN(val) && val >= 0.5) {
-        sounds.claimSuccessMedium()
-        haptics.successMedium()
-      } else {
-        sounds.claimSuccess()
-        haptics.success()
-      }
-    }
+    const justClaimed = prevClaimState.current !== 'success' && props.claimState === 'success'
     prevClaimState.current = props.claimState
+    if (!justClaimed) return
+
+    const val = parseFloat(props.reward)
+    if (!isNaN(val) && val >= 1.5) {
+      sounds.claimSuccessBig()
+      haptics.successBig()
+    } else if (!isNaN(val) && val >= 0.5) {
+      sounds.claimSuccessMedium()
+      haptics.successMedium()
+    } else {
+      sounds.claimSuccess()
+      haptics.success()
+    }
+    setClaimFlash(true)
+    const t = setTimeout(() => setClaimFlash(false), 900)
+    return () => clearTimeout(t)
   }, [props.claimState, props.reward])
 
   const handleVisit = () => {
@@ -210,7 +215,12 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
         <div className="text-sm text-slate-300">{props.description}</div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-xl border border-lime-300/25 bg-[linear-gradient(90deg,rgba(132,204,22,0.13),rgba(34,211,238,0.12),rgba(245,158,11,0.1))] px-4 py-3">
+        <div
+          className={cn(
+            'rounded-xl border border-lime-300/25 bg-[linear-gradient(90deg,rgba(132,204,22,0.13),rgba(34,211,238,0.12),rgba(245,158,11,0.1))] px-4 py-3',
+            claimFlash && 'animate-claim-flash',
+          )}
+        >
           <div className="text-xs font-black uppercase tracking-[0.2em] text-lime-200">Reward</div>
           <div className="mt-1 text-2xl font-black tabular-nums text-slate-50">{props.reward}</div>
         </div>

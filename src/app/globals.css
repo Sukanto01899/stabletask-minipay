@@ -203,6 +203,18 @@
   }
 }
 
+@keyframes claim-flash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(163, 230, 53, 0.55);
+  }
+  40% {
+    box-shadow: 0 0 28px 6px rgba(163, 230, 53, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(163, 230, 53, 0);
+  }
+}
+
 @keyframes icon-breathe {
   0%,
   100% {
@@ -291,6 +303,10 @@
   .animate-icon-breathe {
     animation: icon-breathe 2.6s ease-in-out infinite;
   }
+
+  .animate-claim-flash {
+    animation: claim-flash 900ms ease-out;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -299,6 +315,7 @@
   .animate-glow-pulse,
   .animate-fade-in,
   .animate-icon-breathe,
+  .animate-claim-flash,
   .skeleton-shimmer {
     animation: none;
   }

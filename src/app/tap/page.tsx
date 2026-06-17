@@ -458,7 +458,7 @@ export default function TapPage() {
                 onClick={handleTapClick}
                 disabled={isBusy || isLoadingTapData || isLimitReached}
                 aria-busy={isBusy}
-                className={`relative flex h-52 w-52 items-center justify-center rounded-full border-2 px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_0_0_12px_rgba(132,204,22,0.08),0_32px_100px_rgba(20,184,166,0.42),inset_0_-14px_32px_rgba(0,0,0,0.65),inset_0_7px_18px_rgba(255,255,255,0.22)] transition active:scale-[0.97] disabled:cursor-not-allowed ${
+                className={`relative flex h-52 w-52 items-center justify-center rounded-full border-2 px-8 text-center text-3xl font-black tracking-tight text-white shadow-[0_0_0_12px_rgba(132,204,22,0.08),0_32px_100px_rgba(20,184,166,0.42),inset_0_-14px_32px_rgba(0,0,0,0.65),inset_0_7px_18px_rgba(255,255,255,0.22)] transition duration-150 active:scale-95 active:brightness-125 active:duration-75 disabled:cursor-not-allowed ${
                   isLimitReached
                     ? 'border-slate-600/50 bg-[radial-gradient(circle_at_30%_22%,rgba(30,41,59,0.9)_0%,rgba(15,23,42,0.98)_60%)] opacity-50'
                     : 'border-lime-300/50 bg-[radial-gradient(circle_at_30%_22%,rgba(255,255,255,0.95)_0%,rgba(204,251,241,0.88)_8%,rgba(20,184,166,0.97)_36%,rgba(8,16,42,1)_68%,rgba(4,8,24,1)_100%)]'

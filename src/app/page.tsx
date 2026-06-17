@@ -10,6 +10,7 @@ import { useStreak } from '@/hooks/useStreak'
 import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
 import { copyText } from '@/lib/clipboard'
 import { fireConfetti } from '@/lib/confetti'
+import { haptics } from '@/lib/haptics'
 import { stableTaskConfig } from '@/lib/app-config'
 import { useToast } from '@/components/ui/toast'
 import { AnimatedNumber } from '@/components/stabletask/AnimatedNumber'
@@ -70,9 +71,10 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className={`flex flex-col gap-3 rounded-2xl border ${accent} bg-slate-950/60 px-4 py-4 transition hover:brightness-110 active:scale-[0.97]`}
+      onClick={() => haptics.tap()}
+      className={`flex flex-col gap-3 rounded-2xl border ${accent} bg-slate-950/60 px-4 py-4 transition duration-150 hover:brightness-110 active:scale-95 active:brightness-125 active:duration-75`}
     >
-      <div className={`flex h-9 w-9 items-center justify-center rounded-xl border ${accent} bg-slate-900/80`}>
+      <div className={`flex h-9 w-9 items-center justify-center rounded-xl border ${accent} bg-slate-900/80 transition duration-150 active:bg-white/10`}>
         {icon}
       </div>
       <div>

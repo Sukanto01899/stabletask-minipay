@@ -25,7 +25,9 @@ export function EmptyState({ icon, title, description, action, className }: Empt
         className,
       )}
     >
-      {icon && <div className="mb-3 text-slate-500 [&>svg]:mx-auto">{icon}</div>}
+      {icon && (
+        <div className="animate-icon-breathe mb-3 text-slate-500 [&>svg]:mx-auto">{icon}</div>
+      )}
       <div className="text-sm font-bold text-slate-300">{title}</div>
       {description && <div className="mt-1 text-xs text-slate-500">{description}</div>}
       {action && (

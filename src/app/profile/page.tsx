@@ -187,7 +187,7 @@ function StatCard(props: {
       {props.loading ? (
         <div className="skeleton-shimmer mt-2 h-8 w-28 rounded-lg" />
       ) : (
-        <div className={`mt-2 ${sizeClass} font-black text-slate-50`}>{props.value}</div>
+        <div className={`animate-fade-in mt-2 ${sizeClass} font-black text-slate-50`}>{props.value}</div>
       )}
       <div className="mt-1 text-xs text-slate-400">{props.description}</div>
     </div>
@@ -465,7 +465,7 @@ export default function ProfilePage() {
               {isLoading ? (
                 <div className="skeleton-shimmer h-3 w-36 rounded-full" />
               ) : (
-                <>
+                <span className="animate-fade-in flex items-center gap-3">
                   {profile?.referralCode ? (
                     <span>
                       Code:{' '}
@@ -483,7 +483,7 @@ export default function ProfilePage() {
                       <span title={rel.title}>Last active {rel.label}</span>
                     )
                   })()}
-                </>
+                </span>
               )}
             </div>
           </div>

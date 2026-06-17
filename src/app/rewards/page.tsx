@@ -67,7 +67,7 @@ function StatCard(props: {
       {props.loading ? (
         <div className="skeleton-shimmer mt-1 h-8 w-28 rounded-lg" />
       ) : (
-        <div className="mt-1 text-2xl font-black text-slate-50">{props.value}</div>
+        <div className="animate-fade-in mt-1 text-2xl font-black text-slate-50">{props.value}</div>
       )}
       <div className="mt-1 text-xs text-slate-400">{props.sub}</div>
     </div>
@@ -100,7 +100,7 @@ function XpHero({ xpBalance, loading }: { xpBalance: string; loading: boolean })
           <div className="skeleton-shimmer h-5 w-16 rounded-full" />
         ) : (
           <span
-            className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${tier.color} ${tier.border} ${tier.bg}`}
+            className={`animate-fade-in rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${tier.color} ${tier.border} ${tier.bg}`}
           >
             {tier.label}
           </span>
@@ -110,7 +110,7 @@ function XpHero({ xpBalance, loading }: { xpBalance: string; loading: boolean })
       {loading ? (
         <div className="skeleton-shimmer mt-2 h-10 w-36 rounded-lg" />
       ) : (
-        <div className="mt-1 flex items-end gap-2">
+        <div className="animate-fade-in mt-1 flex items-end gap-2">
           <AnimatedNumber
             value={xp}
             format={(n) => formatAmount(String(n))}
@@ -170,7 +170,7 @@ function ProgressSection({
         {loading ? (
           <div className="skeleton-shimmer h-3 w-20 rounded-full" />
         ) : (
-          <div className="text-xs text-slate-400">
+          <div className="animate-fade-in text-xs text-slate-400">
             <span className="font-black text-slate-50">{claimed}</span>
             {' / '}
             <span className="font-black text-slate-50">{total}</span>

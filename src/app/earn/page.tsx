@@ -252,7 +252,7 @@ export default function EarnPage() {
           {isLoading ? (
             <SkeletonBlock className="h-10 w-36" />
           ) : (
-            <>
+            <span className="animate-fade-in flex items-end gap-2">
               <AnimatedNumber
                 value={parseFloat(formatUnits(pendingXpWei, 18))}
                 format={(n) => n.toLocaleString(undefined, { maximumFractionDigits: 4 })}
@@ -260,7 +260,7 @@ export default function EarnPage() {
                 className="text-4xl font-black leading-none"
               />
               <span className="mb-0.5 text-xl font-black text-lime-300">XP</span>
-            </>
+            </span>
           )}
         </div>
         <div className="mt-1 text-xs text-slate-500">accrued — ready to claim</div>
@@ -270,13 +270,13 @@ export default function EarnPage() {
           <div className="rounded-xl border border-cyan-300/20 bg-slate-900/50 px-3 py-2.5">
             <div className="text-[10px] font-black uppercase tracking-widest text-cyan-200">Deposited</div>
             {isLoading ? <SkeletonBlock className="mt-1 h-5 w-20" /> : (
-              <div className="mt-0.5 text-base font-black text-slate-50">{fmt(depositedWei)} <span className="text-xs text-slate-400">cUSD</span></div>
+              <div className="animate-fade-in mt-0.5 text-base font-black text-slate-50">{fmt(depositedWei)} <span className="text-xs text-slate-400">cUSD</span></div>
             )}
           </div>
           <div className="rounded-xl border border-amber-300/20 bg-slate-900/50 px-3 py-2.5">
             <div className="text-[10px] font-black uppercase tracking-widest text-amber-200">Rate</div>
             {isLoading ? <SkeletonBlock className="mt-1 h-5 w-20" /> : (
-              <div className="mt-0.5 text-base font-black text-slate-50">{fmt(xpPerDay)} <span className="text-xs text-slate-400">XP/day</span></div>
+              <div className="animate-fade-in mt-0.5 text-base font-black text-slate-50">{fmt(xpPerDay)} <span className="text-xs text-slate-400">XP/day</span></div>
             )}
           </div>
         </div>

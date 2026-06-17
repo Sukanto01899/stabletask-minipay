@@ -80,7 +80,7 @@ function StatCard(props: {
       {props.loading ? (
         <div className="skeleton-shimmer mt-1 h-7 w-20 rounded-lg" />
       ) : (
-        <div className="mt-1 text-xl font-black text-slate-50">
+        <div className="animate-fade-in mt-1 text-xl font-black text-slate-50">
           {props.prefix}
           <AnimatedNumber
             value={props.value}
@@ -117,7 +117,7 @@ function MilestoneBar({
       {isLoadingTapData ? (
         <div className="skeleton-shimmer h-2.5 w-full rounded-full" />
       ) : (
-        <>
+        <div className="animate-fade-in">
           <div className="mb-1.5 flex items-center justify-between text-xs">
             <span className="font-black uppercase tracking-[0.12em] text-slate-500">
               Daily Progress
@@ -191,7 +191,7 @@ function MilestoneBar({
                 </div>
               )
             })()}
-        </>
+        </div>
       )}
     </div>
   )

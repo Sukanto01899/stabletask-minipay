@@ -331,7 +331,7 @@ export default function HomePage() {
             {isFetchingTasks ? (
               <SkeletonBlock className="mt-1 h-9 w-32" />
             ) : (
-              <div className="mt-1 flex items-end gap-1.5">
+              <div className="animate-fade-in mt-1 flex items-end gap-1.5">
                 <AnimatedNumber
                   value={xp}
                   format={(n) => Math.round(n).toLocaleString()}
@@ -467,7 +467,7 @@ export default function HomePage() {
           {isStreakLoading ? (
             <SkeletonBlock className="mt-1 h-7 w-16" />
           ) : (
-            <div className="mt-1 text-xl font-black text-slate-50">
+            <div className="animate-fade-in mt-1 text-xl font-black text-slate-50">
               {claimedTodayCount}
               <span className="ml-1 text-xs font-semibold text-slate-500">today</span>
             </div>
@@ -491,7 +491,7 @@ export default function HomePage() {
           {isStreakLoading ? (
             <SkeletonBlock className="mt-1 h-7 w-10" />
           ) : (
-            <div className="mt-1 text-xl font-black text-slate-50">
+            <div className="animate-fade-in mt-1 text-xl font-black text-slate-50">
               {streakCount > 0 ? `🔥 ${streakCount}` : '—'}
             </div>
           )}
@@ -531,7 +531,7 @@ export default function HomePage() {
           {tapsToday === null ? (
             <SkeletonBlock className="mt-1 h-7 w-16" />
           ) : (
-            <div className="mt-1 text-xl font-black text-slate-50">
+            <div className="animate-fade-in mt-1 text-xl font-black text-slate-50">
               {tapsToday.toLocaleString()}
               <span className="ml-1 text-xs font-semibold text-slate-500">/ {dailyTapLimit.toLocaleString()}</span>
             </div>
@@ -565,7 +565,9 @@ export default function HomePage() {
         {isStreakLoading ? (
           <SkeletonBlock className="h-6 w-full" />
         ) : (
-          <StreakWeek streakCount={streakCount} lastActivityDate={lastActivityDate} />
+          <div className="animate-fade-in">
+            <StreakWeek streakCount={streakCount} lastActivityDate={lastActivityDate} />
+          </div>
         )}
       </div>
 
@@ -636,7 +638,7 @@ export default function HomePage() {
               </div>
             ))}
             {!isFetchingTasks && recentClaims.map((task) => (
-              <div key={task.id.toString()} className="flex items-center gap-3 rounded-xl border border-lime-300/12 bg-slate-900/40 px-3 py-2.5">
+              <div key={task.id.toString()} className="animate-fade-in flex items-center gap-3 rounded-xl border border-lime-300/12 bg-slate-900/40 px-3 py-2.5">
                 <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-lime-300/25 bg-lime-300/10 text-lime-300">
                   <svg viewBox="0 0 12 12" fill="currentColor" className="h-3 w-3">
                     <path fillRule="evenodd" d="M10.293 2.293a1 1 0 011.414 1.414l-6 6a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L5 7.586l5.293-5.293z" clipRule="evenodd" />

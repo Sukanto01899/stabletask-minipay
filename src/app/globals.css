@@ -194,6 +194,16 @@
   }
 }
 
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 6px 1px var(--glow-color, rgba(132, 204, 22, 0.6));
+  }
+  50% {
+    box-shadow: 0 0 14px 4px var(--glow-color, rgba(132, 204, 22, 0.6));
+  }
+}
+
 @layer utilities {
   .animate-float-up {
     animation: float-up 850ms ease-out forwards;
@@ -248,11 +258,16 @@
   .game-chip {
     @apply border border-amber-300/30 bg-amber-300/10 text-amber-100;
   }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 1.1s ease-in-out infinite;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-tap-orbit,
   .animate-tap-pulse,
+  .animate-glow-pulse,
   .skeleton-shimmer {
     animation: none;
   }

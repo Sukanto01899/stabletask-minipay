@@ -211,6 +211,7 @@ export default function HomePage() {
     tier.next !== null
       ? Math.min(100, Math.round(((xp - tier.min) / (tier.next - tier.min)) * 100))
       : 100
+  const isNearLevelUp = tier.next !== null && levelPct >= 95 && levelPct < 100
 
   const claimedTasks = useMemo(() => tasks.filter((t) => t.hasClaimedPoint), [tasks])
   const recentClaims = useMemo(() => [...claimedTasks].sort((a, b) => (a.id > b.id ? -1 : 1)).slice(0, 3), [claimedTasks])
@@ -436,10 +437,11 @@ export default function HomePage() {
                 className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/80 active:scale-[1.01]"
               >
                 <div
-                  className="h-full rounded-full transition-all duration-700"
+                  className={`h-full rounded-full transition-all duration-700 ${isNearLevelUp ? 'animate-glow-pulse' : ''}`}
                   style={{
                     width: `${levelPct}%`,
                     background: `linear-gradient(90deg, ${tier.glow.replace('0.2', '0.9')}, ${tier.glow.replace('0.2', '0.5')})`,
+                    ...(isNearLevelUp ? { '--glow-color': tier.glow.replace('0.2', '0.75') } as React.CSSProperties : {}),
                   }}
                 />
               </button>

@@ -80,6 +80,7 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   const isPinned = Boolean(props.isPinned)
   const isOverdue = Boolean(props.isOverdue)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const prevClaimState = useRef(props.claimState)
   useEffect(() => {
@@ -117,10 +118,11 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   }
 
   const handleCopyLink = async () => {
-    if (!props.visitHref) return
+    if (!props.visitHref || linkCopied) return
     try {
       await copyText(props.visitHref)
-      toast({ title: 'Copied', description: 'Task link copied.', variant: 'success' })
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 1500)
     } catch (error) {
       console.error('Failed to copy task link:', error)
       toast({ title: 'Copy failed', description: 'Could not copy task link.', variant: 'error' })
@@ -269,10 +271,25 @@ export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="rounded-full border border-cyan-300/20 bg-slate-900/70 px-3 py-1 text-xs font-semibold text-slate-300 transition hover:bg-cyan-300/10"
+                disabled={linkCopied}
+                className={cn(
+                  'flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition',
+                  linkCopied
+                    ? 'border-lime-300/40 bg-lime-300/10 text-lime-300'
+                    : 'border-cyan-300/20 bg-slate-900/70 text-slate-300 hover:bg-cyan-300/10',
+                )}
                 aria-label="Copy task link"
               >
-                Copy
+                {linkCopied ? (
+                  <>
+                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  'Copy'
+                )}
               </button>
               <button
                 type="button"

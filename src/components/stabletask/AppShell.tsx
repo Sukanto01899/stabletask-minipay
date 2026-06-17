@@ -85,7 +85,7 @@ const HEADER_COPY: Record<string, { title: string; subtitle: string }> = {
 export function AppShell(props: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { address, chainId, isConnected } = useConnection();
-  const { pendingPayoutsCount, claimedTodayCount } = usePendingCount();
+  const { pendingPayoutsCount, claimedTodayCount, streakRollingOver } = usePendingCount();
   const connectors = useConnectors();
   const { connect, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
@@ -312,7 +312,7 @@ export function AppShell(props: { children: React.ReactNode }) {
           <ScrollToTop />
           <BottomNav
             items={[
-              { label: "Tasks", href: "/tasks", icon: Task01Icon, badge: claimedTodayCount },
+              { label: "Tasks", href: "/tasks", icon: Task01Icon, badge: claimedTodayCount, warning: streakRollingOver },
               { label: "Tap", href: "/tap", icon: Tap01Icon },
               { label: "Earn", href: "/earn", icon: CoinsIcon },
               { label: "Rewards", href: "/rewards", icon: GiftIcon, badge: pendingPayoutsCount },

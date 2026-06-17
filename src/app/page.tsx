@@ -11,6 +11,7 @@ import { useCountdownToMidnightUTC } from '@/hooks/useCountdownToMidnightUTC'
 import { copyText } from '@/lib/clipboard'
 import { fireConfetti } from '@/lib/confetti'
 import { haptics } from '@/lib/haptics'
+import { usePendingCount } from '@/lib/pending-count-context'
 import { stableTaskConfig } from '@/lib/app-config'
 import { useToast } from '@/components/ui/toast'
 import { AnimatedNumber } from '@/components/stabletask/AnimatedNumber'
@@ -95,6 +96,7 @@ export default function HomePage() {
   const { tasks, xpBalance, isFetchingTasks } = useVaultTasks()
   const { streakCount, lastActivityDate, claimedTodayCount, isLoading: isStreakLoading } = useStreak(address)
   const { toast } = useToast()
+  const { setStreakRollingOver } = usePendingCount()
 
   const [tapsToday, setTapsToday] = useState<number | null>(null)
   const [dailyTapLimit, setDailyTapLimit] = useState(1000)
@@ -229,6 +231,12 @@ export default function HomePage() {
   // Within the last 2h before midnight UTC the secured window is about to roll
   // over — nudge the user to return tomorrow. `countdown` is "HH:MM:SS".
   const streakRollingOver = streakSecuredToday && Number(countdown.slice(0, 2)) < 2
+
+  // Mirror into shared context so the BottomNav can show the warning dot
+  // even on tabs other than Home.
+  useEffect(() => {
+    setStreakRollingOver(streakRollingOver)
+  }, [streakRollingOver, setStreakRollingOver])
 
   if (!isConnected) {
     return (

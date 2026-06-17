@@ -11,6 +11,8 @@ export type BottomNavItem = {
   href: string
   icon: IconSvgElement
   badge?: number
+  /** Small pulsing warning dot (e.g. streak about to expire) — independent of `badge`. */
+  warning?: boolean
 }
 
 export function BottomNav(props: { items: BottomNavItem[] }) {
@@ -57,6 +59,15 @@ export function BottomNav(props: { items: BottomNavItem[] }) {
                 {item.badge != null && item.badge > 0 && (
                   <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-slate-950 bg-amber-400 px-0.5 text-[9px] font-black leading-none text-slate-950">
                     {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+                {item.warning && (
+                  <span
+                    title="Streak expiring soon"
+                    className="absolute -bottom-1 -right-1.5 flex h-3 w-3"
+                  >
+                    <span className="animate-tap-pulse absolute inset-0 rounded-full bg-amber-400/70 blur-[2px]" />
+                    <span className="relative h-3 w-3 rounded-full border border-slate-950 bg-amber-400" />
                   </span>
                 )}
               </span>

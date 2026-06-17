@@ -9,6 +9,8 @@ type PendingCountContextValue = {
   setActiveTasksCount: (count: number) => void
   claimedTodayCount: number
   setClaimedTodayCount: (count: number) => void
+  streakRollingOver: boolean
+  setStreakRollingOver: (rollingOver: boolean) => void
 }
 
 const PendingCountContext = createContext<PendingCountContextValue>({
@@ -18,12 +20,15 @@ const PendingCountContext = createContext<PendingCountContextValue>({
   setActiveTasksCount: () => {},
   claimedTodayCount: 0,
   setClaimedTodayCount: () => {},
+  streakRollingOver: false,
+  setStreakRollingOver: () => {},
 })
 
 export function PendingCountProvider({ children }: { children: ReactNode }) {
   const [pendingPayoutsCount, setPendingPayoutsCount] = useState(0)
   const [activeTasksCount, setActiveTasksCount] = useState(0)
   const [claimedTodayCount, setClaimedTodayCount] = useState(0)
+  const [streakRollingOver, setStreakRollingOver] = useState(false)
   return (
     <PendingCountContext.Provider
       value={{
@@ -33,6 +38,8 @@ export function PendingCountProvider({ children }: { children: ReactNode }) {
         setActiveTasksCount,
         claimedTodayCount,
         setClaimedTodayCount,
+        streakRollingOver,
+        setStreakRollingOver,
       }}
     >
       {children}

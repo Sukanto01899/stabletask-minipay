@@ -203,6 +203,37 @@
   }
 }
 
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-slide-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-slide-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
@@ -352,6 +383,18 @@
     animation: fade-in 150ms ease-out;
   }
 
+  .animate-fade-out {
+    animation: fade-out 200ms ease-in forwards;
+  }
+
+  .animate-sheet-in {
+    animation: sheet-slide-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-sheet-out {
+    animation: sheet-slide-out 200ms ease-in forwards;
+  }
+
   .animate-icon-breathe {
     animation: icon-breathe 2.6s ease-in-out infinite;
   }
@@ -383,6 +426,7 @@
   .animate-tap-pulse,
   .animate-glow-pulse,
   .animate-fade-in,
+  .animate-fade-out,
   .animate-icon-breathe,
   .animate-claim-flash,
   .animate-streak-tick,
@@ -392,9 +436,11 @@
   }
 
   /* Keep these firing (near-instantly) rather than disabling outright — their
-     animationend event drives toast removal timing. */
+     animationend event drives toast/sheet removal timing. */
   .animate-toast-in,
-  .animate-toast-out {
+  .animate-toast-out,
+  .animate-sheet-in,
+  .animate-sheet-out {
     animation-duration: 0.01ms;
   }
 

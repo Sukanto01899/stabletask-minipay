@@ -98,6 +98,20 @@ export function AppShell(props: { children: React.ReactNode }) {
   const [hasCopied, setHasCopied] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
+  // Keeps the wallet sheet mounted briefly after `walletSheetOpen` flips false
+  // so its slide-down exit animation can play instead of popping out instantly.
+  const sheetWasOpenRef = useRef(walletSheetOpen);
+  const [sheetClosing, setSheetClosing] = useState(false);
+
+  useEffect(() => {
+    if (sheetWasOpenRef.current && !walletSheetOpen) {
+      setSheetClosing(true);
+    } else if (walletSheetOpen) {
+      setSheetClosing(false);
+    }
+    sheetWasOpenRef.current = walletSheetOpen;
+  }, [walletSheetOpen]);
+
   // Plays a one-shot success flash on the wallet chip right after connecting
   // (not on initial mount when a wallet is already connected from a prior session).
   const prevIsConnectedRef = useRef(isConnected);
@@ -339,7 +353,7 @@ export function AppShell(props: { children: React.ReactNode }) {
         </>
       )}
 
-      {walletSheetOpen && isConnected && (
+      {(walletSheetOpen || sheetClosing) && isConnected && (
         <div
           className="fixed inset-0 z-50"
           role="dialog"
@@ -348,12 +362,23 @@ export function AppShell(props: { children: React.ReactNode }) {
         >
           <button
             type="button"
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className={cn(
+              "absolute inset-0 bg-black/40 backdrop-blur-sm",
+              sheetClosing ? "animate-fade-out" : "animate-fade-in",
+            )}
             onClick={() => setWalletSheetOpen(false)}
             aria-label="Close wallet actions"
           />
           <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md px-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)]">
-            <div className="game-panel-strong relative overflow-hidden rounded-[1.5rem] p-4">
+            <div
+              className={cn(
+                "game-panel-strong relative overflow-hidden rounded-[1.5rem] p-4",
+                sheetClosing ? "animate-sheet-out" : "animate-sheet-in",
+              )}
+              onAnimationEnd={() => {
+                if (sheetClosing) setSheetClosing(false);
+              }}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-xs text-muted-foreground">

@@ -25,6 +25,7 @@ type ToastItem = Required<Pick<ToastInput, 'title'>> &
     id: string
     createdAt: number
     actionLabel?: string
+    leaving?: boolean
   }
 
 type ToastContextValue = {
@@ -60,12 +61,20 @@ export function ToastProvider(props: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
-  const remove = useCallback((id: string) => {
+  const removeImmediate = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id))
     const timeoutId = timeoutsRef.current.get(id)
     if (timeoutId) window.clearTimeout(timeoutId)
     timeoutsRef.current.delete(id)
     actionsRef.current.delete(id)
+  }, [])
+
+  /** Marks a toast as leaving so its exit animation can play before it's removed. */
+  const dismiss = useCallback((id: string) => {
+    const timeoutId = timeoutsRef.current.get(id)
+    if (timeoutId) window.clearTimeout(timeoutId)
+    timeoutsRef.current.delete(id)
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, leaving: true } : item)))
   }, [])
 
   const toast = useCallback(
@@ -97,10 +106,10 @@ export function ToastProvider(props: { children: React.ReactNode }) {
         actionsRef.current.set(id, input.action.onClick)
       }
 
-      const timeoutId = window.setTimeout(() => remove(id), durationMs)
+      const timeoutId = window.setTimeout(() => dismiss(id), durationMs)
       timeoutsRef.current.set(id, timeoutId)
     },
-    [prefs.toastOnFailure, prefs.toastOnSuccess, remove],
+    [dismiss, prefs.toastOnFailure, prefs.toastOnSuccess],
   )
 
   const value = useMemo(() => ({ toast }), [toast])
@@ -116,9 +125,13 @@ export function ToastProvider(props: { children: React.ReactNode }) {
               className={cn(
                 'pointer-events-auto overflow-hidden rounded-2xl border px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-sm',
                 variantClasses(item.variant ?? 'default'),
+                item.leaving ? 'animate-toast-out' : 'animate-toast-in',
               )}
               role="status"
               aria-live="polite"
+              onAnimationEnd={() => {
+                if (item.leaving) removeImmediate(item.id)
+              }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -133,7 +146,7 @@ export function ToastProvider(props: { children: React.ReactNode }) {
                     className="shrink-0 rounded-full border border-border/70 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-white"
                     onClick={() => {
                       const action = actionsRef.current.get(item.id)
-                      remove(item.id)
+                      dismiss(item.id)
                       try {
                         action?.()
                       } catch (error) {

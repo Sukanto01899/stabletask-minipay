@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
+
 import { cn } from '@/lib/utils'
 
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const
@@ -48,6 +50,18 @@ export function StreakWeek(props: {
   const week = currentWeekDates()
   const activeDates = buildActiveDates(props.streakCount, props.lastActivityDate)
 
+  // Plays a one-shot pop animation on the dot for a day that just became active
+  // (e.g. right after check-in) — not on initial mount.
+  const prevLastActivityDateRef = useRef(props.lastActivityDate)
+  const [justCompletedDate, setJustCompletedDate] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (props.lastActivityDate !== prevLastActivityDateRef.current) {
+      setJustCompletedDate(props.lastActivityDate)
+      prevLastActivityDateRef.current = props.lastActivityDate
+    }
+  }, [props.lastActivityDate])
+
   const missedPastDays = week.filter(d => d < todayUtc && !activeDates.has(d)).length
   const showGraceAvailable = props.streakCount > 0 && missedPastDays === 0
   const showGraceUsed = props.streakCount > 0 && missedPastDays === 1
@@ -59,6 +73,7 @@ export function StreakWeek(props: {
           const isActive = activeDates.has(dateStr)
           const isToday = dateStr === todayUtc
           const isFuture = dateStr > todayUtc
+          const isJustCompleted = dateStr === justCompletedDate
 
           return (
             <div key={dateStr} className="flex flex-1 flex-col items-center gap-1">
@@ -80,6 +95,7 @@ export function StreakWeek(props: {
                       ? 'border-slate-700/60 bg-slate-800/40'
                       : 'border-slate-700 bg-slate-800',
                   isToday && 'ring-2 ring-orange-300/50 ring-offset-1 ring-offset-slate-950',
+                  isJustCompleted && 'animate-streak-tick',
                 )}
               />
             </div>

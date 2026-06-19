@@ -27,6 +27,7 @@ export function AnimatedNumber({
   className?: string
 }) {
   const [display, setDisplay] = useState(value)
+  const [justSettled, setJustSettled] = useState(false)
   const fromRef = useRef(value)
   const rafRef = useRef<number | null>(null)
 
@@ -55,6 +56,8 @@ export function AnimatedNumber({
       } else {
         fromRef.current = to
         setDisplay(to)
+        // Brief scale/glow pop to draw the eye once the count-up settles.
+        setJustSettled(true)
       }
     }
     rafRef.current = requestAnimationFrame(tick)
@@ -70,8 +73,10 @@ export function AnimatedNumber({
         'tabular-nums',
         gradient &&
           'bg-linear-to-r from-lime-300 via-cyan-200 to-amber-300 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(132,204,22,0.25)]',
+        justSettled && 'animate-number-settle',
         className,
       )}
+      onAnimationEnd={() => setJustSettled(false)}
     >
       {format(display)}
     </span>

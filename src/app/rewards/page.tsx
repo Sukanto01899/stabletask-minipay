@@ -11,6 +11,7 @@ import { stableTaskConfig } from '@/lib/app-config'
 import { Badge } from '@/components/ui/badge'
 import { AnimatedNumber } from '@/components/stabletask/AnimatedNumber'
 import { EmptyState } from '@/components/stabletask/EmptyState'
+import { PullToRefreshIndicator } from '@/components/stabletask/PullToRefreshIndicator'
 
 function safeParseUnits(value: string | undefined, decimals: number) {
   if (!value) return BigInt(0)
@@ -352,19 +353,12 @@ export default function RewardsPage() {
 
   return (
     <div {...pullHandlers}>
-      <div className="mx-auto w-full max-w-md px-5 pt-2">
-        <div
-          className="overflow-hidden rounded-2xl"
-          style={{
-            height: pullDistance,
-            transition: isPulling ? 'none' : 'height 180ms ease',
-          }}
-        >
-          <div className="flex h-full items-end justify-center pb-2 text-xs font-semibold text-lime-200">
-            {isFetchingTasks ? 'Refreshing…' : pullReady ? 'Release to refresh' : 'Pull to refresh'}
-          </div>
-        </div>
-      </div>
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        pullReady={pullReady}
+        isPulling={isPulling}
+        isRefreshing={isFetchingTasks}
+      />
 
       <main
         className="mx-auto flex w-full max-w-md flex-col gap-4 px-5 pb-28 pt-2"

@@ -15,6 +15,7 @@ import { erc20Abi, formatEther, formatUnits, parseEther, parseUnits } from 'viem
 import { AnimatedNumber } from '@/components/stabletask/AnimatedNumber'
 import { EmptyState } from '@/components/stabletask/EmptyState'
 import { LoadingScreen } from '@/components/stabletask/LoadingScreen'
+import { PullToRefreshIndicator } from '@/components/stabletask/PullToRefreshIndicator'
 import { TaskCard } from '@/components/stabletask/TaskCard'
 import { TaskCardSkeleton } from '@/components/stabletask/TaskCardSkeleton'
 import { useToast } from '@/components/ui/toast'
@@ -1141,19 +1142,12 @@ export default function Page() {
 
   return (
     <div {...pullHandlers}>
-      <div className="mx-auto w-full max-w-md px-5 pt-2">
-        <div
-          className="overflow-hidden rounded-2xl"
-          style={{
-            height: pullDistance,
-            transition: isPulling ? 'none' : 'height 180ms ease',
-          }}
-        >
-          <div className="flex h-full items-end justify-center pb-2 text-xs font-semibold text-lime-200">
-            {isRefreshing ? 'Refreshing…' : pullReady ? 'Release to refresh' : 'Pull to refresh'}
-          </div>
-        </div>
-      </div>
+      <PullToRefreshIndicator
+        pullDistance={pullDistance}
+        pullReady={pullReady}
+        isPulling={isPulling}
+        isRefreshing={isRefreshing}
+      />
 
       <main
         className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pb-28 pt-2"

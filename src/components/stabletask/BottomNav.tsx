@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react'
 
 import { cn } from '@/lib/utils'
@@ -15,17 +16,56 @@ export type BottomNavItem = {
   warning?: boolean
 }
 
+const INDICATOR_WIDTH = 32
+
 export function BottomNav(props: { items: BottomNavItem[] }) {
   const pathname = usePathname()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const itemRefs = useRef<(HTMLAnchorElement | null)[]>([])
+  const [indicatorLeft, setIndicatorLeft] = useState<number | null>(null)
+
+  const activeIndex = props.items.findIndex((item) =>
+    item.href === '/tasks' ? pathname === '/' || pathname === '/tasks' : pathname === item.href,
+  )
+
+  useEffect(() => {
+    const container = containerRef.current
+    const activeEl = itemRefs.current[activeIndex]
+    if (!container || !activeEl) return
+
+    const updatePosition = () => {
+      const containerRect = container.getBoundingClientRect()
+      const activeRect = activeEl.getBoundingClientRect()
+      setIndicatorLeft(activeRect.left - containerRect.left + activeRect.width / 2 - INDICATOR_WIDTH / 2)
+    }
+
+    updatePosition()
+    const observer = new ResizeObserver(updatePosition)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [activeIndex])
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-cyan-300/20 bg-slate-950/82 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
-        {props.items.map((item) => {
-          const isActive = item.href === '/tasks' ? pathname === '/' || pathname === '/tasks' : pathname === item.href
+      <div ref={containerRef} className="relative mx-auto flex max-w-md items-center justify-between px-4 py-3">
+        {/* Active-tab indicator: a single glowing bar that slides between tabs. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-px h-0.5 rounded-full bg-linear-to-r from-lime-300 via-cyan-200 to-amber-300 shadow-[0_0_8px_rgba(132,204,22,0.8)] transition-[left,opacity] duration-300 ease-out"
+          style={{
+            width: INDICATOR_WIDTH,
+            left: indicatorLeft ?? 0,
+            opacity: indicatorLeft === null ? 0 : 1,
+          }}
+        />
+        {props.items.map((item, index) => {
+          const isActive = index === activeIndex
           return (
             <Link
               key={item.label}
+              ref={(el) => {
+                itemRefs.current[index] = el
+              }}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
                 'group relative flex min-w-20 flex-col items-center gap-1 rounded-xl border px-3 py-2 text-xs font-bold transition',
@@ -35,14 +75,6 @@ export function BottomNav(props: { items: BottomNavItem[] }) {
               )}
               href={item.href}
             >
-              {/* Active-tab indicator: a glowing bar along the top edge. */}
-              <span
-                aria-hidden
-                className={cn(
-                  'pointer-events-none absolute -top-px left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-linear-to-r from-lime-300 via-cyan-200 to-amber-300 shadow-[0_0_8px_rgba(132,204,22,0.8)] transition-all duration-300',
-                  isActive ? 'w-8 opacity-100' : 'w-0 opacity-0',
-                )}
-              />
               <span className="relative">
                 <HugeiconsIcon
                   aria-hidden="true"

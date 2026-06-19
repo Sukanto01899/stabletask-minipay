@@ -16,12 +16,12 @@ export function ReferralCard(props: { code: string; reward: string }) {
 
   useEffect(() => {
     if (copyState !== 'copied') return
-    const timeout = window.setTimeout(() => setCopyState('idle'), 1600)
+    const timeout = window.setTimeout(() => setCopyState('idle'), 1500)
     return () => window.clearTimeout(timeout)
   }, [copyState])
 
   const handleCopy = async () => {
-    if (!codeAvailable) return
+    if (!codeAvailable || copyState === 'copied') return
 
     try {
       await copyText(props.code)
@@ -73,7 +73,7 @@ export function ReferralCard(props: { code: string; reward: string }) {
       <CardContent className="flex items-center justify-between gap-3">
         <button
           type="button"
-          disabled={!codeAvailable}
+          disabled={!codeAvailable || copyState === 'copied'}
           onClick={handleCopy}
           aria-label="Copy referral code"
           className={`group min-w-0 flex-1 rounded-xl border border-dashed px-4 py-3 text-left text-sm font-black transition-colors disabled:cursor-default ${

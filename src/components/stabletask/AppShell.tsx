@@ -26,6 +26,7 @@ import { stableTaskConfig } from "@/lib/app-config";
 import { copyText } from "@/lib/clipboard";
 import { detectMiniPay, useIsMiniPay } from "@/lib/minipay";
 import { usePendingCount } from "@/lib/pending-count-context";
+import { cn } from "@/lib/utils";
 
 type Eip1193Provider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -96,6 +97,18 @@ export function AppShell(props: { children: React.ReactNode }) {
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+
+  // Plays a one-shot success flash on the wallet chip right after connecting
+  // (not on initial mount when a wallet is already connected from a prior session).
+  const prevIsConnectedRef = useRef(isConnected);
+  const [justConnected, setJustConnected] = useState(false);
+
+  useEffect(() => {
+    if (isConnected && !prevIsConnectedRef.current) {
+      setJustConnected(true);
+    }
+    prevIsConnectedRef.current = isConnected;
+  }, [isConnected]);
 
   const header = useMemo(() => {
     return (
@@ -272,8 +285,12 @@ export function AppShell(props: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => setWalletSheetOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-50 backdrop-blur transition hover:bg-cyan-300/16"
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-50 backdrop-blur transition hover:bg-cyan-300/16",
+                    justConnected && "animate-claim-flash",
+                  )}
                   aria-label="Wallet menu"
+                  onAnimationEnd={() => setJustConnected(false)}
                 >
                   <StatusDot status="online" />
                   <span>{shortAddress ?? "No wallet"}</span>

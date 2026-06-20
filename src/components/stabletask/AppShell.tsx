@@ -426,7 +426,7 @@ export function AppShell(props: { children: React.ReactNode }) {
                   {hasCopied ? "Copied" : "Copy address"}
                 </Button>
                 {confirmDisconnect ? (
-                  <div className="grid gap-2">
+                  <div className="animate-fade-in grid gap-2">
                     <div className="text-center text-xs text-muted-foreground">
                       Disconnect this wallet?
                     </div>
@@ -454,6 +454,7 @@ export function AppShell(props: { children: React.ReactNode }) {
                     type="button"
                     variant="destructive"
                     size="lg"
+                    className="animate-fade-in"
                     onClick={() => setConfirmDisconnect(true)}
                   >
                     Disconnect

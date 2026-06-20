@@ -18,6 +18,31 @@ export type BottomNavItem = {
 
 const INDICATOR_WIDTH = 32
 
+/** Nav badge count that plays a quick pop when its value changes (not on initial mount). */
+function NavBadge({ value }: { value: number }) {
+  const prevValueRef = useRef(value)
+  const [popping, setPopping] = useState(false)
+
+  useEffect(() => {
+    if (value !== prevValueRef.current) {
+      setPopping(true)
+      prevValueRef.current = value
+    }
+  }, [value])
+
+  return (
+    <span
+      className={cn(
+        'absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-slate-950 bg-amber-400 px-0.5 text-[9px] font-black leading-none text-slate-950',
+        popping && 'animate-badge-pop',
+      )}
+      onAnimationEnd={() => setPopping(false)}
+    >
+      {value > 99 ? '99+' : value}
+    </span>
+  )
+}
+
 export function BottomNav(props: { items: BottomNavItem[] }) {
   const pathname = usePathname()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -88,11 +113,7 @@ export function BottomNav(props: { items: BottomNavItem[] }) {
                       : 'text-slate-400 group-hover:text-cyan-100',
                   )}
                 />
-                {item.badge != null && item.badge > 0 && (
-                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-slate-950 bg-amber-400 px-0.5 text-[9px] font-black leading-none text-slate-950">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
+                {item.badge != null && item.badge > 0 && <NavBadge value={item.badge} />}
                 {item.warning && (
                   <span
                     title="Streak expiring soon"

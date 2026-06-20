@@ -1498,7 +1498,7 @@ export default function Page() {
                         <button
                           type="button"
                           onClick={() => setSearchQuery('')}
-                          className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+                          className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20 active:scale-[0.97]"
                         >
                           Clear search
                         </button>
@@ -1507,7 +1507,7 @@ export default function Page() {
                         <button
                           type="button"
                           onClick={() => setDifficultyFilter(null)}
-                          className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+                          className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20 active:scale-[0.97]"
                         >
                           Clear difficulty
                         </button>

@@ -341,7 +341,7 @@ export default function RewardsPage() {
           action={
             <Link
               href="/tap"
-              className="inline-block rounded-full border border-cyan-300/30 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20"
+              className="inline-block rounded-full border border-cyan-300/30 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20 active:scale-[0.97]"
             >
               Go to Tap
             </Link>
@@ -407,13 +407,13 @@ export default function RewardsPage() {
               <>
                 <Link
                   href="/tasks"
-                  className="inline-block rounded-full border border-lime-300/30 bg-lime-300/15 px-5 py-2 text-xs font-bold text-lime-100 transition hover:bg-lime-300/22"
+                  className="inline-block rounded-full border border-lime-300/30 bg-lime-300/15 px-5 py-2 text-xs font-bold text-lime-100 transition hover:bg-lime-300/22 active:scale-[0.97]"
                 >
                   Browse Quests
                 </Link>
                 <Link
                   href="/tap"
-                  className="inline-block rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/18"
+                  className="inline-block rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-2 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/18 active:scale-[0.97]"
                 >
                   Tap for XP
                 </Link>

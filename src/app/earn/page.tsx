@@ -206,7 +206,7 @@ export default function EarnPage() {
           title="Connect your wallet"
           description="Connect on the Tap page to deposit cUSD and earn XP."
           action={
-            <Link href="/tap" className="rounded-full border border-lime-300/30 bg-lime-300/15 px-5 py-2 text-xs font-bold text-lime-100 transition hover:bg-lime-300/22">
+            <Link href="/tap" className="rounded-full border border-lime-300/30 bg-lime-300/15 px-5 py-2 text-xs font-bold text-lime-100 transition hover:bg-lime-300/22 active:scale-[0.97]">
               Go to Tap
             </Link>
           }

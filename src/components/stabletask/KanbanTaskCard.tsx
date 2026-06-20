@@ -44,7 +44,7 @@ export const KanbanTaskCard = memo(function KanbanTaskCard(props: KanbanTaskCard
   return (
     <Card
       className={cn(
-        'rounded-[1.5rem] border border-white/70 bg-white/80 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-sm',
+        'rounded-[1.5rem] border border-white/70 bg-white/80 py-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-sm transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(15,23,42,0.14)]',
         isOverdue && 'border-rose-200/80 bg-rose-50/60',
       )}
     >

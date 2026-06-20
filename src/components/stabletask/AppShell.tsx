@@ -94,6 +94,8 @@ export function AppShell(props: { children: React.ReactNode }) {
   const isMiniPay = useIsMiniPay();
 
   const switchAttemptedRef = useRef(false);
+  // One-time attention glow on the network chip, played once on first paint.
+  const [chipGlowing, setChipGlowing] = useState(true);
   const [walletSheetOpen, setWalletSheetOpen] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
@@ -292,7 +294,11 @@ export function AppShell(props: { children: React.ReactNode }) {
               </h1>
             </div>
             <div className="relative z-10 flex items-center gap-2">
-              <Badge className="game-chip backdrop-blur">
+              <Badge
+                className={cn("game-chip backdrop-blur", chipGlowing && "animate-glow-pulse-once")}
+                style={chipGlowing ? ({ "--glow-color": "rgba(252, 211, 77, 0.7)" } as React.CSSProperties) : undefined}
+                onAnimationEnd={() => setChipGlowing(false)}
+              >
                 Celo
               </Badge>
               {isConnected ? (

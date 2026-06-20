@@ -301,7 +301,7 @@ export function AppShell(props: { children: React.ReactNode }) {
                   onClick={() => setWalletSheetOpen(true)}
                   className={cn(
                     "inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-50 backdrop-blur transition hover:bg-cyan-300/16",
-                    justConnected && "animate-claim-flash",
+                    justConnected ? "animate-claim-flash" : "animate-fade-in",
                   )}
                   aria-label="Wallet menu"
                   onAnimationEnd={() => setJustConnected(false)}
@@ -311,7 +311,7 @@ export function AppShell(props: { children: React.ReactNode }) {
                 </button>
               ) : isMiniPay ? (
                 // MiniPay: connection is implicit/auto — show a status chip, no manual button.
-                <span className="inline-flex items-center gap-2 rounded-full border border-lime-300/25 bg-lime-300/10 px-3 py-1 text-xs font-semibold text-lime-100 backdrop-blur">
+                <span className="animate-fade-in inline-flex items-center gap-2 rounded-full border border-lime-300/25 bg-lime-300/10 px-3 py-1 text-xs font-semibold text-lime-100 backdrop-blur">
                   <StatusDot status={isConnectPending ? "connecting" : "online"} />
                   {isConnectPending ? "Connecting..." : "MiniPay"}
                 </span>
@@ -322,7 +322,7 @@ export function AppShell(props: { children: React.ReactNode }) {
                   size="sm"
                   onClick={handleConnect}
                   disabled={isConnectPending}
-                  className="border border-lime-300/30 bg-lime-300/15 text-lime-50 hover:bg-lime-300/22"
+                  className="animate-fade-in border border-lime-300/30 bg-lime-300/15 text-lime-50 hover:bg-lime-300/22"
                 >
                   <StatusDot status={isConnectPending ? "connecting" : "offline"} />
                   {isConnectPending ? "Connecting..." : "Connect"}

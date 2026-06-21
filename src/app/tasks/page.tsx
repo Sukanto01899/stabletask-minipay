@@ -222,6 +222,7 @@ export default function Page() {
   const [createGasFeeEstimate, setCreateGasFeeEstimate] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState<Difficulty | null>(null)
+  const [typeFilter, setTypeFilter] = useState<'Visit' | 'Reading' | null>(null)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -289,6 +290,11 @@ export default function Page() {
   const difficultyStorageKey = useMemo(() => {
     const normalizedAddress = address ? address.toLowerCase() : 'guest'
     return `stabletask:difficulty:${normalizedAddress}`
+  }, [address])
+
+  const typeStorageKey = useMemo(() => {
+    const normalizedAddress = address ? address.toLowerCase() : 'guest'
+    return `stabletask:type:${normalizedAddress}`
   }, [address])
 
   const searchStorageKey = useMemo(() => {
@@ -405,6 +411,25 @@ export default function Page() {
       // ignore persistence failures
     }
   }, [difficultyStorageKey, difficultyFilter])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(typeStorageKey)
+    setTypeFilter(stored === 'Visit' || stored === 'Reading' ? stored : null)
+  }, [typeStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      if (typeFilter) {
+        window.localStorage.setItem(typeStorageKey, typeFilter)
+      } else {
+        window.localStorage.removeItem(typeStorageKey)
+      }
+    } catch {
+      // ignore persistence failures
+    }
+  }, [typeStorageKey, typeFilter])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -842,6 +867,7 @@ export default function Page() {
       ) {
         continue
       }
+      if (typeFilter && task.tag !== typeFilter) continue
       if (taskViewPrefs.hideCompleted && task.isCompleted) continue
       if (taskViewPrefs.showOnlyAccepted && !isTaskAccepted(task.id)) continue
       counts[task.difficulty] += 1
@@ -851,6 +877,36 @@ export default function Page() {
     baseVisibleTasks,
     isTaskAccepted,
     searchQuery,
+    typeFilter,
+    taskViewPrefs.hideCompleted,
+    taskViewPrefs.showOnlyAccepted,
+  ])
+
+  const typeCounts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    const counts: Record<'Visit' | 'Reading', number> = { Visit: 0, Reading: 0 }
+    for (const task of baseVisibleTasks) {
+      if (
+        q &&
+        !(
+          task.title.toLowerCase().includes(q) ||
+          task.description.toLowerCase().includes(q) ||
+          (task.tag?.toLowerCase().includes(q) ?? false)
+        )
+      ) {
+        continue
+      }
+      if (difficultyFilter && task.difficulty !== difficultyFilter) continue
+      if (taskViewPrefs.hideCompleted && task.isCompleted) continue
+      if (taskViewPrefs.showOnlyAccepted && !isTaskAccepted(task.id)) continue
+      if (task.tag === 'Visit' || task.tag === 'Reading') counts[task.tag] += 1
+    }
+    return counts
+  }, [
+    baseVisibleTasks,
+    isTaskAccepted,
+    searchQuery,
+    difficultyFilter,
     taskViewPrefs.hideCompleted,
     taskViewPrefs.showOnlyAccepted,
   ])
@@ -870,6 +926,10 @@ export default function Page() {
 
     if (difficultyFilter) {
       filtered = filtered.filter((task) => task.difficulty === difficultyFilter)
+    }
+
+    if (typeFilter) {
+      filtered = filtered.filter((task) => task.tag === typeFilter)
     }
 
     if (taskViewPrefs.hideCompleted) {
@@ -939,6 +999,7 @@ export default function Page() {
   }, [
     baseVisibleTasks,
     difficultyFilter,
+    typeFilter,
     isTaskAccepted,
     isTaskPinned,
     searchQuery,
@@ -1367,12 +1428,13 @@ export default function Page() {
                   </svg>
                 </button>
               )}
-              {!isFetchingTasks && (searchQuery.trim() || difficultyFilter || taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted) && (
+              {!isFetchingTasks && (searchQuery.trim() || difficultyFilter || typeFilter || taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted) && (
                 <button
                   type="button"
                   onClick={() => {
                     setSearchQuery('')
                     setDifficultyFilter(null)
+                    setTypeFilter(null)
                     setTaskViewPrefs((prev) => ({
                       ...prev,
                       hideCompleted: false,
@@ -1456,6 +1518,36 @@ export default function Page() {
             })}
           </div>
 
+          {/* Quest type filter chips */}
+          <div className="flex items-center gap-2">
+            {(
+              [
+                { label: 'Visit',   active: 'border-cyan-400/60   bg-cyan-400/20   text-cyan-200   ring-cyan-400/40',   idle: 'border-cyan-400/25   bg-cyan-400/8   text-cyan-400/70' },
+                { label: 'Reading', active: 'border-fuchsia-400/60 bg-fuchsia-400/20 text-fuchsia-200 ring-fuchsia-400/40', idle: 'border-fuchsia-400/25 bg-fuchsia-400/8 text-fuchsia-400/70' },
+              ] as const
+            ).map(({ label, active, idle }) => {
+              const isActive = typeFilter === label
+              const count = typeCounts[label]
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setTypeFilter(isActive ? null : label)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black transition ${
+                    isActive
+                      ? `${active} ring-1`
+                      : `${idle} hover:border-opacity-50 hover:bg-opacity-15`
+                  }`}
+                >
+                  {label}
+                  <span className="rounded-full bg-slate-950/40 px-1.5 text-[10px] tabular-nums">
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
           <div className="grid gap-4">
             {isFetchingTasks && (
               <>
@@ -1485,14 +1577,18 @@ export default function Page() {
                 description={
                   searchQuery.trim()
                     ? `No quests match "${searchQuery.trim()}". Try a different keyword.`
-                    : difficultyFilter
-                      ? `No ${difficultyFilter} quests available right now.`
-                      : taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted
-                        ? 'Some quests may be hidden by your active filters.'
-                        : 'Claimed rewards appear in the Rewards tab.'
+                    : difficultyFilter && typeFilter
+                      ? `No ${difficultyFilter} ${typeFilter} quests available right now.`
+                      : difficultyFilter
+                        ? `No ${difficultyFilter} quests available right now.`
+                        : typeFilter
+                          ? `No ${typeFilter} quests available right now.`
+                          : taskViewPrefs.hideCompleted || taskViewPrefs.showOnlyAccepted
+                            ? 'Some quests may be hidden by your active filters.'
+                            : 'Claimed rewards appear in the Rewards tab.'
                 }
                 action={
-                  (searchQuery.trim() || difficultyFilter) && (
+                  (searchQuery.trim() || difficultyFilter || typeFilter) && (
                     <>
                       {searchQuery.trim() && (
                         <button
@@ -1510,6 +1606,15 @@ export default function Page() {
                           className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20 active:scale-[0.97]"
                         >
                           Clear difficulty
+                        </button>
+                      )}
+                      {typeFilter && (
+                        <button
+                          type="button"
+                          onClick={() => setTypeFilter(null)}
+                          className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-1.5 text-xs font-bold text-cyan-100 transition hover:bg-cyan-300/20 active:scale-[0.97]"
+                        >
+                          Clear type
                         </button>
                       )}
                     </>

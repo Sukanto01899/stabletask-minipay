@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useToast } from '@/components/ui/toast'
 import { copyText } from '@/lib/clipboard'
+import { buildReferralLink } from '@/lib/referral-link'
 
 export function ReferralCard(props: { code: string; reward: string }) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
@@ -35,7 +36,8 @@ export function ReferralCard(props: { code: string; reward: string }) {
 
   const handleShare = async () => {
     if (!codeAvailable) return
-    const shareText = `Use my StableTask referral code: ${props.code}`
+    const referralLink = buildReferralLink(props.code)
+    const shareText = `Join me on StableTask and earn cUSD! Use my code ${props.code} or just open: ${referralLink}`
 
     try {
       const nav = navigator as Navigator & {

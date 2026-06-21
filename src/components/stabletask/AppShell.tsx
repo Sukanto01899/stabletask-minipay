@@ -26,6 +26,7 @@ import { stableTaskConfig } from "@/lib/app-config";
 import { copyText } from "@/lib/clipboard";
 import { detectMiniPay, useIsMiniPay } from "@/lib/minipay";
 import { usePendingCount } from "@/lib/pending-count-context";
+import { captureReferralFromUrl, clearPendingReferralCode, getPendingReferralCode } from "@/lib/referral-link";
 import { cn } from "@/lib/utils";
 
 type Eip1193Provider = {
@@ -225,6 +226,42 @@ export function AppShell(props: { children: React.ReactNode }) {
   useEffect(() => {
     if (!walletSheetOpen) setConfirmDisconnect(false);
   }, [walletSheetOpen]);
+
+  // Capture a `?ref=` referral code from the landing URL (if any) so it
+  // survives the wallet-connect redirect/reload, then strip it from the bar.
+  useEffect(() => {
+    captureReferralFromUrl();
+  }, []);
+
+  // Redeem a pending referral code once a wallet is connected. The API is
+  // idempotent (upsert on referrer+referee), so it's safe to call on every
+  // reconnect — we still clear the local copy after the first attempt so we
+  // don't keep retrying a code that's invalid or self-referred.
+  const referralRedeemAttempted = useRef(false);
+  useEffect(() => {
+    if (!isConnected || !address || referralRedeemAttempted.current) return;
+    const pendingCode = getPendingReferralCode();
+    if (!pendingCode) return;
+
+    referralRedeemAttempted.current = true;
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/referral", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddress: address, referralCode: pendingCode }),
+        });
+        if (res.ok) {
+          toast({ title: "Referral applied", description: "You joined via a referral link.", variant: "success" });
+        }
+      } catch (error) {
+        console.error("Failed to redeem referral code:", error);
+      } finally {
+        clearPendingReferralCode();
+      }
+    })();
+  }, [isConnected, address, toast]);
 
   // MiniPay connection is implicit: auto-connect the injected wallet on load.
   // Guarded by detectMiniPay() so desktop browsers are not force-prompted.

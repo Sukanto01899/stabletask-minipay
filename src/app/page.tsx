@@ -43,6 +43,8 @@ function getTier(xp: number): Tier {
   return XP_TIERS.findLast((t) => xp >= t.min) ?? XP_TIERS[0]
 }
 
+const STREAK_MILESTONES = [3, 7, 30]
+
 function formatAmount(value: string) {
   const num = parseFloat(value)
   if (isNaN(num)) return '0'
@@ -208,6 +210,36 @@ export default function HomePage() {
       window.localStorage.setItem(key, String(tierIndex))
     }
   }, [isFetchingTasks, address, tierIndex, tier.label, tier.next, nextTier, toast])
+
+  // Celebrate when the daily streak crosses a milestone. Same last-seen
+  // pattern as tier-up: stored per wallet so the first observation just
+  // seeds the baseline, and a streak reset/regrowth can celebrate again.
+  useEffect(() => {
+    if (isStreakLoading || !address || typeof window === 'undefined') return
+    const key = `stabletask:lastStreakSeen:${address.toLowerCase()}`
+    const stored = window.localStorage.getItem(key)
+    const storedCount = stored !== null ? Number.parseInt(stored, 10) : null
+
+    if (storedCount === null || Number.isNaN(storedCount)) {
+      window.localStorage.setItem(key, String(streakCount))
+      return
+    }
+    if (streakCount > storedCount) {
+      const milestone = STREAK_MILESTONES.filter((m) => m > storedCount && m <= streakCount).at(-1)
+      if (milestone) {
+        fireConfetti()
+        toast({
+          title: `🔥 ${milestone}-day streak!`,
+          description: 'Keep checking in daily to grow your streak.',
+          variant: 'success',
+          durationMs: 4000,
+        })
+      }
+    }
+    if (streakCount !== storedCount) {
+      window.localStorage.setItem(key, String(streakCount))
+    }
+  }, [isStreakLoading, address, streakCount, toast])
 
   const levelPct =
     tier.next !== null

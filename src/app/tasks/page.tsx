@@ -1399,6 +1399,26 @@ export default function Page() {
               <div className="text-xs text-slate-500">ready to claim</div>
             </div>
           </div>
+
+          {/* Today's progress */}
+          {!isFetchingTasks && tasks.length > 0 && (
+            <div className="relative mt-4">
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="font-black uppercase tracking-[0.12em] text-slate-500">
+                  Today
+                </span>
+                <span className="font-bold text-slate-300">
+                  {Math.min(claimedTodayCount, tasks.length)} / {tasks.length} done
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-400/80 to-lime-400/70 transition-all duration-700"
+                  style={{ width: `${Math.min(100, (claimedTodayCount / tasks.length) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </section>
 
         <section id="tasks-list" className="space-y-3">
